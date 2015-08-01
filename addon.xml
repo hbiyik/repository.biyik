@@ -1,6 +1,5 @@
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="repository.boogie" name="Boogie's Kodi Repo" version="0.1.0" provider-name="boogiepop">
-	<extension point="xbmc.addon.repository" name="Boogie's Kodi Repo">
+<?xml version="1.0" encoding="UTF-8"?><addon id="repository.boogie" name="Boogie's Kodi Repo" provider-name="boogiepop" version="0.0.1">
+	<extension name="Boogie's Kodi Repo" point="xbmc.addon.repository">
 		<info compressed="false">http://raw.github.com/huseyinbiyik/repository.boogie.dist/master/addons.xml</info>
 		<checksum>http://raw.github.com/huseyinbiyik/repository.boogie.dist/master/addons.xml.md5</checksum>
 		<datadir zip="true">http://raw.github.com/huseyinbiyik/repository.boogie.dist/master</datadir>
