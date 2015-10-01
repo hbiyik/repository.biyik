@@ -1,3 +1,5 @@
+2015-10-01: update distribution server
+2015-08-02: 0.0.2 Version Release
 2015-08-02: meta, and gitignore update
 2015-08-01: 0.0.1 Version Release
 2015-08-01: 0.0.1 Version Release
