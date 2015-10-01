@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?><addon id="repository.boogie" name="Boogie's Kodi Repo" provider-name="boogiepop" version="0.0.3">
+<?xml version="1.0" encoding="UTF-8"?><addon id="repository.boogie" name="Boogie's Kodi Repo" provider-name="boogiepop" version="0.0.4">
 	<extension name="Boogie's Kodi Repo" point="xbmc.addon.repository">
 		<info compressed="false">http://offshoregit.com/boogiepop/repository.boogie.dist/addons.xml</info>
 		<checksum>http://offshoregit.com/boogiepop/repository.boogie.dist/addons.xml.md5</checksum>
