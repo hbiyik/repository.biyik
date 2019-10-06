@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.0.1">
+    <requires>
+		<import addon="xbmc.python" version="2.1.0"/>
+		<import addon="script.module.cachecontrol"/>
+		<import addon="script.module.requests"/>
+		<import addon="script.module.js2py"/>
+		<import addon="script.module.importlib" optional="true"/>
+	</requires>
+	<extension point="xbmc.python.module" library="lib" />
+	<extension point="xbmc.addon.metadata">
+		<platform>all</platform>
+		<summary lang="en">TinxyXBMC module</summary>
+		<description lang="en">TinyXBMC</description>
+		<license>GNU General Public License, v2</license>
+		<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
+		<website>https://github.com/hbiyik/repository.biyik</website>
+	</extension>
+</addon>

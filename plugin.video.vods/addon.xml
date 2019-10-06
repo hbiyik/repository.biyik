@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<addon id="plugin.video.vods" name="VODS" provider-name="hbiyik" version="0.0.1">
+    <requires>
+		<import addon="xbmc.python" version="2.19.0"/>
+		<import addon="script.module.tinyxbmc"/>
+		<import addon="script.module.ghub"/>
+		<import addon="script.module.chardet"/>
+	</requires>
+	<extension library="addon.py" point="xbmc.python.pluginsource">
+		<provides>video</provides>
+	</extension>
+	<extension point="xbmc.addon.metadata">
+		<platform>all</platform>
+		<summary lang="en">VIDEO ON DEMAND framework</summary>
+		<description lang="en">VIDEO ON DEMAND framework</description>
+		<license>GNU General Public License, v2</license>
+		<language/>
+		<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
+		<website>https://github.com/hbiyik/repository.biyik</website>
+	</extension>
+</addon>

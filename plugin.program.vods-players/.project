@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<projectDescription>
+	<name>plugin.program.vods-players</name>
+	<comment></comment>
+	<projects>
+		<project>Kodistubs-master</project>
+		<project>plugin.video.vods</project>
+		<project>script.module.ghub</project>
+		<project>script.module.tinyxbmc</project>
+	</projects>
+	<buildSpec>
+		<buildCommand>
+			<name>org.python.pydev.PyDevBuilder</name>
+			<arguments>
+			</arguments>
+		</buildCommand>
+	</buildSpec>
+	<natures>
+		<nature>org.python.pydev.pythonNature</nature>
+	</natures>
+</projectDescription>

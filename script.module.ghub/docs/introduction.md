@@ -1,0 +1,1 @@
+script.module.ghub is a KODI/XBMC addon module, that helps you to load a module from github in runtime.

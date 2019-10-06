@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<addon id="script.module.abi" name="Abi Module" provider-name="hbiyik" version="0.0.1">
+    <requires>
+		<import addon="xbmc.python" version="2.1.0"/>
+	</requires>
+	<extension point="xbmc.python.module" library="lib" />
+	<extension point="xbmc.addon.metadata">
+		<platform>all</platform>
+		<summary lang="en">Python ABI tools for loading precompiled packages</summary>
+		<summary lang="tr">Derlenmiş kod yüklemek için Python ABI araçları</summary>
+		<description lang="en">ABI Module</description>
+		<license>GNU General Public License, v2</license>
+		<forum>https://github.com/hbiyik/script.module.abi/issues</forum>
+		<website>https://github.com/hbiyik/script.module.abi</website>
+		<email>huseyinbiyik@hotmail.com</email>
+	</extension>
+</addon>

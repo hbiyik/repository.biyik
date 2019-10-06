@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<addon id="script.module.lockfile" name="Lockfile Module" provider-name="hbiyik" version="0.12.2">
+    <requires>
+		<import addon="xbmc.python" version="2.1.0"/>
+	</requires>
+	<extension point="xbmc.python.module" library="lib" />
+	<extension point="xbmc.addon.metadata">
+		<platform>all</platform>
+		<summary lang="en">Lockfile module</summary>
+		<description lang="en">Lockfile</description>
+		<license>GNU General Public License, v2</license>
+		<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
+		<website>https://github.com/hbiyik/repository.biyik</website>
+	</extension>
+</addon>

@@ -1,0 +1,52 @@
+plugin.program.anon
+    |
+    +---> script.module.tinyxbmc
+
+plugin.video.vods
+    |
+    +---> script.module.chardet
+    +---> script.module.tinyxbmc
+            |
+            +---> script.module.requests
+            +---> script.module.importlib
+            +---> script.module.cachecontrol
+            |       |
+            |       +---> script.module.lockfile
+            |       +---> script.module.requests (kodi)
+            |       +---> script.module.tinyxbmc (optional)
+            +---> script.module.js2py
+                    |
+                    +---> script.module.six (kodi)
+                    +---> script.module.tzlocal (kodi)
+                    +---> script.module.pyjsparser
+
+service.vods.dmax
+    |
+    +---> plugin.video.vods
+    +---> script.module.htmlement
+
+service.vods.cnnturk
+    |
+    +---> plugin.video.motorsportstv
+    +---> script.module.htmlement
+
+service.vods.tdf
+    |
+    +---> plugin.video.vods
+    +---> script.module.htmlement
+
+service.subtitles.turkcealtyazi
+    |
+    +---> script.module.sublib
+            +---> vfs.rar (optional)
+            +---> vfs.libarchive (optional)
+
+service.subtitles.planetdp (broken)
+    |
+    +---> script.module.sublib
+            +---> htmlement
+            +---> vfs.rar (optional)
+            +---> vfs.libarchive (optional)
+
+script.module.htmlement
+script.module.abi

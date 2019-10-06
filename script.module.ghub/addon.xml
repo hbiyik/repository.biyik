@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<addon id="script.module.ghub" name="GHub" provider-name="hbiyik" version="0.0.1">
+    <requires>
+		<import addon="xbmc.python" version="2.19.0"/>
+		<import addon="script.module.htmlement" version="0.2.3"/>
+	</requires>
+	<extension point="xbmc.python.module" library="lib" />
+	<extension point="xbmc.addon.metadata">
+		<platform>all</platform>
+		<summary lang="en">Automatically import module from github</summary>
+		<description lang="en">Automatically import module from github</description>
+		<license>GNU General Public License, v2</license>
+		<language/>
+		<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
+		<website>https://github.com/hbiyik/repository.biyik</website>
+	</extension>
+</addon>

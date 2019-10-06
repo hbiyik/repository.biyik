@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<addon id="plugin.program.anon" name="ANON" provider-name="hbiyik" version="0.0.1">
+  <requires>
+    <import addon="xbmc.python" version="2.1.0" />
+    <import addon="script.module.tinyxbmc"/>
+    <import addon="service.system.docker" optional="true"/>
+  </requires>
+  <extension point="xbmc.python.pluginsource" library="addon.py">
+		<provides>executable</provides>
+  </extension>
+  <extension point="xbmc.addon.metadata">
+    <platform>all</platform>
+    <summary lang="en">System Anonymizer through TOR + VPN</summary>
+  </extension>
+  <extension library="lib" point="xbmc.python.module" />
+  <extension point="xbmc.addon.metadata">
+		<platform>all</platform>
+		<summary lang="en">System Anonymizer through TOR + VPN</summary>
+		<description lang="en">System Anonymizer through TOR + VPN</description>
+		<license>GNU General Public License, v2</license>
+		<language/>
+		<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
+		<source/>
+		<website>https://github.com/hbiyik/repository.biyik</website>
+  </extension>
+</addon>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<addon id="service.subtitles.turkcealtyazi" name="Turkcealtyazi.org" provider-name="hbiyik" version="0.0.5">
+  <requires>
+    <import addon="xbmc.python" version="2.1.0"/>
+    <import addon="script.module.sublib" version="0.0.5"/>
+    <import addon="script.module.htmlement"/>
+  </requires>
+  <extension library="addon.py" point="xbmc.subtitle.module"/>
+  <extension point="xbmc.addon.metadata">
+  	<platform>all</platform>
+    <summary lang="en">Turkcealtyazi.org</summary>
+    <description lang="en">Turkish / English Subtitle Service from turkcealtyazi.org</description>
+    <description lang="tr">Turkcealtyazi.org altyazı servisi</description>
+    <license>GNU General Public License, v2</license>
+	<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
+	<website>https://github.com/hbiyik/repository.biyik</website>
+	<broken>site is using recaptcha now</broken>
+  </extension>
+</addon>

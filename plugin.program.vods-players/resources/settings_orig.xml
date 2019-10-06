@@ -1,0 +1,24 @@
+<?xml version="1.0" ?><settings>
+	<category id="about" label="About">
+		<setting label="Boogie Players:" type="lsep"/>
+		<setting label="This Addon is completely free, and distributed under GPL License" type="lsep"/>
+		<setting label="you can not sell, rent or make profit out of it." type="lsep"/>
+		<setting label="" type="lsep"/>
+		<setting label="To get support about this addon, visit:" type="lsep"/>
+		<setting label="http://github.com/hbiyik/plugin.program.boogie-players" type="lsep"/>
+	</category>
+	<category id="ydl" label="Youtube-DL">
+		<setting default="rg3" id="ydl_uname" label="Github Username" type="text"/>
+		<setting default="Custom Branch" id="ydl_source" label="Github Source" type="select" values="Latest Release|Custom Branch"/>
+		<setting default="master" id="ydl_branch" label="Github Branch" type="text" visible="eq(-1,Custom Branch)"/>
+		<setting default="Latest Commit" id="ydl_branch_source" label="Github Branch Source" type="select" values="Latest Commit|Custom Commit" visible="eq(-2,Custom Branch)"/>
+		<setting default="latest" id="ydl_commit" label="Github Commit" type="text" visible="eq(-3,Custom Branch)+eq(-1,Custom Commit)"/>
+	</category>
+	<category id="smu" label="URL Resolvers">
+		<setting default="jsergio123" id="smu_uname" label="Github Username" type="text"/>
+		<setting default="Custom Branch" id="smu_source" label="Github Source" type="select" values="Latest Release|Custom Branch"/>
+		<setting default="master" id="smu_branch" label="Github Branch" type="text" visible="eq(-1,Custom Branch)"/>
+		<setting default="Latest Commit" id="smu_branch_source" label="Github Branch Source" type="select" values="Latest Commit|Custom Commit" visible="eq(-2,Custom Branch)"/>
+		<setting default="latest" id="smu_commit" label="Github Commit" type="text" visible="eq(-3,Custom Branch)+eq(-1,Custom Commit)"/>
+	</category>
+</settings>

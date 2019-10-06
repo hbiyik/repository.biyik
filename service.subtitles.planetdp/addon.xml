@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<addon id="service.subtitles.planetdp" name="Planetdp.org" version="0.0.5" provider-name="hbiyik">
+  <requires>
+    <import addon="xbmc.python" version="2.1.0"/>
+    <import addon="script.module.sublib" version="0.0.5"/>
+  </requires>
+  <extension point="xbmc.subtitle.module" library="addon.py" />
+  <extension point="xbmc.addon.metadata">
+  	<platform>all</platform>
+    <summary lang="en">Planetdp.org</summary>
+    <description lang="en">Turkish / English Subtitle Service from planetdp.org</description>
+    <description lang="tr">planetdp.org ile Türkçe / İngilizce altyazı servisi</description>
+    <license>GNU General Public License, v2</license>
+	<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
+	<website>https://github.com/hbiyik/repository.biyik</website>
+  </extension>
+</addon>
