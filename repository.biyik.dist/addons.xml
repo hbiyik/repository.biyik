@@ -215,7 +215,7 @@
 	</extension>
 </addon>
 
-<addon id="service.vods.cnnturk" name="CNNTurk module for VODS" provider-name="hbiyik" version="0.0.2">
+<addon id="service.vods.cnnturk" name="CNNTurk module for VODS" provider-name="hbiyik" version="0.0.3">
   <requires>
     <import addon="xbmc.python" version="2.1.0" />
     <import addon="plugin.video.vods" />
