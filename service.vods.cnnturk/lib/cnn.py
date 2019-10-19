@@ -31,7 +31,7 @@ class cnnturk(vods.showextension):
            "icon": "http://www.gundemgazetesi.net/d/other/cnn_t_rk-001.png",
            "thumb": "http://www.gundemgazetesi.net/d/other/cnn_t_rk-001.png"
            }
-    perpage = 20
+    perpage = 50
     uselinkplayers = False
     useaddonplayers = False
     cats = {"Programlar": "/tv-cnn-turk/programlar/",
@@ -136,9 +136,11 @@ class cnnturk(vods.showextension):
                 continue
             info = {"date": dt}
             art = {"thumb": img, "icon": img, "poster": img}
+            if not dt == "":
+                name = "%s - %s" % (dt, name)
             self.additem(name, url, info, art)
-        if len(js) == self.perpage:
-            self.setnextpage(p + self.perpage, "Daha Eski")
+        if len(js) == perpage:
+            self.setnextpage(p + perpage, "Daha Eski")
 
     def cacheepisodes(self, url):
         info = {"plot": "", "plotoutline": ""}
