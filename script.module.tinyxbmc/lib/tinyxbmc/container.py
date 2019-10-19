@@ -222,7 +222,10 @@ class container(object):
         if "user-agent" not in [x.lower() for x in headers.keys()]:
             headers["user-agent"] = self._container.useragent
         for k, v in d.iteritems():
-            d[k] = net.kodiurl(v, headers=headers)
+            try:
+                d[k] = net.kodiurl(v, headers=headers)
+            except Exception:
+                pass
         return d
 
     def _setview(self, ct):
