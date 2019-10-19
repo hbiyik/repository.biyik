@@ -31,7 +31,7 @@ class cnnturk(vods.showextension):
            "icon": "http://www.gundemgazetesi.net/d/other/cnn_t_rk-001.png",
            "thumb": "http://www.gundemgazetesi.net/d/other/cnn_t_rk-001.png"
            }
-    perpage = 10
+    perpage = 20
     uselinkplayers = False
     useaddonplayers = False
     cats = {"Programlar": "/tv-cnn-turk/programlar/",
@@ -67,7 +67,7 @@ class cnnturk(vods.showextension):
             namergx = namergx + ".*?<time>(.*?)</time>"
         names = re.findall(namergx, page, re.DOTALL)
         for row in names:
-            id = row[0]
+            _id = row[0]
             name = row[1]
             if hastime:
                 dt = row[2]
@@ -78,7 +78,7 @@ class cnnturk(vods.showextension):
                     break
             if not img.startswith("http"):
                 img = "http:" + img
-            rets.append([id, img, name, dt])
+            rets.append([_id, img, name, dt])
         return rets
 
     def getcategories(self):
@@ -115,18 +115,25 @@ class cnnturk(vods.showextension):
         for _, cat in self.cats.iteritems():
             self.scrapeshows(cat, keyw)
 
-    def getepisodes(self, show=None, sea=None):
+    def searchepisodes(self, keyword=None):
+        self.getepisodes(None, None, keyword, 500)
+
+    def getepisodes(self, show=None, sea=None, flt=None, perpage=None):
+        if not perpage:
+            perpage = self.perpage
         if not self.page:
             p = 0
         else:
             p = self.page
         if not show:
-            show = "/tv-cnn-turk/"
+            show = "/videolar/"
         page = self.download("%s%s" % (self.domain, show))
         show = re.findall('data-paths="(.*?)"', page)[0]
-        js = self._getjson(show, "StartDate desc", "true", "TVShow", p, self.perpage)
+        js = self._getjson(show, "StartDate desc", "true", "NewsVideo,TVShow", p, perpage)
         for episode in js:
             url, img, name, dt = episode
+            if flt and not flt.lower() in name.lower():
+                continue
             info = {"date": dt}
             art = {"thumb": img, "icon": img, "poster": img}
             self.additem(name, url, info, art)
@@ -148,7 +155,6 @@ class cnnturk(vods.showextension):
         return info, {}
 
     def geturls(self, url):
-        print url
         eurl = self.domain + url
         epipage = self.download(eurl)
         cid = re.findall('\["contentid", "(.*?)"\]', epipage)[0]
@@ -171,10 +177,9 @@ class cnnturk(vods.showextension):
         #print p1.encode("ascii", "replace")
         """
         js = self.download("%s/action/media/%s" % (self.domain, cid))
-        print js.encode("ascii", "replace")
         js = json.loads(js)
-        m3u8 = "%s/%s|Referer=%s" % (#js["Media"]["Link"]["ServiceUrl"],
-                                     "https://soledge7.dogannet.tv",
+        m3u8 = "%s/%s|Referer=%s" % (js["Media"]["Link"].get("ServiceUrl",
+                                                             "https://soledge7.dogannet.tv"),
                                      js["Media"]["Link"]["SecurePath"],
                                      eurl)
         yield m3u8
