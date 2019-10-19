@@ -23,8 +23,6 @@ import vods
 import htmlement
 import json
 
-ua = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.108 Safari/537.36"
-
 
 class motorsports(vods.showextension):
     title = u"Motorsports.tv"
@@ -33,14 +31,15 @@ class motorsports(vods.showextension):
     useaddonplayers = False
 
     def getcategories(self):
-        self.additem("Racing Series", "racing")
-        self.additem("Programs", "program")
-        self.additem("Channels", "channel")
+        self.additem("Racing Series", ("racing", "racingList", "racingSeries"))
+        self.additem("Programs", ("program", "programList", "program"))
+        self.additem("Channels", ("channel", "channelList", "channel"))
 
     def getshows(self, cat, keyw=None):
         if cat:
+            cat, sub1, sub2 = cat
             js = self.getjson(self.domain + "/" + cat)
-            for itemid, item in js[cat + "List"]["response"]["entities"][cat].iteritems():
+            for itemid, item in js[sub1]["response"]["entities"][sub2].iteritems():
                 link = "/%s/%s/%s" % (cat, item["title"], itemid)
                 art = {"icon": item["avatar"]["retina"],
                        "thumb": item["avatar"]["retina"],
@@ -82,7 +81,7 @@ class motorsports(vods.showextension):
         video = tree.find(".//video")
         print video
         if video is not None:
-            headers = {"User-Agent": ua, "Referer": url}
+            headers = {"Referer": url}
             kodiurl = "%s|%s" % (video.get("src"), urllib.urlencode(headers))
             print kodiurl
             yield kodiurl
