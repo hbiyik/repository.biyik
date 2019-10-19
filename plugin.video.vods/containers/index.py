@@ -311,8 +311,11 @@ class index(container.container):
     def getshows(self, cat=None):
         if not self.chan.page and not cat:
             if self._isimp(showextension, "searchshows"):
-                li = self.item("Search", method="search")
+                li = self.item("Search Shows", method="search")
                 li.dir(2, None, **self.chan._tinyxbmc)
+            if self._isimp(showextension, "searchepisodes"):
+                li = self.item("Search Episodes", method="search")
+                li.dir(3, None, **self.chan._tinyxbmc)
             if self._isimp(showextension, "getcategories"):
                 li = self.item("Categories", method="getcategories")
                 li.dir(None, **self.chan._tinyxbmc)
@@ -338,9 +341,6 @@ class index(container.container):
 
     @channelmethod
     def getepisodes(self, show, sea):
-        if self._isimp(showextension, "searchepisodes"):
-            li = self.item("Search", method="search")
-            li.dir(None, 3, True, **self.chan._tinyxbmc)
         for name, url, info, art in self.chan.items:
             info, art = self._cachemeta(url, info, art, "episode")
             li = self.item(name, info, art, method="geturls")
