@@ -99,7 +99,7 @@ class motorsports(vods.showextension):
         dt = episode.get(key)
         if not dt:
             return datetime.datetime(1970, 1, 1)
-        if isinstance(dt, (int, float)):
+        if isinstance(dt, (int, float, long)):
             return datetime.datetime.fromtimestamp(float(dt)/1000)
         else:
             return datetime.datetime.strptime(episode[key][:-6], "%Y-%m-%dT%H:%M:%S")
