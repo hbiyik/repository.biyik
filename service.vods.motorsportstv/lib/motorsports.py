@@ -24,7 +24,6 @@ import htmlement
 import json
 
 from tinyxbmc.net import kodiurl
-from hamcrest.library.collection import isin
 
 
 class motorsports(vods.showextension):
