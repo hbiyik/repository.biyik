@@ -36,30 +36,31 @@ class motorsports(vods.showextension):
     def getcategories(self):
         self.additem("Racing Series", ("racing", "racingList", "racingSeries"))
         self.additem("Programs", ("program", "programList", "program"))
-        self.additem("Channels", ("channel", "channelList", "channel"))
+        self.additem("Live", ("livestream", None, None))
 
     def getshows(self, cat, keyw=None):
         if cat:
             cat, sub1, sub2 = cat
-            js = self.getjson(self.domain + "/" + cat)
-            for itemid, item in js[sub1]["response"]["entities"][sub2].iteritems():
-                link = "/%s/%s/%s" % (cat, item["title"], itemid)
-                art = {"icon": item["avatar"]["retina"],
-                       "thumb": item["avatar"]["retina"],
-                       "poster": item["avatar"]["retina"],
-                       }
-                fanart = item["featureImage"]["retina"]
-                if fanart:
-                    art["fanart"] = fanart
-                elif "largeBgimage" in item:
-                    fanart = item["largeBgimage"].get("retina", art["icon"])
-                info = {"plot": item.get("description", ""),
-                        "plotoutline": item.get("description", "")
-                        }
-                self.additem(item["title"], (link, art, cat), info, art)
-
-    def searchshows(self, keyw):
-        self.getshows(None, keyw)
+            if cat == "livestream":
+                self.additem("Live Now", ("/livestream", {}, "livenow"), {}, {})
+                self.additem("Live Upcoming", ("/livestream", {}, "upcoming"), {}, {})
+            else:
+                js = self.getjson(self.domain + "/" + cat)
+                for itemid, item in js[sub1]["response"]["entities"][sub2].iteritems():
+                    link = "/%s/%s/%s" % (cat, item["title"], itemid)
+                    art = {"icon": item["avatar"]["retina"],
+                           "thumb": item["avatar"]["retina"],
+                           "poster": item["avatar"]["retina"],
+                           }
+                    fanart = item["featureImage"]["retina"]
+                    if fanart:
+                        art["fanart"] = fanart
+                    elif "largeBgimage" in item:
+                        fanart = item["largeBgimage"].get("retina", art["icon"])
+                    info = {"plot": item.get("description", ""),
+                            "plotoutline": item.get("description", "")
+                            }
+                    self.additem(item["title"], (link, art, cat), info, art)
 
     def getjson(self, uri):
         page = self.download(uri)
@@ -96,38 +97,59 @@ class motorsports(vods.showextension):
         key = "date"
         if episode.get("episodeDate"):
             key = "episodeDate"
-        dt = episode[key]
+        dt = episode.get(key)
+        if not dt:
+            return datetime.datetime(1970, 1, 1)
         if isinstance(dt, (int, float)):
             return datetime.datetime.fromtimestamp(float(dt)/1000)
         else:
             return datetime.datetime.strptime(episode[key][:-6], "%Y-%m-%dT%H:%M:%S")
 
     def getepisodes(self, show=None, sea=None):
-        uri, art, cat = show
+        if show is None:
+            uri = ""
+            cat = None
+            art = {}
+        else:
+            uri, art, cat = show
         js = self.getjson(self.domain + uri)
 
         if cat == "racing":
             episodes = [x[1] for x in js["racingItem"]["response"]["entities"]["episode"].iteritems()]
+        elif cat == "program":
+            episodes = []
+            for carousel in js["programItem"]["response"]["carousels"]:
+                episodes.extend(carousel["episodes"])
+        elif cat in ["upcomin", "livenow"]:
+            episodes = js["livestreamSchedule"]["data"]
         else:
             episodes = []
-            for carousel in js[cat + "Item"]["response"]["carousels"]:
-                episodes.extend(carousel["episodes"])
-
+            for data in js["home"]["data"]:
+                if data["title"] in ["liveNow", "recentlyAdded"]:
+                    episodes.extend(data["slides"])
+        # fix date formatting and convert to datetime objects
         for episode in episodes:
             episode["date"] = self.epidate(episode)
 
         for episode in sorted(episodes, key=lambda i: i["date"], reverse=True):
             titles = []
-            if episode.get("livestream"):
+            if episode.get("livestream") or episode.get("type") == "livestream":
+                if episode.get("livestreamRecordingStatus") == "STATUS_RECORD_NOT_STARTED":
+                    if cat == "upcoming":
+                        titles.append("[UPCOMING]")
+                    else:
+                        continue
                 titles.append("[LIVE]")
-            if not episode["type"] == "default" and False:
-                return
+                titles.append("[%s]" % episode["program"]["title"])
+
             epiart = art.copy()
-            epiart["icon"] = epiart["icon"] = epiart["icon"] = self.epiimg(episode)
+            epiart["icon"] = epiart["thumb"] = epiart["poster"] = self.epiimg(episode)
             try:
-                titles.append(episode["date"].strftime("%d.%m.%Y"))
+                titles.append(episode["date"].strftime("%d.%m.%Y %H:%M"))
             except Exception:
                 pass
+            if episode.get("subtitle"):
+                titles.append(episode["subtitle"])
             titles.append(episode[u"title"])
             self.additem(" - ".join(titles), self.epilink(episode), None, epiart)
 
@@ -138,9 +160,7 @@ class motorsports(vods.showextension):
                 yield u
         if resolve:
             url = self.domain + url
-            print url
             tree = htmlement.fromstring(self.download(url))
             video = tree.find(".//video/source")
-            print video
             if video is not None:
                 yield kodiurl(video.get("src"), headers={"Referer": url})
