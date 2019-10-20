@@ -119,7 +119,7 @@ class motorsports(vods.showextension):
             episodes = []
             for carousel in js["programItem"]["response"]["carousels"]:
                 episodes.extend(carousel["episodes"])
-        elif cat in ["upcomin", "livenow"]:
+        elif cat in ["upcoming", "livenow"]:
             episodes = js["livestreamSchedule"]["data"]
         else:
             episodes = []
@@ -130,9 +130,10 @@ class motorsports(vods.showextension):
         for episode in episodes:
             episode["date"] = self.epidate(episode)
 
-        for episode in sorted(episodes, key=lambda i: i["date"], reverse=True):
+        for episode in sorted(episodes, key=lambda i: i["date"], reverse=not cat == "upcoming"):
             titles = []
-            if episode.get("livestream") or episode.get("type") == "livestream":
+            print episode
+            if episode.get("livestream"):
                 if episode.get("livestreamRecordingStatus") == "STATUS_RECORD_NOT_STARTED":
                     if cat == "upcoming":
                         titles.append("[UPCOMING]")
@@ -140,6 +141,11 @@ class motorsports(vods.showextension):
                         continue
                 titles.append("[LIVE]")
                 titles.append("[%s]" % episode["program"]["title"])
+            elif episode.get("type") == "livestream":
+                titles.append("[LIVE]")
+
+            if episode.get("subtitle"):
+                titles.append(episode["subtitle"])
 
             epiart = art.copy()
             epiart["icon"] = epiart["thumb"] = epiart["poster"] = self.epiimg(episode)
@@ -147,8 +153,6 @@ class motorsports(vods.showextension):
                 titles.append(episode["date"].strftime("%d.%m.%Y %H:%M"))
             except Exception:
                 pass
-            if episode.get("subtitle"):
-                titles.append(episode["subtitle"])
             titles.append(episode[u"title"])
             self.additem(" - ".join(titles), self.epilink(episode), None, epiart)
 
