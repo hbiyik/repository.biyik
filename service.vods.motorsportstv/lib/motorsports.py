@@ -102,7 +102,7 @@ class motorsports(vods.showextension):
         if not dt:
             return self.localtime(datetime.datetime(1970, 1, 1))
         if isinstance(dt, (int, float, long)):
-            return self.localtime(datetime.datetime.fromtimestamp(float(dt)/1000))
+            return self.localtime(datetime.datetime.utcfromtimestamp(float(dt)/1000))
         else:
             return self.localtime(datetime.datetime.strptime(episode[key][:-6], "%Y-%m-%dT%H:%M:%S"))
 
