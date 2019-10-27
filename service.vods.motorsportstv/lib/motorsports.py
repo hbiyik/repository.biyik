@@ -19,11 +19,15 @@
 '''
 import re
 import datetime
+import tzlocal
+import pytz
 import vods
 import htmlement
 import json
 
 from tinyxbmc.net import kodiurl
+
+tz = tzlocal.get_localzone()
 
 
 class motorsports(vods.showextension):
@@ -94,15 +98,20 @@ class motorsports(vods.showextension):
 
     def epidate(self, episode):
         key = "date"
-        if episode.get("episodeDate"):
-            key = "episodeDate"
+        for _key in ["livestreamStartDatetime", "episodeDate"]:
+            if episode.get(_key):
+                key = _key
+                break
         dt = episode.get(key)
         if not dt:
-            return datetime.datetime(1970, 1, 1)
+            dtob = datetime.datetime(1970, 1, 1)
         if isinstance(dt, (int, float, long)):
-            return datetime.datetime.fromtimestamp(float(dt)/1000)
+            dtob = datetime.datetime.fromtimestamp(float(dt)/1000)
         else:
-            return datetime.datetime.strptime(episode[key][:-6], "%Y-%m-%dT%H:%M:%S")
+            dtob = datetime.datetime.strptime(episode[key][:-6], "%Y-%m-%dT%H:%M:%S")
+        dtob = dtob.replace(tzinfo=pytz.utc)
+        return dtob.astimezone(tzlocal.get_localzone())
+        # return dtob
 
     def getepisodes(self, show=None, sea=None):
         if show is None:
@@ -132,16 +141,15 @@ class motorsports(vods.showextension):
 
         for episode in sorted(episodes, key=lambda i: i["date"], reverse=not cat == "upcoming"):
             titles = []
-            print episode
             if episode.get("livestream"):
-                if episode.get("livestreamRecordingStatus") == "STATUS_RECORD_NOT_STARTED":
-                    if cat == "upcoming":
-                        titles.append("[UPCOMING]")
-                    else:
-                        continue
-                titles.append("[LIVE]")
+                if episode.get("livestreamRecordingStatus") == "STATUS_RECORD_NOT_STARTED" and cat == "upcoming":
+                    titles.append("[UPCOMING]")
+                elif episode.get("livestreamRecordingStatus") == "STATUS_RECORD_STARTED" and cat == "livenow":
+                    titles.append("[LIVE]")
+                else:
+                    continue
                 titles.append("[%s]" % episode["program"]["title"])
-            elif episode.get("type") == "livestream":
+            elif episode.get("type") == "livestream" and not cat == "program":
                 titles.append("[LIVE]")
 
             if episode.get("subtitle"):
