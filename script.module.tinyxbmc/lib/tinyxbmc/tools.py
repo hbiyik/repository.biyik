@@ -22,6 +22,8 @@ import re
 import xbmc
 import xbmcvfs
 import os
+import datetime
+import time
 
 from xml.dom import minidom
 
@@ -212,4 +214,26 @@ def builtin(function, wait=False):
 
 def kodiversion():
     return int(xbmc.getInfoLabel('System.BuildVersion')[:2])
-    
+
+
+class tz_local(datetime.tzinfo):
+    _unixEpochOrdinal = datetime.datetime.utcfromtimestamp(0).toordinal()
+
+    def dst(self, dt):
+        return datetime.timedelta(0)
+
+    def utcoffset(self, dt):
+        t = (dt.toordinal() - self._unixEpochOrdinal)*86400 + dt.hour*3600 + dt.minute*60 + dt.second + time.timezone
+        utc = datetime.datetime(*time.gmtime(t)[:6])
+        local = datetime.datetime(*time.localtime(t)[:6])
+        return local - utc
+
+
+class tz_utc(datetime.tzinfo):
+    _unixEpochOrdinal = datetime.datetime.utcfromtimestamp(0).toordinal()
+
+    def dst(self, dt):
+        return datetime.timedelta(0)
+
+    def utcoffset(self, dt):
+        return self.dst(dt)

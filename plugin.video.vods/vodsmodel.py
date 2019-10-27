@@ -19,6 +19,7 @@
 '''
 from tinyxbmc import gui
 from tinyxbmc import addon
+from tinyxbmc import tools
 
 
 class extension(object):
@@ -34,8 +35,12 @@ class extension(object):
     def download(self, *args, **kwargs):
         return self.__container.download(*args, **kwargs)
 
-    def mktime(self, *args, **kwargs):
-        pass
+    def localtime(self, dtob, utc=True):
+        if utc:
+            dtob = dtob.replace(tzinfo=tools.tz_utc())
+            return dtob.astimezone(tools.tz_local())
+        else:
+            return dtob.replace(tzinfo=tools.tz_local())
 
     def init(self, *args, **kwargs):
         pass

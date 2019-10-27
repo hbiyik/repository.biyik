@@ -19,15 +19,11 @@
 '''
 import re
 import datetime
-import tzlocal
-import pytz
 import vods
 import htmlement
 import json
 
 from tinyxbmc.net import kodiurl
-
-tz = tzlocal.get_localzone()
 
 
 class motorsports(vods.showextension):
@@ -104,14 +100,11 @@ class motorsports(vods.showextension):
                 break
         dt = episode.get(key)
         if not dt:
-            dtob = datetime.datetime(1970, 1, 1)
+            return self.localtime(datetime.datetime(1970, 1, 1))
         if isinstance(dt, (int, float, long)):
-            dtob = datetime.datetime.fromtimestamp(float(dt)/1000)
+            return self.localtime(datetime.datetime.fromtimestamp(float(dt)/1000))
         else:
-            dtob = datetime.datetime.strptime(episode[key][:-6], "%Y-%m-%dT%H:%M:%S")
-        dtob = dtob.replace(tzinfo=pytz.utc)
-        return dtob.astimezone(tzlocal.get_localzone())
-        # return dtob
+            return self.localtime(datetime.datetime.strptime(episode[key][:-6], "%Y-%m-%dT%H:%M:%S"))
 
     def getepisodes(self, show=None, sea=None):
         if show is None:
