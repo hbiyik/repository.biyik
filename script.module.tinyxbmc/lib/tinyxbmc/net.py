@@ -28,7 +28,6 @@ import copy
 from datetime import datetime, timedelta
 from email.utils import parsedate, formatdate
 import calendar
-from requests.exceptions import RequestException
 
 
 from cachecontrol import CacheControlAdapter
@@ -66,7 +65,9 @@ def getsession(timeframe):
         return sess
 
 
-def kodiurl(url, domain=None, headers={}):
+def tokodiurl(url, domain=None, headers=None):
+    if not headers:
+        headers = {}
     if domain:
         domain = urlparse.urlparse(domain).netloc
     else:
@@ -82,8 +83,18 @@ def kodiurl(url, domain=None, headers={}):
     return url
 
 
-def http(url, params=None, data=None, headers=None, timeout=None, json=None, method="GET",
-         referer=None, useragent=None, encoding=None, verify=None, proxies=None, cache=0):
+def fromkodiurl(url):
+    parts = url.split("|")
+    url = parts[0]
+    if len(parts) == 2:
+        headers = dict(urlparse.parse_qsl(parts[1]))
+    else:
+        headers = None
+    return url, headers
+
+
+def http(url, params=None, data=None, headers=None, timeout=5, json=None, method="GET",
+         referer=None, useragent=None, encoding=None, verify=None, proxies=None, cache=0, text=True):
     ret = None
     if url.startswith("//"):
         url = "http:%s" % url
@@ -103,6 +114,8 @@ def http(url, params=None, data=None, headers=None, timeout=None, json=None, met
               }
     response = getsession(cache).request(method, url, **kwargs)
     response = cloudflare(response, **kwargs)
+    if not text:
+        return response
     if method == "HEAD":
         return response
     if json:
@@ -154,16 +167,16 @@ def cloudflare(response, **kwargs):
 
 
 class timecache(BaseHeuristic):
-    
+
     def __init__(self, timeframe):
-        self.timeframe = timeframe 
+        self.timeframe = timeframe
 
     def update_headers(self, response):
         date = parsedate(response.headers['date'])
         expires = datetime(*date[:6]) + timedelta(minutes=self.timeframe)
         return {
-            'expires' : formatdate(calendar.timegm(expires.timetuple())),
-            'cache-control' : 'public',
+            'expires': formatdate(calendar.timegm(expires.timetuple())),
+            'cache-control': 'public',
         }
 
     def warning(self, response):

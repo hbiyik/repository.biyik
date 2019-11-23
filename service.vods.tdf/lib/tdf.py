@@ -79,8 +79,6 @@ class tdf(vods.movieextension):
             if plot is not None:
                 info["plot"] = info["plotoutline"] = plot.text
             if url:
-                print info
-                print art
                 self.additem(info["title"], (url, True), info, art)
         for num in etree.findall(".//div[@class='pagination module']/a"):
             if num.text and num.text.isdigit() and int(num.text) > page:

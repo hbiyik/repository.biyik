@@ -28,11 +28,10 @@ class youtube(addonplayerextension):
     title = "YoutubeAddon Extension"
     builtin = "PlayMedia(%s)"
 
-    def geturls(self, link):
+    def geturls(self, link, headers=None):
         if not addon.has_addon('plugin.video.youtube'):
             yield
         up = urlparse.urlparse(link)
-        print up
         dom = up.netloc.lower()
         if dom == "youtube.com" or dom.startswith("www.youtube.com"):
             if up.path.startswith("/embed/"):
@@ -44,13 +43,13 @@ class youtube(addonplayerextension):
         else:
             yield
         yield "plugin://plugin.video.youtube/play/?video_id=%s" % vid
-        
+
 
 class dailymotion(addonplayerextension):
     title = "DailymotionAddon Extension"
     builtin = "PlayMedia(%s)"
-    
-    def geturls(self, link):
+
+    def geturls(self, link, headers=None):
         if not addon.has_addon('plugin.video.youtube'):
             yield
         up = urlparse.urlparse(link)

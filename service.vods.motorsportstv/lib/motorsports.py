@@ -23,7 +23,7 @@ import vods
 import htmlement
 import json
 
-from tinyxbmc.net import kodiurl
+from tinyxbmc.net import tokodiurl
 
 
 class motorsports(vods.showextension):
@@ -82,14 +82,14 @@ class motorsports(vods.showextension):
             links = []
             suburl = episode["videoFile"]["path"]
             if suburl.startswith("http://") or suburl.startswith("https://"):
-                links.append(kodiurl(suburl, headers={"Referer": self.domain}))
+                links.append(tokodiurl(suburl, headers={"Referer": self.domain}))
             else:
                 url = "%s/%s/playlist.m3u8" % (episode["videoBaseUrl"],
                                                suburl)
-                links.append(kodiurl(url, headers={"Referer": self.domain}))
+                links.append(tokodiurl(url, headers={"Referer": self.domain}))
                 url = "%s/%s/playlist.m3u8" % (episode["videoBaseUrlUnsecure"],
                                                suburl)
-                links.append(kodiurl(url, headers={"Referer": self.domain}))
+                links.append(tokodiurl(url, headers={"Referer": self.domain}))
             return False, links
 
     def epidate(self, episode):
@@ -167,4 +167,4 @@ class motorsports(vods.showextension):
             tree = htmlement.fromstring(self.download(url))
             video = tree.find(".//video/source")
             if video is not None:
-                yield kodiurl(video.get("src"), headers={"Referer": url})
+                yield tokodiurl(video.get("src"), headers={"Referer": url})

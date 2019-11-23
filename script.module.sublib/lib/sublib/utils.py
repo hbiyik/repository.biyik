@@ -102,7 +102,6 @@ def download(u, query=None, data=None, referer=None, binary=False, ua=None,
     header = {"User-Agent": ua}
     if referer:
         header["Referer"] = referer
-    # print u
     req = urllib2.Request(u, data, header)
     res = _opener.open(req)
     if not binary:

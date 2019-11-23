@@ -19,7 +19,6 @@
 '''
 
 import urllib2
-import re
 import time
 import json
 import os
@@ -114,7 +113,6 @@ def _getcommits(uname, rname, branch, commit):
 
 
 def _updatezip(u, tdir, rname):
-    print u
     for d in os.listdir(tdir):
         p = os.path.join(tdir, d)
         if os.path.isdir(p) and d.startswith(rname):
@@ -143,7 +141,7 @@ def _silentcheck(mem, callback, *args, **kwargs):
             raise e
 
 
-def load(uname, rname, branch, commit=None, path = [], period=24):
+def load(uname, rname, branch, commit=None, path=[], period=24):
     """
     Loads, caches, and arranges paths for a repo from github.
     This module, downloads a github repo to 

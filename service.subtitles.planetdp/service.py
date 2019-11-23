@@ -81,7 +81,6 @@ class planetdp(sublib.service):
             fname = re.search('filename=(.+)', fname)
             fname = fname.group(1)
             fname = os.path.join(self.path, fname)
-            print fname
             with open(fname, "wb") as f:
                 f.write(remfile.read())
             self.addfile(fname)

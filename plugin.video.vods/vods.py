@@ -84,12 +84,12 @@ class movieextension(scraperextension):
 
 
 class linkplayerextension(extension):
-    def geturls(self, url):
+    def geturls(self, url, headers=None):
         yield url
 
 
 class addonplayerextension(extension):
     builtin = "RunPlugin(%s)"
 
-    def geturls(self, url):
+    def geturls(self, url, headers=None):
         yield url

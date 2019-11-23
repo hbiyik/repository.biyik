@@ -30,9 +30,11 @@ from tinyxbmc import gui
 from tinyxbmc import const as tinyconst
 from tinyxbmc import addon as tinyaddon
 from tinyxbmc import tools
+from tinyxbmc import net
 
 import traceback
 import json
+from __builtin__ import property
 
 _prefix = "plugin.program.vods-"
 _resolvehay = "vods_resolve"
@@ -96,7 +98,18 @@ def makenameart(cls):
 class index(container.container):
     def init(self):
         self._next = True
+        self.__bg = None
         self.option(_useragent, _timeout)
+
+    @property
+    def bgprg(self):
+        if self.__bg is None:
+            self.__bg = gui.bgprogress(self.chan.title)
+        return self.__bg
+
+    def onclose(self):
+        if self.__bg is not None:
+            self.__bg.close()
 
     def _isimp(self, base, mtd, clsob=None):
         if not clsob:
@@ -119,7 +132,7 @@ class index(container.container):
             self._cachemeta(*args)
             tinyaddon.builtin("Container.Refresh")
 
-    def _cachemeta(self, arg, info, art, typ, scrape=True):
+    def _cachemeta(self, arg, info, art, typ, scrape=True, percent=None):
         if arg and not len(arg):
             print "VODS: Warning, argument is empty, nothing to cache"
             return info, art
@@ -149,8 +162,8 @@ class index(container.container):
                     name = cinfo.get("tvshowtitle", info.get("tvshowtitle", "media"))
                 cachehay.throw("%s%sinfo" % (repr(arg), typ), cinfo)
                 cachehay.throw("%s%sart" % (repr(arg), typ), cart)
-                if not (cinfo == {} and cart == {}):
-                    gui.notify(self.chan.title, "Cached %s" % name, False)
+                if not (cinfo == {} and cart == {}) and percent:
+                    self.bgprg.update(percent, "Caching", name)
             info.update(cinfo)
             art.update(cart)
         return info, art
@@ -177,9 +190,7 @@ class index(container.container):
 
             # auto config art for icon fallback
             if not hasattr(chan, "art") or chan.art == scraperextension.art:
-                print 11
                 icon = tinyaddon.get_addon(plg._tinyxbmc["addon"]).getAddonInfo("icon")
-                print 22
                 chan.art = {"thumb": icon, "poster": icon, "icon": icon}
 
             makenameart(chan)
@@ -220,10 +231,12 @@ class index(container.container):
 
     def searchmovies(self, keyw, cache=False, **kwargs):
         for _ in self.getscrapers(mtd="searchmovies", args=[keyw], **kwargs):
-            if len(self.chan.items):
-                gui.notify(self.chan.title, "Found %d" % len(self.chan.items))
-            for name, arg, info, art in self.chan.items:
-                info, art = self._cachemeta(arg, info, art, "movie", cache)
+            numitems = len(self.chan.items)
+            if numitems:
+                gui.notify(self.chan.title, "Found %d" % numitems, False)
+            for i, [name, arg, info, art] in enumerate(self.chan.items):
+                percent = (i + 1) * 100 / numitems
+                info, art = self._cachemeta(arg, info, art, "movie", cache, percent)
                 self.cacheresolve(arg, info, art)
                 lname = "[%s] %s" % (self.chan.title, name)
                 li = self.item(lname, info, art, method="geturls")
@@ -238,10 +251,12 @@ class index(container.container):
 
     def searchshows(self, keyw, cache=False, **kwargs):
         for _ in self.getscrapers(mtd="searchshows", args=[keyw], **kwargs):
-            if len(self.chan.items):
-                gui.notify(self.chan.title, "Found %d" % len(self.chan.items), False)
-            for name, arg, info, art in self.chan.items:
-                info, art = self._cachemeta(arg, info, art, "show", cache)
+            numitems = len(self.chan.items)
+            if numitems:
+                gui.notify(self.chan.title, "Found %d" % numitems, False)
+            for i, [name, arg, info, art] in enumerate(self.chan.items):
+                percent = (i + 1) * 100 / numitems
+                info, art = self._cachemeta(arg, info, art, "show", cache, percent)
                 lname = "[%s] %s" % (self.chan.title, name)
                 canseason = self._isimp(showextension, "getseasons")
                 if canseason:
@@ -260,10 +275,12 @@ class index(container.container):
 
     def searchepisodes(self, keyw, cache=False, **kwargs):
         for _ in self.getscrapers(mtd="searchepisodes", args=[keyw], **kwargs):
-            if len(self.chan.items):
-                gui.notify(self.chan.title, "Found %d" % len(self.chan.items))
-            for name, arg, info, art in self.chan.items:
-                info, art = self._cachemeta(arg, info, art, "episode", cache)
+            numitems = len(self.chan.items)
+            if numitems:
+                gui.notify(self.chan.title, "Found %d" % numitems, False)
+            for i, [name, arg, info, art] in enumerate(self.chan.items):
+                percent = (i + 1) * 100 / numitems
+                info, art = self._cachemeta(arg, info, art, "episode", cache, percent)
                 self.cacheresolve(arg, info, art)
                 lname = "[%s] %s" % (self.chan.title, name)
                 li = self.item(lname, info, art, method="geturls")
@@ -298,8 +315,10 @@ class index(container.container):
             if self._isimp(movieextension, "getcategories"):
                 li = self.item("Categories", method="getcategories")
                 li.dir(None, **self.chan._tinyxbmc)
-        for name, movie, info, art in self.chan.items:
-            info, art = self._cachemeta(movie, info, art, "movie")
+        numitems = len(self.chan.items)
+        for i, [name, movie, info, art] in enumerate(self.chan.items):
+            percent = (i + 1) * 100 / numitems
+            info, art = self._cachemeta(movie, info, art, "movie", True, percent)
             self.cacheresolve(movie, info, art)
             li = self.item(name, info, art, method="geturls")
             select = self.item("Select Source", info, art, method="selecturl")
@@ -322,8 +341,10 @@ class index(container.container):
             if not len(self.chan.items):
                 return self.getepisodes(None, None, None, **self.chan._tinyxbmc)
         canseason = self._isimp(showextension, "getseasons")
-        for name, show, info, art in self.chan.items:
-            info, art = self._cachemeta(show, info, art, "show")
+        numitems = len(self.chan.items)
+        for i, [name, show, info, art] in enumerate(self.chan.items):
+            percent = (i + 1) * 100 / numitems
+            info, art = self._cachemeta(show, info, art, "show", True, percent)
             if canseason:
                 li = self.item(name, info, art, method="getseasons")
                 li.dir(None, show, **self.chan._tinyxbmc)
@@ -341,8 +362,10 @@ class index(container.container):
 
     @channelmethod
     def getepisodes(self, show, sea):
-        for name, url, info, art in self.chan.items:
-            info, art = self._cachemeta(url, info, art, "episode")
+        numitems = len(self.chan.items)
+        for i, [name, url, info, art] in enumerate(self.chan.items):
+            percent = (i + 1) * 100 / numitems
+            info, art = self._cachemeta(url, info, art, "episode", True, percent)
             li = self.item(name, info, art, method="geturls")
             select = self.item("Select Source", info, art, method="selecturl")
             li.context(select, True, url, **self.chan._tinyxbmc)
@@ -415,7 +438,8 @@ class index(container.container):
             priority = prepareplayers(priority, _extlinkplayer)
         for k in sorted(playerins, reverse=True):
             print "VODS found player(%s): %s" % (k, playerins[k][0])
-        for link in tools.safeiter(links):
+        for kodilink in tools.safeiter(links):
+            link, headers = net.fromkodiurl(kodilink)
             if not isinstance(link, (str, unicode)):
                 print "VODS received broken link, skipping...: %s" % repr(link)
                 continue
@@ -429,7 +453,7 @@ class index(container.container):
                     continue
                 found = False
                 isaddon = False
-                for url in tools.safeiter(pcls.geturls(link)):
+                for url in tools.safeiter(pcls.geturls(link, headers)):
                     if not url:
                         print "VODS received broken url, skipping...: %s" % repr(url)
                         break

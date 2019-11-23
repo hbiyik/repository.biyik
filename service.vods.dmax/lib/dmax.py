@@ -84,7 +84,6 @@ class dmaxtr(vods.showextension):
         else:
             url = self.domain + show + "/bolumler"
             xpath = ".//div[@class='promoted-content-item content_pool_item_add content_pool_item']"
-        print url
         for args in self.iterelems(xpath, url):
             self.additem(*args)
 

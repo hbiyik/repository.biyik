@@ -67,8 +67,11 @@ class needle():
 
     def deser(self, serdata):
         self.dohash(str(serdata))
-        if self.compress:
+        try:
             serdata = zlib.decompress(serdata)
+        except Exception:
+            serdata = str(serdata)
+
         if self.serial.startswith("p_"):
             self.data = pickle.loads(serdata)
         elif self.serial == "json":
@@ -93,11 +96,12 @@ class needle():
 
 
 class stack(object):
-    def __init__(self, path, serial=None, compress=1, maxrows=5000, write=True, common=False):
+    def __init__(self, path, serial=None, compress=0, maxrows=5000, write=True, common=False):
         self.write = write
         self.compress = compress
         self.maxrows = maxrows
         self.path = path
+        self.common = common
         if type(common) == type(True):
             from tinyxbmc import addon
             if common:
@@ -109,8 +113,8 @@ class stack(object):
         path = os.path.join(bpath, path)
         if not os.path.exists(path):
             os.makedirs(path)
-        path = os.path.join(path, "haystack.db")
-        self._open_db(path)
+        self.dbpath = os.path.join(path, "haystack.db")
+        self._open_db(self.dbpath)
         if not self._check_db():
             self._create_table()
         self.serial = serial
@@ -119,6 +123,15 @@ class stack(object):
     @property
     def isclosed(self):
         return self.__closed
+
+    def __execute(self, *args, **kwargs):
+        try:
+            self.cur.execute(*args, **kwargs)
+        except Exception:
+            os.remove(self.dbpath)
+            self.__init__(self.path, self.serial, self.compress, self.maxrows, self.write, self.common)
+            print "DB: DB is locked, renewed the cache: %s" % self.dbpath
+            self.__execute(*args, **kwargs)
 
     def __enter__(self):
         self.ts = time.time()
@@ -138,7 +151,7 @@ class stack(object):
 
     def _check_db(self):
         columns = [u"hash", u"id", u"data", u"timestamp", u"ser", u"compress"]
-        self.cur.execute("""PRAGMA table_info(needles)""")
+        self.__execute("""PRAGMA table_info(needles)""")
         k = 0
         for row in self.cur:
             if not row[1] == columns[k]:
@@ -190,7 +203,7 @@ class stack(object):
             gap = time.time() - since * 60 * 60
         else:
             gap = 0
-        self.cur.execute("""SELECT * FROM needles WHERE hash=? and timestamp >= ? LIMIT 1;""",
+        self.__execute("""SELECT * FROM needles WHERE hash=? and timestamp >= ? LIMIT 1;""",
                          (n.hash, gap))
         row = self.cur.fetchone()
         if not do:
@@ -209,25 +222,25 @@ class stack(object):
             return None
 
     def _insert_row(self, n, ser):
-        self.cur.execute("""INSERT INTO needles VALUES (?, ?, ?, ?, ?, ?)""",
+        self.__execute("""INSERT INTO needles VALUES (?, ?, ?, ?, ?, ?)""",
                          (n.hash, n.id, ser, n.timestamp, n.serial, n.compress))
         if _debug:
             print "DB: %s, Inserted new row: %s" % (self.path, n)
 
     def _update_row(self, n, ser):
-        self.cur.execute("""UPDATE needles SET data = ?, timestamp = ?, ser = ?,
+        self.__execute("""UPDATE needles SET data = ?, timestamp = ?, ser = ?,
                          compress = ?  WHERE hash = ?;""",
                          (ser, n.timestamp, n.serial, n.compress, n.hash))
         if _debug:
             print "DB: %s, Updated Exsiting row: %s" % (self.path, n)
 
     def _delete_row(self, n):
-        self.cur.execute("""DELETE FROM needles WHERE hash = ?;""", (n.hash,))
+        self.__execute("""DELETE FROM needles WHERE hash = ?;""", (n.hash,))
         if _debug:
             print "DB: %s, Deleted Exsiting row: %s" % (self.path, n)
 
     def _drop_table(self):
-        self.cur.execute("""DROP TABLE IF EXISTS needles;""")
+        self.__execute("""DROP TABLE IF EXISTS needles;""")
         if _debug:
             print "DB: %s, Deleted Table" % self.path
 
@@ -237,7 +250,7 @@ class stack(object):
         self.__closed = True
 
     def iterate(self):
-        self.cur.execute("""SELECT * FROM needles""")
+        self.__execute("""SELECT * FROM needles""")
         return self.cur.fetchall()
 
     def throw(self, id, data):
@@ -278,7 +291,7 @@ class stack(object):
 
     def snapshot(self):
         if isinstance(self.maxrows, int):
-            self.cur.execute("""DELETE FROM needles WHERE hash NOT IN (SELECT hash FROM
+            self.__execute("""DELETE FROM needles WHERE hash NOT IN (SELECT hash FROM
                             needles ORDER BY timestamp DESC LIMIT ?)""", (self.maxrows,))
         self.conn.commit()
         if _debug:

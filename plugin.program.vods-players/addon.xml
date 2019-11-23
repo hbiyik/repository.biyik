@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8' standalone='yes'?>
-<addon id="plugin.program.vods-players" name="VODS Players" provider-name="hbiyik" version="0.0.1">
+<addon id="plugin.program.vods-players" name="VODS Players" provider-name="hbiyik" version="0.0.2">
   <requires>
     <import addon="xbmc.python" version="2.1.0" />
     <import addon="plugin.video.vods" />
@@ -25,7 +25,6 @@
 		<website>https://github.com/hbiyik/repository.biyik</website>
   </extension>
   <tinyxbmc>
-  	<plugin path="lib" id="vodslinkplayer" module="smu" instance="smu"/>
   	<plugin path="lib" id="vodslinkplayer" module="ydl" instance="ydl"/>
   	<plugin path="lib" id="vodsaddonplayer" module="players" instance="youtube"/>
   	<plugin path="lib" id="vodsaddonplayer" module="players" instance="dailymotion"/>

@@ -382,8 +382,8 @@ class form(addon.blockingloop, xbmcgui.WindowDialog):
     def image(self, label, src, height, width=None, mode=2, onclick=None):
         if not onclick:
             onclick = self.__null
-        from tinyxbmc.net import kodiurl
-        src = kodiurl(src, None, {"User-agent": self.__useragent})
+        from tinyxbmc.net import tokodiurl
+        src = tokodiurl(src, None, {"User-agent": self.__useragent})
         elem = xbmcgui.ControlImage(0, 0, 0, 0, src, mode)
         self.__eid += 1
         self.__elems[self.__eid] = ("image",

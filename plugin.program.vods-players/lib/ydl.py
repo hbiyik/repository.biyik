@@ -19,9 +19,9 @@
 '''
 from vods import linkplayerextension
 
-from libplayer import proxydt
-from libplayer import proxyisatty
-from libplayer import getconfig
+from vplay import proxydt
+from vplay import proxyisatty
+from vplay import getconfig
 
 import ghub
 import sys
@@ -55,7 +55,7 @@ class ydl(linkplayerextension):
             # Just a video
             yield result["url"] + suffix
 
-    def geturls(self, link):
+    def geturls(self, link, headers=None):
         if "youtube" in link or "youtu.be" in link:
             yield
         supported = False

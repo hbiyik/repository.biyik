@@ -223,7 +223,7 @@ class container(object):
             headers["user-agent"] = self._container.useragent
         for k, v in d.iteritems():
             try:
-                d[k] = net.tokodiurl(v, headers=headers)
+                d[k] = net.kodiurl(v, headers=headers)
             except Exception:
                 pass
         return d
