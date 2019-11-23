@@ -1,0 +1,12 @@
+2017-03-19: code clean up
+2017-03-19: fix priority
+2017-03-13: cosmetics
+2017-03-09: priorities
+2017-03-08: cosmetics
+2017-03-08: remove resources
+2017-03-08: xml & icon, remove sublib to module
+2017-03-07: implement planetdp
+2017-03-07: sublib model
+2017-03-06: initial work
+2017-03-05: pep8 clean up
+2017-03-05: initial

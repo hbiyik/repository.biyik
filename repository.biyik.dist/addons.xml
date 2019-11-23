@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addons>
-<addon id="service.subtitles.planetdp" name="Planetdp.org" version="0.0.5" provider-name="hbiyik">
+<addon id="service.subtitles.planetdp" name="Planetdp.org" version="0.0.6" provider-name="hbiyik">
   <requires>
     <import addon="xbmc.python" version="2.1.0"/>
     <import addon="script.module.sublib" version="0.0.5"/>
@@ -17,7 +17,7 @@
   </extension>
 </addon>
 
-<addon id="service.vods.motorsportstv" name="Motorsports.tv module for VODS" provider-name="hbiyik" version="0.0.8">
+<addon id="service.vods.motorsportstv" name="Motorsports.tv module for VODS" provider-name="hbiyik" version="0.0.9">
   <requires>
     <import addon="xbmc.python" version="2.1.0" />
     <import addon="plugin.video.vods" />
@@ -59,7 +59,7 @@
   </extension>
 </addon>
 
-<addon id="script.module.ghub" name="GHub" provider-name="hbiyik" version="0.0.1">
+<addon id="script.module.ghub" name="GHub" provider-name="hbiyik" version="0.0.2">
     <requires>
 		<import addon="xbmc.python" version="2.19.0"/>
 		<import addon="script.module.htmlement" version="0.2.3"/>
@@ -76,7 +76,7 @@
 	</extension>
 </addon>
 
-<addon id="service.vods.tdf" name="VODS Top Documentary Films" version="0.0.1" provider-name="hbiyik">
+<addon id="service.vods.tdf" name="VODS Top Documentary Films" version="0.0.2" provider-name="hbiyik">
 	<requires>
 		<import addon="xbmc.python" version="2.19.0"/>
 		<import addon="plugin.video.vods"/>
@@ -149,7 +149,7 @@
     </extension>
 </addon>
 
-<addon id="script.module.sublib" name="Sublib Module" provider-name="hbiyik" version="0.0.5">
+<addon id="script.module.sublib" name="Sublib Module" provider-name="hbiyik" version="0.0.6">
     <requires>
 		<import addon="xbmc.python" version="2.1.0"/>
 		<import addon="vfs.rar" optional="true"/>
@@ -167,7 +167,7 @@
 	</extension>
 </addon>
 
-<addon id="plugin.program.vods-players" name="VODS Players" provider-name="hbiyik" version="0.0.1">
+<addon id="plugin.program.vods-players" name="VODS Players" provider-name="hbiyik" version="0.0.2">
   <requires>
     <import addon="xbmc.python" version="2.1.0" />
     <import addon="plugin.video.vods" />
@@ -193,7 +193,6 @@
 		<website>https://github.com/hbiyik/repository.biyik</website>
   </extension>
   <tinyxbmc>
-  	<plugin path="lib" id="vodslinkplayer" module="smu" instance="smu"/>
   	<plugin path="lib" id="vodslinkplayer" module="ydl" instance="ydl"/>
   	<plugin path="lib" id="vodsaddonplayer" module="players" instance="youtube"/>
   	<plugin path="lib" id="vodsaddonplayer" module="players" instance="dailymotion"/>
@@ -314,7 +313,7 @@
   </extension>
 </addon>
 
-<addon id="service.vods.dmax" name="DMAX module for VODS" provider-name="hbiyik" version="0.0.1">
+<addon id="service.vods.dmax" name="DMAX module for VODS" provider-name="hbiyik" version="0.0.2">
   <requires>
     <import addon="xbmc.python" version="2.1.0" />
     <import addon="plugin.video.vods"/>
@@ -353,7 +352,7 @@
   </extension>
 </addon>
 
-<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.0.3">
+<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.0.4">
     <requires>
 		<import addon="xbmc.python" version="2.1.0"/>
 		<import addon="script.module.cachecontrol"/>
@@ -372,7 +371,7 @@
 	</extension>
 </addon>
 
-<addon id="plugin.video.vods" name="VODS" provider-name="hbiyik" version="0.0.4">
+<addon id="plugin.video.vods" name="VODS" provider-name="hbiyik" version="0.0.5">
     <requires>
 		<import addon="xbmc.python" version="2.19.0"/>
 		<import addon="script.module.tinyxbmc"/>
