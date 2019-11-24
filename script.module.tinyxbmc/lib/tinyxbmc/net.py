@@ -74,7 +74,7 @@ def tokodiurl(url, domain=None, headers=None):
         domain = urlparse.urlparse(url).netloc
     cookiestr = ""
     for cookie in __cookie:
-        if cookie.domain and domain and domain in cookie.domain:
+        if cookie.domain and domain or domain in cookie.domain:
             cookiestr += ";%s=%s" % (cookie.name, cookie.value)
     if not cookiestr == "":
         headers["Cookie"] = headers.get("cookie", headers.get("Cookie", "")) + cookiestr
@@ -143,7 +143,9 @@ def cloudflare(response, **kwargs):
             redirect_url = "%s://%s%s" % (parsed_url.scheme, domain, redirect.headers["Location"])
         else:
             redirect_url = redirect.headers["Location"]
-        return getsession(0).request(method, redirect_url, **kwargs)
+        kwargs["method"] = method
+        kwargs["text"] = False
+        return http(redirect_url, **kwargs)
 
     if (response.status_code == 503 and "cloudflare" in response.headers.get("Server")
             and b"jschl_vc" in response.content and b"jschl_answer" in response.content):
@@ -188,7 +190,6 @@ def cloudflare(response, **kwargs):
         token = ''
         iteration = 0
         while True:
-            print html.encode("ascii", "replace")
             payload = re.findall('"(/recaptcha/api2/payload[^"]+)', html)
             iteration += 1
             message = re.findall('<label[^>]+class="fbc-imageselect-message-text"[^>]*>(.*?)</label>', html)
