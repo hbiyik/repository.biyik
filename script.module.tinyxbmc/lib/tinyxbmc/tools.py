@@ -55,7 +55,9 @@ def dynamicret(iterable):
             yield None, None, None
 
 
-def strip(txt):
+def strip(txt, tags=False):
+    if tags:
+        txt = re.sub('<[^<]+?>', '', txt)
     txt = re.sub("(\t|\n)", " ", txt)
     txt = re.sub("\s+", " ", txt)
     return txt.strip()
