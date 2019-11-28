@@ -139,10 +139,11 @@ def cloudflare(response, **kwargs):
         return js + ";"
 
     def __redirect_clf(redirect, **kwargs):
-        if redirect.headers["Location"].startswith("/"):
-            redirect_url = "%s://%s%s" % (parsed_url.scheme, domain, redirect.headers["Location"])
-        else:
-            redirect_url = redirect.headers["Location"]
+        redirect_url = redirect.headers.get("Location")
+        if redirect_url is None:
+            return redirect
+        elif redirect_url.startswith("/"):
+            redirect_url = "%s://%s%s" % (parsed_url.scheme, domain, redirect_url)
         kwargs["method"] = method
         kwargs["text"] = False
         return http(redirect_url, **kwargs)
@@ -172,60 +173,61 @@ def cloudflare(response, **kwargs):
         time.sleep(t)
         return __redirect_clf(getsession(0)("GET", submit_url, **cfkwargs), **kwargs)
 
-    elif (response.status_code == 403 and "cloudflare" in response.headers.get("Server")
-            and b"/cdn-cgi/l/chk_captcha" in response.content):
-        import recaptcha
-        body = response.text
-        s = re.search('input type="hidden" name="s" value="(.+?)"', body).group(1)
-        page_url = response.url
-        method = response.request.method
-        parsed_url = urlparse.urlparse(page_url)
-        domain = parsed_url.netloc
-        sitekey = re.search('data-sitekey="(.*?)"', body).group(1)
-        ua = response.request.headers["user-agent"]
-        headers = {'Referer': page_url, "User-agent": ua}
-        resp = getsession(0).request("GET", 'http://www.google.com/recaptcha/api/fallback?k=%s' % sitekey,
-                                     headers=headers)
-        html = resp.text
-        token = ''
-        iteration = 0
-        while True:
-            payload = re.findall('"(/recaptcha/api2/payload[^"]+)', html)
-            iteration += 1
-            message = re.findall('<label[^>]+class="fbc-imageselect-message-text"[^>]*>(.*?)</label>', html)
-            if not message:
-                message = re.findall('<div[^>]+class="fbc-imageselect-message-error">(.*?)</div>', html)
-            if not message:
-                token = re.findall('div class="fbc-verification-token"><textarea.+?>(.*?)<\/textarea>', html)[0]
-                if token:
-                    print 'Captcha Success: %s' % token
-                else:
-                    print 'Captcha Failed'
-                break
-            else:
-                message = tools.strip(message[0], True)
-                payload = payload[0]
-            cval = re.findall('name="c"\s+value="([^"]+)', html)[0]
-            captcha_imgurl = 'https://www.google.com%s' % (payload.replace('&amp;', '&'))
-            message = re.sub('</?strong>', '', message)
-            oSolver = recaptcha.cInputWindow(captcha=captcha_imgurl, msg=message, iteration=iteration, sitemsg=page_url)
-            captcha_response = oSolver.get()
-            if not captcha_response:
-                break
-            postdata = {"c": str(cval), "response": []}
-            for captcha in captcha_response:
-                postdata["response"].append(str(captcha))
-            headers = {'Referer': resp.url, "User-agent": ua}
-            resp = getsession(0).request("POST", 'http://www.google.com/recaptcha/api/fallback?k=%s' % sitekey,
-                                         headers=headers, data=postdata)
+    elif response.status_code == 403 and "cloudflare" in response.headers.get("Server"):
+        formaddr = re.search('<form.+?id="challenge-form".+?action="(.+?)"', response.content)
+        if formaddr:
+            import recaptcha
+            body = response.text
+            r = re.search('input type="hidden" name="r" value="(.+?)"', body).group(1)
+            page_url = response.url
+            method = response.request.method
+            parsed_url = urlparse.urlparse(page_url)
+            domain = parsed_url.netloc
+            sitekey = re.search('data-sitekey="(.*?)"', body).group(1)
+            ua = response.request.headers["user-agent"]
+            headers = {'Referer': page_url, "User-agent": ua}
+            resp = getsession(0).request("GET", 'http://www.google.com/recaptcha/api/fallback?k=%s' % sitekey,
+                                         headers=headers)
             html = resp.text
-        if token == "":
-            return response
-        submit_url = "%s://%s/cdn-cgi/l/chk_captcha" % (parsed_url.scheme, domain)
-        query = {"s": s, "g-recaptcha-response": token}
-        headers = {"Referer": page_url, "User-agent": ua}
-        return __redirect_clf(getsession(0).request("GET", submit_url, query, headers=headers,
-                                                    allow_redirects=False), **kwargs)
+            token = ''
+            iteration = 0
+            while True:
+                payload = re.findall('"(/recaptcha/api2/payload[^"]+)', html)
+                iteration += 1
+                message = re.findall('<label[^>]+class="fbc-imageselect-message-text"[^>]*>(.*?)</label>', html)
+                if not message:
+                    message = re.findall('<div[^>]+class="fbc-imageselect-message-error">(.*?)</div>', html)
+                if not message:
+                    token = re.findall('div class="fbc-verification-token"><textarea.+?>(.*?)<\/textarea>', html)[0]
+                    if token:
+                        print 'Captcha Success: %s' % token
+                    else:
+                        print 'Captcha Failed'
+                    break
+                else:
+                    message = tools.strip(message[0], True)
+                    payload = payload[0]
+                cval = re.findall('name="c"\s+value="([^"]+)', html)[0]
+                captcha_imgurl = 'https://www.google.com%s' % (payload.replace('&amp;', '&'))
+                message = re.sub('</?strong>', '', message)
+                oSolver = recaptcha.cInputWindow(captcha=captcha_imgurl, msg=message, iteration=iteration, sitemsg=page_url)
+                captcha_response = oSolver.get()
+                if not captcha_response:
+                    break
+                postdata = {"c": str(cval), "response": []}
+                for captcha in captcha_response:
+                    postdata["response"].append(str(captcha))
+                headers = {'Referer': resp.url, "User-agent": ua}
+                resp = getsession(0).request("POST", 'http://www.google.com/recaptcha/api/fallback?k=%s' % sitekey,
+                                             headers=headers, data=postdata)
+                html = resp.text
+            if token == "":
+                return response
+            submit_url = "%s://%s%s" % (parsed_url.scheme, domain, formaddr.group(1))
+            query = {"r": r, "g-recaptcha-response": token}
+            headers = {"Referer": page_url, "User-agent": ua}
+            return __redirect_clf(getsession(0).request("POST", submit_url, data=query, headers=headers,
+                                                        allow_redirects=False), **kwargs)
     return response
 
 
