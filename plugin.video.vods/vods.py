@@ -21,6 +21,8 @@
 from vodsmodel import scraperextension
 from vodsmodel import extension
 
+from tinyxbmc import net
+
 
 class showextension(scraperextension):
 
@@ -85,7 +87,7 @@ class movieextension(scraperextension):
 
 class linkplayerextension(extension):
     def geturls(self, url, headers=None):
-        yield url
+        yield net.tokodiurl(url, headers=headers)
 
 
 class addonplayerextension(extension):

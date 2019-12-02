@@ -404,7 +404,13 @@ class player(xbmc.Player):
         self.canresolve = True
         self.waiting = False
 
-    def stream(self, u, li):
+    def stream(self, url, li):
+        u, headers = net.fromkodiurl(url)
+        if headers is None:
+            headers = {"User-agent": const.USERAGENT}
+        elif "user-agent" not in [x.lower() for x in headers.keys()]:
+            headers["User-agent"] = const.USERAGENT
+        u = net.tokodiurl(u, headers=headers)
         if self.dlg.iscanceled():
             return
         if self.canresolve:
