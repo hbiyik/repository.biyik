@@ -221,16 +221,21 @@ class Platform(Base):
                 if i not in limit_nodes_index:
                     f.write("{%s}," % country)
             f.write("\nExitNodes ")
-            limit_nodes_index = self.getsetting("tor_limit_exit_nodes_to")
-            for i, country in enumerate(defs.tor_countries):
-                if i in limit_nodes_index:
-                    f.write("{%s}," % country)
+            force_exit = self.getsetting("tor_use_specific_exit_node")
+            if not force_exit == "-":
+                f.write(force_exit)
+            else:
+                limit_nodes_index = self.getsetting("tor_limit_exit_nodes_to")
+                for i, country in enumerate(defs.tor_countries):
+                    if i in limit_nodes_index:
+                        f.write("{%s}," % country)
             f.write("\n")
         if not cmdline:
             cmdline = "tor -f %s" % self.torrc
         lines = self.run_cmd(cmdline)
         # os.remove(self.torrc)
         for line in lines:
+            print line
             if re.search("Bootstrapped\s100\%\:\sDone", line):
                 return True
         # TODO: IMPROVE: implement timeout in case tor does not start up for some reason

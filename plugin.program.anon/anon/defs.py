@@ -8,6 +8,7 @@ tor_countries = ['ad', 'ae', 'af', 'ag', 'ai', 'al', 'am', 'ao', 'aq', 'ar', 'as
 
 defconfig = {"openvpn_username": "?",
              "openvpn_password": "?",
+             "tor_use_specific_exit_node": "-",
              "tor_limit_nodes_to": range(len(tor_countries)),
              "tor_limit_exit_nodes_to": range(len(tor_countries)),
              "tor_dns_port": "9053",
