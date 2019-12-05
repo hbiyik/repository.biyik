@@ -170,6 +170,8 @@ class navi(container.container):
             limit_tor_exit_nodes.context(select_all, True, "tor_limit_exit_nodes_to", True)
             limit_tor_exit_nodes.context(select_none, True, "tor_limit_exit_nodes_to", False)
             limit_tor_exit_nodes.dir("tor_limit_exit_nodes_to")
+        else:
+            self.settingitem("tor_circuit_timeout_in_minutes")
 
         for key in self.platform.cfg:
             if key not in ["openvpn_config", "tor_limit_nodes_to", "tor_limit_exit_nodes_to", "tor_use_specific_exit_node"]:

@@ -223,13 +223,18 @@ class Platform(Base):
             f.write("\nExitNodes ")
             force_exit = self.getsetting("tor_use_specific_exit_node")
             if not force_exit == "-":
-                f.write(force_exit)
+                f.write(force_exit + "\n")
+                ctimeout = self.getsetting("tor_circuit_timeout_in:_minutes") 
+                if ctimeout.isdigit():
+                    intctimeout = int(ctimeout) * 60
+                    f.write("MaxCircuitDirtiness %s\n" % intctimeout)
+                f.write("StrictNodes 1\n")
             else:
                 limit_nodes_index = self.getsetting("tor_limit_exit_nodes_to")
                 for i, country in enumerate(defs.tor_countries):
                     if i in limit_nodes_index:
                         f.write("{%s}," % country)
-            f.write("\n")
+                f.write("\n")
         if not cmdline:
             cmdline = "tor -f %s" % self.torrc
         lines = self.run_cmd(cmdline)
