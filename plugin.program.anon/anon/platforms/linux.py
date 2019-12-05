@@ -224,7 +224,7 @@ class Platform(Base):
             force_exit = self.getsetting("tor_use_specific_exit_node")
             if not force_exit == "-":
                 f.write(force_exit + "\n")
-                ctimeout = self.getsetting("tor_circuit_timeout_in:_minutes") 
+                ctimeout = self.getsetting("tor_circuit_timeout_in_minutes")
                 if ctimeout.isdigit():
                     intctimeout = int(ctimeout) * 60
                     f.write("MaxCircuitDirtiness %s\n" % intctimeout)
