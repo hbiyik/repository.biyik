@@ -21,6 +21,8 @@ import sublib.utils
 import sublib.sub
 import sublib.item
 
+from tinyxbmc import net
+
 import json
 import urllib
 import os
@@ -92,7 +94,7 @@ class service(object):
         params = sublib.utils.dformat(params, json.loads)
         action = params.get("action", None)
         preflang = params.get('preferredlanguage', "")
-        langs = params.get('languages', [])
+        langs = params.get('languages', "")
         self.item = sublib.item.model(preflang, langs)
         self.item.title, self.item.show, self.item.season, self.item.episode =\
             sublib.utils.infofromstr(
@@ -102,11 +104,15 @@ class service(object):
                                      self.item.season,
                                      self.item.episode
                                      )
+        self.oninit()
         if action:
             method = getattr(self, "_action_%s" % action.lower())
             self._params = params
             method()
         xbmcplugin.endOfDirectory(int(sys.argv[1]))
+        
+    def oninit(self):
+        pass
 
     def _action_search(self):
         self.search()
@@ -250,7 +256,7 @@ class service(object):
         else:
             return len(self._paths)
 
-    def request(self, url, query=None, data=None, referer=None, binary=False):
+    def request(self, *args, **kwargs):
         ''' Helper method to make an http query. This is method is good enough
         for vast majority of your needs, includding cookie handlers, with/get
         post requests, if you need more advanced queries you can also use
@@ -268,13 +274,7 @@ class service(object):
         Returns:
             str/urllib2.reponse:response
         '''
-        return sublib.utils.download(url,
-                                     query,
-                                     data,
-                                     referer,
-                                     binary,
-                                     ua=self._ua
-                                     )
+        return net.http(*args, **kwargs)
 
     def addsub(self, sub):
         ''' Method to use if a subtitle is found when in self.search method

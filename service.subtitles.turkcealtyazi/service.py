@@ -24,7 +24,7 @@ import urlparse
 import re
 import os
 
-domain = "http://www.turkcealtyazi.org"
+domain = "https://www.turkcealtyazi.org"
 
 quals = {
          "1": 5,  # good quality
@@ -70,7 +70,6 @@ class turkcealtyazi(sublib.service):
             self.find(self.item.imdb)
         if not self.num() and not self.item.show and self.item.year:
             self.find("%s %s" % (self.item.title, self.item.year))
-        self._subs = []
         if not self.num():
             self.find(self.item.title)
 

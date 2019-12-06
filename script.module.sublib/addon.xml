@@ -2,7 +2,8 @@
 <addon id="script.module.sublib" name="Sublib Module" provider-name="hbiyik" version="0.0.6">
     <requires>
 		<import addon="xbmc.python" version="2.1.0"/>
-		<import addon="vfs.rar" optional="true"/>
+		<import addon="script.module.tinyxbmc"/>
+    	<import addon="vfs.rar" optional="true"/>
 		<import addon="vfs.libarchive" optional="true"/>
 	</requires>
 	<extension library="lib" point="xbmc.python.module"/>

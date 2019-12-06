@@ -22,17 +22,15 @@ import xbmcvfs
 import xbmcgui
 import xbmc
 
+from tinyxbmc import const
 import re
 import urllib
-import urllib2
-import cookielib
 import unicodedata
 import os
 
-_cj = cookielib.CookieJar()
-_opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(_cj))
 
 useragent = "KODI / XBMC Sublib Library"
+mozilla = const.USERAGENT
 
 prefixes = [
             ["e", "s"],
@@ -88,27 +86,6 @@ def dformat(d, m):
         except Exception:
             r[k] = v
     return r
-
-
-def download(u, query=None, data=None, referer=None, binary=False, ua=None,
-             encoding="utf-8"):
-    if not ua:
-        ua = useragent
-    if query:
-        q = urllib.urlencode(query)
-        u += "?" + q
-    if data:
-        data = urllib.urlencode(data)
-    header = {"User-Agent": ua}
-    if referer:
-        header["Referer"] = referer
-    req = urllib2.Request(u, data, header)
-    res = _opener.open(req)
-    if not binary:
-        res = res.read()
-        res = res.decode(encoding)
-        res = html_decode(res)
-    return res
 
 
 def checkarchive(fname):

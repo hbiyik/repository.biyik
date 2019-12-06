@@ -239,3 +239,6 @@ class tz_utc(datetime.tzinfo):
 
     def utcoffset(self, dt):
         return self.dst(dt)
+
+def isstub():
+    return hasattr(xbmc, "__kodistubs__") and xbmc.__kodistubs__

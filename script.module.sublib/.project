@@ -3,6 +3,7 @@
 	<name>script.module.sublib</name>
 	<comment></comment>
 	<projects>
+		<project>script.module.tinyxbmc</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

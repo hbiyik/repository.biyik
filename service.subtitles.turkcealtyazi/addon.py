@@ -18,6 +18,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 import service
+from sublib import utils
 
-
-service.turkcealtyazi("KODI / XBMC Turkcealtyazi Subtitle Addon")
+service.turkcealtyazi(utils.mozilla)

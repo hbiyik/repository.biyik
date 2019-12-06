@@ -52,8 +52,6 @@ def get_addon(aid=None):
     """
     if not aid:
         aid = addon
-    if not aid:
-        raise RuntimeError("Not running under XBMC")
     a = xbmcaddon.Addon(aid)
     return a
 
@@ -102,6 +100,8 @@ def get_commondir():
     a = get_addon("script.module.tinyxbmc")
     profile = a.getAddonInfo('profile')
     path = xbmc.translatePath(profile).decode("utf-8")
+    if tools.isstub():
+        path = os.path.join(addon, "profile_dir")
     if not os.path.exists(path):
         os.makedirs(path)
     return path

@@ -210,8 +210,15 @@ def cloudflare(response, **kwargs):
                 cval = re.findall('name="c"\s+value="([^"]+)', html)[0]
                 captcha_imgurl = 'https://www.google.com%s' % (payload.replace('&amp;', '&'))
                 message = re.sub('</?strong>', '', message)
-                oSolver = recaptcha.cInputWindow(captcha=captcha_imgurl, msg=message, iteration=iteration, sitemsg=page_url)
-                captcha_response = oSolver.get()
+                if tools.isstub():
+                    print captcha_imgurl
+                    print message
+                    print iteration
+                    print page_url
+                    captcha_response = [ int(x) for x in raw_input("").split()]
+                else:
+                    oSolver = recaptcha.cInputWindow(captcha=captcha_imgurl, msg=message, iteration=iteration, sitemsg=page_url)
+                    captcha_response = oSolver.get()
                 if not captcha_response:
                     break
                 postdata = {"c": str(cval), "response": []}
