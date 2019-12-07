@@ -23,6 +23,8 @@ import re
 import json
 import htmlement
 
+from tinyxbmc import net
+
 
 class cnnturk(vods.showextension):
     title = u"Cnn Türk"
@@ -160,28 +162,9 @@ class cnnturk(vods.showextension):
         eurl = self.domain + url
         epipage = self.download(eurl)
         cid = re.findall('\["contentid", "(.*?)"\]', epipage)[0]
-        """
-        d = {'a': 'com.cnnturk',
-             'itemId': cid,
-             '_contentType': 'TVShow',
-             '__seed':  math.modf(round(math.sin(1)*10000, 8))[0],
-             'g': '38d42238-2f39-4b5c-84bd-2a7b857f826f',
-             '_l':  str(int(time.time()*1000)),
-             's': '5bbad9bc-3de8-4cf5-976d-e924245af64b',
-             'r': urllib.quote_plus(self.domain),
-             'u': urllib.quote_plus(eurl),
-             't': urllib.quote_plus("")
-        }
-        self.download("https://ad.eglenced.com/1/1024/config.json?v=8.2.3", referer=eurl)
-        hit = self.download("https://hit.dogannet.tv/hit", params=d, referer=eurl)
-        print repr(hit)
-        print 111
-        #print p1.encode("ascii", "replace")
-        """
         js = self.download("%s/action/media/%s" % (self.domain, cid))
         js = json.loads(js)
-        m3u8 = "%s/%s|Referer=%s" % (js["Media"]["Link"].get("ServiceUrl",
-                                                             "https://soledge7.dogannet.tv"),
-                                     js["Media"]["Link"]["SecurePath"],
-                                     eurl)
-        yield m3u8
+        # js["Media"]["Link"].get("ServiceUrl")
+        m3u8 = "%s%s" % ("https://soledge7.dogannet.tv/",
+                         js["Media"]["Link"]["SecurePath"])
+        yield net.tokodiurl(m3u8, headers={"referer": eurl})
