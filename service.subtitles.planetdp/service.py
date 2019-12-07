@@ -63,7 +63,7 @@ class planetdp(sublib.service):
             self.searchpredict()
 
     def download(self, link):
-        page = self.request(link)
+        page = self.request(link, referer=domain)
         token = re.search('<input type="hidden" name="_token" value="(.*?)">', page)
         subid = re.search('rel\-id="(.*?)"', page)
         uniqk = re.search('rel\-tag="(.*?)"', page)
@@ -76,13 +76,14 @@ class planetdp(sublib.service):
                     "uniquekey": uniqk.group(1),
                     "filepath": ""
                     }
-            remfile = self.request(domain + "/subtitle/download", None, data, link, True)
-            fname = remfile.info().getheader("Content-Disposition")
+            remfile = self.request(domain + "/subtitle/download", data=data, referer=link,
+                                   method="POST", text=False)
+            fname = remfile.headers["Content-Disposition"]
             fname = re.search('filename=(.+)', fname)
             fname = fname.group(1)
             fname = os.path.join(self.path, fname)
             with open(fname, "wb") as f:
-                f.write(remfile.read())
+                f.write(remfile.content)
             self.addfile(fname)
 
     def checkpriority(self, txt):
@@ -244,7 +245,7 @@ class planetdp(sublib.service):
                 year = int(submatch.group(2))
                 if year == self.item.year and \
                         (nname == norm(name) or nname in akas):
-                    page = self.request(domain + link)
+                    page = self.request(domain + link, referer=domain)
                     self.scrapemovie(page)
                     break
 
@@ -264,7 +265,7 @@ class planetdp(sublib.service):
                  "lang": "",
                  }
 
-        page = self.request(domain + "/subtitlelist", query)
+        page = self.request(domain + "/subtitlelist", query, referer=domain)
         return self.scrapesubs(page)
 
     def searchnameyear(self):
@@ -274,7 +275,7 @@ class planetdp(sublib.service):
                  "year_date": self.item.year,
                  "is_serial": int(self.item.show)
                  }
-        page = self.request(domain + "/movie/search", query)
+        page = self.request(domain + "/movie/search", query, referer=domain)
         ismultiple = re.search("btn--info", page)
         if ismultiple:
             return self.scraperesult(page)
@@ -296,5 +297,5 @@ class planetdp(sublib.service):
                  "episode": "",
                  "lang": "",
                  }
-        page = self.request(domain + "/subtitlelist", query)
+        page = self.request(domain + "/subtitlelist", query, referer=domain)
         return self.scrapesubs(page)

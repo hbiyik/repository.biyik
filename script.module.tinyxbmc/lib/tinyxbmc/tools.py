@@ -245,8 +245,10 @@ def isstub():
     return hasattr(xbmc, "__kodistubs__") and xbmc.__kodistubs__
 
 
-def language(_format=xbmc.ISO_639_1, region=False):
+def language(_format=None, region=False):
     try:
+        if _format is None:
+            _format = xbmc.ISO_639_1
         return xbmc.getLanguage(_format, region)
     except Exception:
         return xbmc.getLanguage()

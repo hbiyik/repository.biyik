@@ -163,7 +163,7 @@ class turkcealtyazi(sublib.service):
                 (self.item.show or
                     (self.ignoreyear or self.item.year is None or self.item.year == year)):
                 self.found = True
-                p = self.request(domain + link)
+                p = self.request(domain + link, referer=domain)
                 e = htmlement.fromstring(p)
                 self.scrapepage(p, e)
                 break
@@ -174,7 +174,7 @@ class turkcealtyazi(sublib.service):
                     if self.found:
                         break
                     query = dict(urlparse.parse_qsl(urlparse.urlparse(page.get("href")).query))
-                    self.scraperesults(self.request(domain + "/find.php", query))
+                    self.scraperesults(self.request(domain + "/find.php", query, referer=domain))
 
     def scrapepage(self, page, tree):
         subs = tree.findall(".//div[@id='altyazilar']/div/div")
@@ -221,7 +221,7 @@ class turkcealtyazi(sublib.service):
 
     def find(self, query):
         q = {"cat": "sub", "find": query}
-        page = self.request(domain + "/find.php", q)
+        page = self.request(domain + "/find.php", q, referer=domain)
         tree = htmlement.fromstring(page)
         title = tree.find(".//title")
         if "arama" in title.text.lower():
@@ -230,7 +230,7 @@ class turkcealtyazi(sublib.service):
             self.scrapepage(page, tree)
 
     def download(self, link):
-        page = self.request(link)
+        page = self.request(link, referer=domain)
         tree = htmlement.fromstring(page)
         idid = tree.find(".//input[@name='idid']").get("value")
         alid = tree.find(".//input[@name='altid']").get("value")
