@@ -1,0 +1,6 @@
+*.pyc
+*.pyo
+*.json
+*.zip
+*.rar
+tests/profile_dir

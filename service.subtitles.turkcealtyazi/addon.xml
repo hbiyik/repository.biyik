@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<addon id="service.subtitles.turkcealtyazi" name="Turkcealtyazi.org" provider-name="hbiyik" version="0.0.5">
+<addon id="service.subtitles.turkcealtyazi" name="Turkcealtyazi.org" provider-name="hbiyik" version="0.0.6">
   <requires>
     <import addon="xbmc.python" version="2.1.0"/>
     <import addon="script.module.sublib" version="0.0.5"/>
@@ -14,6 +14,5 @@
     <license>GNU General Public License, v2</license>
 	<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
 	<website>https://github.com/hbiyik/repository.biyik</website>
-	<broken>site is using recaptcha now</broken>
   </extension>
 </addon>

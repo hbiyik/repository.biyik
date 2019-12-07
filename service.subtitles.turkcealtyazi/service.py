@@ -24,7 +24,7 @@ import urlparse
 import re
 import os
 
-domain = "https://www.turkcealtyazi.org"
+domain = "https://turkcealtyazi.org"
 
 quals = {
          "1": 5,  # good quality
@@ -64,13 +64,21 @@ def elementsrc(element, exclude=[]):
 
 class turkcealtyazi(sublib.service):
 
+    def checkrecaptcha(self):
+        resp = self.request(domain, method="HEAD", text=False)
+        if not resp.status_code == 200:
+            self.request(domain)
+
     def search(self):
+        self.checkrecaptcha()
         self.found = False
+        self.ignoreyear = False
         if self.item.imdb:
             self.find(self.item.imdb)
         if not self.num() and not self.item.show and self.item.year:
             self.find("%s %s" % (self.item.title, self.item.year))
         if not self.num():
+            self.ignoreyear = True
             self.find(self.item.title)
 
     def checkpriority(self, txt):
@@ -153,7 +161,7 @@ class turkcealtyazi(sublib.service):
                 year = "-1"
             if norm(name) == norm(self.item.title) and \
                 (self.item.show or
-                    (self.item.year is None or self.item.year == year)):
+                    (self.ignoreyear or self.item.year is None or self.item.year == year)):
                 self.found = True
                 p = self.request(domain + link)
                 e = htmlement.fromstring(p)
@@ -232,15 +240,11 @@ class turkcealtyazi(sublib.service):
                "altid": alid,
                "sidid": sdid
                }
-        remfile = self.request(domain + "/ind", None,
-                               data,
-                               domain,
-                               True,
-                               )
-        fname = remfile.info().getheader("Content-Disposition")
+        remfile = self.request(domain + "/ind", data=data, referer=link, method="POST", text=False)
+        fname = remfile.headers["Content-Disposition"]
         fname = re.search('filename=(.*)', fname)
         fname = fname.group(1)
         fname = os.path.join(self.path, fname)
         with open(fname, "wb") as f:
-            f.write(remfile.read())
+            f.write(remfile.content)
         self.addfile(fname)
