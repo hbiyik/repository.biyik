@@ -110,7 +110,7 @@ class service(object):
             self._params = params
             method()
         xbmcplugin.endOfDirectory(int(sys.argv[1]))
-        
+
     def oninit(self):
         pass
 
@@ -274,6 +274,10 @@ class service(object):
         Returns:
             str/urllib2.reponse:response
         '''
+        if "headers" not in kwargs:
+            kwargs["headers"] = {"User-agent": self._ua}
+        else:
+            kwargs["headers"]["User-agent"] = self._ua
         return net.http(*args, **kwargs)
 
     def addsub(self, sub):

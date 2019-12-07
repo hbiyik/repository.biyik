@@ -23,6 +23,7 @@ import xbmcgui
 import xbmc
 
 from tinyxbmc import const
+from tinyxbmc import tools
 import re
 import urllib
 import unicodedata
@@ -201,6 +202,8 @@ def getar(fname, ar, show, season, episode):
 
 def getsub(fname, show, season, episode):
     isar = checkarchive(fname)
+    if tools.isstub():
+        return fname
     if isar:
         arname = getar(fname, isar, show, season, episode)
         if not arname:
