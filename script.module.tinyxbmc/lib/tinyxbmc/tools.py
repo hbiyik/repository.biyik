@@ -240,5 +240,13 @@ class tz_utc(datetime.tzinfo):
     def utcoffset(self, dt):
         return self.dst(dt)
 
+
 def isstub():
     return hasattr(xbmc, "__kodistubs__") and xbmc.__kodistubs__
+
+
+def language(_format=xbmc.ISO_639_1, region=False):
+    try:
+        return xbmc.getLanguage(_format, region)
+    except Exception:
+        return xbmc.getLanguage()

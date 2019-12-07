@@ -185,7 +185,7 @@ def cloudflare(response, **kwargs):
             domain = parsed_url.netloc
             sitekey = re.search('data-sitekey="(.*?)"', body).group(1)
             ua = response.request.headers["user-agent"]
-            headers = {'Referer': page_url, "User-agent": ua}
+            headers = {'Referer': page_url, "User-agent": ua, "Accept-Language": tools.language()}
             resp = getsession(0).request("GET", 'http://www.google.com/recaptcha/api/fallback?k=%s' % sitekey,
                                          headers=headers)
             html = resp.text
