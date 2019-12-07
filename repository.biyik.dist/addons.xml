@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addons>
-<addon id="service.subtitles.planetdp" name="Planetdp.org" version="0.0.6" provider-name="hbiyik">
+<addon id="service.subtitles.planetdp" name="Planetdp.org" version="0.0.7" provider-name="hbiyik">
   <requires>
     <import addon="xbmc.python" version="2.1.0"/>
     <import addon="script.module.sublib" version="0.0.5"/>
@@ -40,7 +40,7 @@
   </tinyxbmc>
 </addon>
 
-<addon id="service.subtitles.turkcealtyazi" name="Turkcealtyazi.org" provider-name="hbiyik" version="0.0.5">
+<addon id="service.subtitles.turkcealtyazi" name="Turkcealtyazi.org" provider-name="hbiyik" version="0.0.6">
   <requires>
     <import addon="xbmc.python" version="2.1.0"/>
     <import addon="script.module.sublib" version="0.0.5"/>
@@ -55,7 +55,6 @@
     <license>GNU General Public License, v2</license>
 	<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
 	<website>https://github.com/hbiyik/repository.biyik</website>
-	<broken>site is using recaptcha now</broken>
   </extension>
 </addon>
 
@@ -149,10 +148,11 @@
     </extension>
 </addon>
 
-<addon id="script.module.sublib" name="Sublib Module" provider-name="hbiyik" version="0.0.6">
+<addon id="script.module.sublib" name="Sublib Module" provider-name="hbiyik" version="0.0.7">
     <requires>
 		<import addon="xbmc.python" version="2.1.0"/>
-		<import addon="vfs.rar" optional="true"/>
+		<import addon="script.module.tinyxbmc"/>
+    	<import addon="vfs.rar" optional="true"/>
 		<import addon="vfs.libarchive" optional="true"/>
 	</requires>
 	<extension library="lib" point="xbmc.python.module"/>
@@ -214,7 +214,7 @@
 	</extension>
 </addon>
 
-<addon id="service.vods.cnnturk" name="CNNTurk module for VODS" provider-name="hbiyik" version="0.0.3">
+<addon id="service.vods.cnnturk" name="CNNTurk module for VODS" provider-name="hbiyik" version="0.0.4">
   <requires>
     <import addon="xbmc.python" version="2.1.0" />
     <import addon="plugin.video.vods" />
@@ -352,7 +352,7 @@
   </extension>
 </addon>
 
-<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.0.8">
+<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.0.9">
     <requires>
 		<import addon="xbmc.python" version="2.1.0"/>
 		<import addon="script.module.cachecontrol"/>
