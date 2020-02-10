@@ -167,7 +167,7 @@ class container(object):
                         item.context(setview, False, cnttyp)
                         item.docontext()
                     xbmcplugin.addDirectoryItem(self.syshandle, url, item.item, isfolder, itemlen)
-                xbmcplugin.endOfDirectory(self.syshandle, cacheToDisc=False)
+                xbmcplugin.endOfDirectory(self.syshandle, cacheToDisc=True)
                 if self._container.autoupdate:
                     d = self.item("Auto Update", method="_update")
                     d.run(self._container.autoupdate)
