@@ -80,7 +80,7 @@ class Platform(Base):
 
     def check_kernel(self):
         req_kernel_keys = ["CONFIG_IP_NF_TARGET_REJECT",
-                           "CONFIG_NF_NAT_IPV4",
+                           #"CONFIG_NF_NAT_IPV4",
                            "CONFIG_IP_NF_MANGLE",
                            "CONFIG_NETFILTER_XT_TARGET_REDIRECT",
                            "CONFIG_NETFILTER_XT_MARK",
