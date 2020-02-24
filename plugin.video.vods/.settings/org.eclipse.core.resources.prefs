@@ -1,5 +1,6 @@
 eclipse.preferences.version=1
 encoding//containers/index.py=utf-8
+encoding/__init__.py=utf-8
 encoding/addon.py=utf-8
 encoding/vods.py=utf-8
 encoding/vodsmodel.py=utf-8

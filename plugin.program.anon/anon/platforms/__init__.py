@@ -18,7 +18,7 @@ class Base(object):
     def __init__(self, tempdir, *args, **kwargs):
         self.tempdir = tempdir
         self.cfg = {}
-        self.stack = hay.stack("anon", common=tempdir)
+        self.stack = hay.stack("anon")
         self.nontors = ["127.0.0.0/8",
                         "10.0.0.0/8", "192.168.0.0/16",
                         "172.16.0.0/12",
