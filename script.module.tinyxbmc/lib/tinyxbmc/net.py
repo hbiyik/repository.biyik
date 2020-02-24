@@ -55,7 +55,9 @@ def getsession(timeframe):
     else:
         sess = requests.Session()
         sess.cookies = __cookie
-        if timeframe == 0:
+        if timeframe is None:
+            timeframe = -1 
+        elif timeframe == 0:
             sess.mount("http://", CacheControlAdapter(cache=__cache))
             sess.mount("https://", CacheControlAdapter(cache=__cache))
         else:

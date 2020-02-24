@@ -23,6 +23,7 @@ import json
 import os
 import time
 import zlib
+from threading import Lock
 try:
     import cPickle as pickle
 except ImportError:
@@ -31,8 +32,7 @@ from tinyxbmc import addon
 
 import sqlite3
 
-_debug = False
-
+_debug = True
 
 def _null(data, *args, **kwargs):
     return data
@@ -99,6 +99,7 @@ class needle():
 class stack(object):
     def __init__(self, path, serial=None, compress=0, maxrows=5000, write=True, aid=None):
         self.write = write
+        self.mutex = Lock()
         self.compress = compress
         self.maxrows = maxrows
         self.path = path
@@ -122,13 +123,15 @@ class stack(object):
         return self.__closed
 
     def __execute(self, *args, **kwargs):
-        try:
-            self.cur.execute(*args, **kwargs)
-        except Exception:
-            os.remove(self.dbpath)
-            self.__init__(self.path, self.serial, self.compress, self.maxrows, self.write, self.addon)
-            print "DB: DB is locked, renewed the cache: %s" % self.dbpath
-            self.__execute(*args, **kwargs)
+        with Mutex(self.mutex):
+            try:
+                self.cur.execute(*args, **kwargs)
+            except Exception:
+                if os.path.exists(self.dbpath):
+                    os.remove(self.dbpath)
+                self.__init__(self.path, self.serial, self.compress, self.maxrows, self.write, self.addon)
+                print "DB: DB is locked, renewed the cache: %s" % self.dbpath
+                self.__execute(*args, **kwargs)
 
     def __enter__(self):
         self.ts = time.time()
@@ -150,48 +153,52 @@ class stack(object):
         columns = [u"hash", u"id", u"data", u"timestamp", u"ser", u"compress"]
         self.__execute("""PRAGMA table_info(needles)""")
         k = 0
-        for row in self.cur:
-            if not row[1] == columns[k]:
-                break
-            k += 1
+        with Mutex(self.mutex):
+            for row in self.cur:
+                if not row[1] == columns[k]:
+                    break
+                k += 1
         return k == 6
 
     def _create_table(self):
         if _debug:
             print "DB: %s, Created a new haystack" % self.path
-        self.cur.executescript("""
-                        PRAGMA AUTO_VACUUM = FULL;
-                        PRAGMA JOURNAL_MODE = MEMORY;
-                        PRAGMA SYNCHRONOUS = OFF;
-                        PRAGMA LOCKING_MODE = UNLOCKED;
-                        DROP TABLE IF EXISTS 'needles';
-                        CREATE TABLE 'needles' (
-                            'hash'    INTEGER NOT NULL UNIQUE,
-                            'id'    TEXT,
-                            'data'    BLOB,
-                            'timestamp'    TEXT,
-                            'ser'    TEXT,
-                            'compress'    INTEGER NOT NULL,
-                            PRIMARY KEY(hash)
-                        );
-                        CREATE INDEX 'hash_index' ON 'needles' ('hash' ASC);
-                        """)
+        with Mutex(self.mutex):
+            self.cur.executescript("""
+                            PRAGMA AUTO_VACUUM = FULL;
+                            PRAGMA JOURNAL_MODE = MEMORY;
+                            PRAGMA SYNCHRONOUS = OFF;
+                            PRAGMA LOCKING_MODE = UNLOCKED;
+                            DROP TABLE IF EXISTS 'needles';
+                            CREATE TABLE 'needles' (
+                                'hash'    INTEGER NOT NULL UNIQUE,
+                                'id'    TEXT,
+                                'data'    BLOB,
+                                'timestamp'    TEXT,
+                                'ser'    TEXT,
+                                'compress'    INTEGER NOT NULL,
+                                PRIMARY KEY(hash)
+                            );
+                            CREATE INDEX 'hash_index' ON 'needles' ('hash' ASC);
+                            """)
 
     def _open_db(self, path):
         if _debug:
             print "DB: %s, opened at %s" % (self.path, path)
-        self.conn = sqlite3.connect(path, check_same_thread=False)
-        self.cur = self.conn.cursor()
-        self.cur.executescript("""
-                               PRAGMA JOURNAL_MODE = MEMORY;
-                               PRAGMA SYNCHRONOUS = OFF;
-                               PRAGMA LOCKING_MODE = UNLOCKED;""")
+        with Mutex(self.mutex):
+            self.conn = sqlite3.connect(path, check_same_thread=False)
+            self.cur = self.conn.cursor()
+            self.cur.executescript("""
+                                   PRAGMA JOURNAL_MODE = MEMORY;
+                                   PRAGMA SYNCHRONOUS = OFF;
+                                   PRAGMA LOCKING_MODE = UNLOCKED;""")
 
     def _close_db(self):
         if self.write:
             self.snapshot()
-        self.cur.close()
-        self.conn.close()
+        with Mutex(self.mutex):
+            self.cur.close()
+            self.conn.close()
         if _debug:
             print "DB: %s, saved and closed" % self.path
 
@@ -202,7 +209,8 @@ class stack(object):
             gap = 0
         self.__execute("""SELECT * FROM needles WHERE hash=? and timestamp >= ? LIMIT 1;""",
                          (n.hash, gap))
-        row = self.cur.fetchone()
+        with Mutex(self.mutex):
+            row = self.cur.fetchone()
         if not do:
             return row
         if row:
@@ -248,7 +256,8 @@ class stack(object):
 
     def iterate(self):
         self.__execute("""SELECT * FROM needles""")
-        return self.cur.fetchall()
+        with Mutex(self.mutex):
+            return self.cur.fetchall()
 
     def throw(self, id, data):
         if _debug:
@@ -290,10 +299,23 @@ class stack(object):
         if isinstance(self.maxrows, int):
             self.__execute("""DELETE FROM needles WHERE hash NOT IN (SELECT hash FROM
                             needles ORDER BY timestamp DESC LIMIT ?)""", (self.maxrows,))
-        self.conn.commit()
+        with Mutex(self.mutex):
+            self.conn.commit()
         if _debug:
             print "DB: %s, saved" % self.path
 
     def burn(self):
         self._drop_table()
         self._create_table()
+
+
+class Mutex(object):
+    def __init__(self, mutex):
+        self.mutex = mutex
+
+    def __enter__(self, *args, **kwargs):
+        self.mutex.acquire()
+        return self.mutex
+    
+    def __exit__(self, *args, **kwargs):
+        self.mutex.release()

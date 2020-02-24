@@ -41,7 +41,8 @@ REMOTE_DBG = False
 
 if REMOTE_DBG:
     #pdevpath = "C:\\Users\\z0042jww\\.p2\\pool\\plugins\\org.python.pydev.core_7.2.1.201904261721\\pysrc"
-    pdevpath = "/home/boogie/.p2/pool/plugins/org.python.pydev.core_7.2.1.201904261721/pysrc/"
+    #pdevpath = "/home/boogie/.p2/pool/plugins/org.python.pydev.core_7.2.1.201904261721/pysrc/"
+    pdevpath = "/home/boogie/local/eclipse/plugins/org.python.pydev.core_7.5.0.202001101138/pysrc/"
     sys.path.append(pdevpath)
     import pydevd  # @UnresolvedImport
     pydevd.settrace(stdoutToServer=True, stderrToServer=True, suspend=False)
