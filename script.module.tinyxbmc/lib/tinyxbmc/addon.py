@@ -25,6 +25,7 @@ import os
 import traceback
 import sys
 import urlparse
+import json
 
 from distutils.version import LooseVersion
 
@@ -54,6 +55,43 @@ def get_addon(aid=None):
         aid = addon
     a = xbmcaddon.Addon(aid)
     return a
+
+
+def addon_details(aid):
+    data = {
+        "jsonrpc": "2.0",
+        "method": "Addons.GetAddonDetails",
+        "id": 1,
+        "params": {"addonid": aid,
+                   "properties": [
+                                  "name",
+                                  "version",
+                                  "path",
+                                  "dependencies",
+                                  "enabled",
+                                  "broken",
+                                  ],
+                   }
+    }
+    addons = json.loads(xbmc.executeJSONRPC(json.dumps(data)))
+    if "error" in addons:
+        return None
+    return addons["result"]["addon"]
+
+
+def toggle_addon(aid, enable=None):
+    if enable is None:
+        enable = "toggle"
+        
+    data = {"jsonrpc":"2.0",
+            "method":"Addons.SetAddonEnabled",
+            "params":{"addonid":aid,
+                      "enabled":enable},
+            "id":1}
+    toggle = json.loads(xbmc.executeJSONRPC(json.dumps(data)))
+    if "error" in toggle:
+        return False
+    return True
 
 
 def depend_addon(aid):
