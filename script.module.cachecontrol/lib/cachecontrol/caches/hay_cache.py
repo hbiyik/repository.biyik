@@ -10,15 +10,15 @@ class HayCache(BaseCache):
         data = self.hay.find(key).data
         if data == {}:
             data = None
-        self.hay.conn.commit()
         return data
 
     def set(self, key, value):
         self.hay.throw(key, value)
-        self.hay.conn.commit()
+        self.hay.snapshot()
 
     def delete(self, key):
         self.hay.lose(key)
+        self.hay.snapshot()
 
     def close(self):
         self.hay.close()
