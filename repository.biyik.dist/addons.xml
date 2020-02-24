@@ -184,7 +184,7 @@
   </extension>
 </addon>
 
-<addon id="script.module.cachecontrol" name="Cachecontrol Module" provider-name="hbiyik" version="0.12.4">
+<addon id="script.module.cachecontrol" name="Cachecontrol Module" provider-name="hbiyik" version="0.12.5">
     <requires>
 		<import addon="xbmc.python" version="2.1.0"/>
 		<import addon="script.module.lockfile"/>
@@ -352,7 +352,7 @@
 	</extension>
 </addon>
 
-<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.0.12">
+<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.0.13">
     <requires>
 		<import addon="xbmc.python" version="2.1.0"/>
 		<import addon="script.module.cachecontrol"/>
