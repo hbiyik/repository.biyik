@@ -27,6 +27,7 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle as pickle
+from tinyxbmc import addon
 
 import sqlite3
 
@@ -96,20 +97,16 @@ class needle():
 
 
 class stack(object):
-    def __init__(self, path, serial=None, compress=0, maxrows=5000, write=True, common=False):
+    def __init__(self, path, serial=None, compress=0, maxrows=5000, write=True, aid=None):
         self.write = write
         self.compress = compress
         self.maxrows = maxrows
         self.path = path
-        self.common = common
-        if type(common) == type(True):
-            from tinyxbmc import addon
-            if common:
-                bpath = addon.get_commondir()
-            else:
-                bpath = addon.get_addondir()
+        self.addon = aid
+        if aid is not None:
+            bpath = addon.get_addondir(self.addon)
         else:
-            bpath = common
+            bpath = addon.get_commondir()
         path = os.path.join(bpath, path)
         if not os.path.exists(path):
             os.makedirs(path)
@@ -129,7 +126,7 @@ class stack(object):
             self.cur.execute(*args, **kwargs)
         except Exception:
             os.remove(self.dbpath)
-            self.__init__(self.path, self.serial, self.compress, self.maxrows, self.write, self.common)
+            self.__init__(self.path, self.serial, self.compress, self.maxrows, self.write, self.addon)
             print "DB: DB is locked, renewed the cache: %s" % self.dbpath
             self.__execute(*args, **kwargs)
 
@@ -183,7 +180,7 @@ class stack(object):
     def _open_db(self, path):
         if _debug:
             print "DB: %s, opened at %s" % (self.path, path)
-        self.conn = sqlite3.connect(path)
+        self.conn = sqlite3.connect(path, check_same_thread=False)
         self.cur = self.conn.cursor()
         self.cur.executescript("""
                                PRAGMA JOURNAL_MODE = MEMORY;

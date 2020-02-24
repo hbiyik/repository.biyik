@@ -29,6 +29,7 @@ import urllib
 import time
 import traceback
 import sys
+import urlparse
 
 from tinyxbmc import hay
 from tinyxbmc import const
@@ -40,8 +41,7 @@ REMOTE_DBG = False
 
 if REMOTE_DBG:
     #pdevpath = "C:\\Users\\z0042jww\\.p2\\pool\\plugins\\org.python.pydev.core_7.2.1.201904261721\\pysrc"
-    #pdevpath = "/home/boogie/.p2/pool/plugins/org.python.pydev.core_7.2.1.201904261721/pysrc/"
-    pdevpath = "/home/boogie/local/eclipse/plugins/org.python.pydev.core_7.5.0.202001101138/pysrc/"
+    pdevpath = "/home/boogie/.p2/pool/plugins/org.python.pydev.core_7.2.1.201904261721/pysrc/"
     sys.path.append(pdevpath)
     import pydevd  # @UnresolvedImport
     pydevd.settrace(stdoutToServer=True, stderrToServer=True, suspend=False)
@@ -55,12 +55,22 @@ def refresh():
 
 
 class container(object):
-    def __init__(self, useragent=None, httptimeout=None, *iargs, **ikwargs):
+    def __init__(self, useragent=None, httptimeout=None, addon=None, *iargs, **ikwargs):
         self.__inittime = time.time()
         self.sysaddon = sys.argv[0]
-        self.syshandle = int(sys.argv[1])
-        serial = sys.argv[2][1:]
+        aurl = urlparse.urlparse(self.sysaddon)
+        if aurl.scheme.lower() in ["plugin", "script"]:
+            self.addon = aurl.netloc
+        elif addon:
+            self.addon = addon
+        else:
+            raise Exception("Unknown Addon name")
         try:
+            self.syshandle = int(sys.argv[1])
+        except Exception:
+            self.syshandle = -1
+        try:
+            serial = sys.argv[2][1:]
             data = json.loads(urllib.unquote_plus(serial))
         except Exception:
             data = {}
@@ -267,8 +277,8 @@ class container(object):
         self._playlist.append((url, item))
 
     def index(self, *args, **kwargs):
-        item = self.dir("Hello TinyXBMC")
-        item.call()
+        #item = self.item("Hello TinyXBMC")
+        #item.dir()
         pass
 
     def ondispatch(self):
@@ -277,24 +287,25 @@ class container(object):
     def onclose(self):
         pass
 
-    def hay(self, id, *args, **kwargs):
+    def hay(self, hayid, *args, **kwargs):
         if id not in self._hays:
-            h = hay.stack(id, *args, **kwargs)
-            self._hays[id] = h
+            kwargs["aid"] = self.addon
+            h = hay.stack(hayid, *args, **kwargs)
+            self._hays[hayid] = h
         else:
-            h = self._hays[id]
+            h = self._hays[hayid]
         return h
 
     def download(self, url, params=None, data=None, headers=None, timeout=None,
                  json=None, method="GET", referer=None, useragent=None, encoding=None,
-                 verify=None, proxies=None):
+                 verify=None, proxies=None, cache=0, text=True):
 
         if not (headers and "user-agent" in [x.lower() for x in headers] or useragent):
             useragent = self._container.useragent
         if not timeout:
             timeout = self._container.httptimeout
         ret = net.http(url, params, data, headers, timeout, json, method, referer,
-                       useragent, encoding, verify, proxies)
+                       useragent, encoding, verify, proxies, cache, text)
         return ret
 
 
@@ -408,9 +419,9 @@ class player(xbmc.Player):
     def stream(self, url, li):
         u, headers = net.fromkodiurl(url)
         if headers is None:
-            headers = {u"User-agent": const.USERAGENT}
+            headers = {"User-agent": const.USERAGENT}
         elif "user-agent" not in [x.lower() for x in headers.keys()]:
-            headers[u"User-agent"] = const.USERAGENT
+            headers["User-agent"] = const.USERAGENT
         u = net.tokodiurl(u, headers=headers)
         if self.dlg.iscanceled():
             return

@@ -89,7 +89,7 @@ def getaddons(cache=True):
 def _openxhay():
     global _xhay
     if not _xhay:
-        _xhay = hay.stack(const.ADDONHAY, common=True)
+        _xhay = hay.stack(const.ADDONHAY)
     return _xhay
 
 
