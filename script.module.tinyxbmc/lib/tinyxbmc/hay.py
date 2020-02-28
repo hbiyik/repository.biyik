@@ -32,7 +32,7 @@ from tinyxbmc import addon
 
 import sqlite3
 
-_debug = True
+_debug = False
 
 def _null(data, *args, **kwargs):
     return data

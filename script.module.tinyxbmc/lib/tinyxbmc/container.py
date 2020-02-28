@@ -179,17 +179,17 @@ class container(object):
                         item.context(setview, False, cnttyp)
                         item.docontext()
                     xbmcplugin.addDirectoryItem(self.syshandle, url, item.item, isfolder, itemlen)
-                xbmcplugin.endOfDirectory(self.syshandle, cacheToDisc=True)
-                if self._container.autoupdate:
-                    d = self.item("Auto Update", method="_update")
-                    d.run(self._container.autoupdate)
+            xbmcplugin.endOfDirectory(self.syshandle, cacheToDisc=True)
+            if self._container.autoupdate:
+                d = self.item("Auto Update", method="_update")
+                d.run(self._container.autoupdate)
             if cnttyp in const.CT_ALL:
                 views = self.hay(const.OPTIONHAY).find("views").data
                 if cnttyp in views:
                     spath = xbmc.getSkinDir().decode("utf-8")
                     view = views[cnttyp].get(spath, None)
                     if view:
-                        for i in range(0, 10 * 20):
+                        for _ in range(0, 10 * 20):
                             if xbmc.getCondVisibility('Container.Content(%s)' % cnttyp):
                                 xbmc.executebuiltin("Container.SetSortMethod(27)")
                                 xbmc.executebuiltin('Container.SetViewMode(%d)' % view)

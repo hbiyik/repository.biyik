@@ -104,7 +104,7 @@ def bgprogress(name):
 def keyboard(default="", heading=None, hidden=False):
     kb = xbmc.Keyboard(default, heading, hidden)
     kb.doModal()
-    text = kb.getText()
+    text = unicode(kb.getText().decode("utf-8"))
     return kb.isConfirmed(), text
 
 
