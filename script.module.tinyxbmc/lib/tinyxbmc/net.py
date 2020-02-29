@@ -40,13 +40,17 @@ from tinyxbmc import const
 
 __profile = addon.get_commondir()
 __cache = Cache(const.HTTPCACHEHAY)
-__cookie = cookielib.LWPCookieJar(filename=os.path.join(__profile, const.COOKIEFILE))
-try:
-    __cookie.load()
-except Exception, e:
-    print e
 
 sessions = {}
+
+
+def loadcookies():
+    cpath = os.path.join(__profile, const.COOKIEFILE)
+    cookie = cookielib.LWPCookieJar(filename=cpath)
+    if not os.path.exists(cpath):
+        cookie.save()
+    cookie.load()
+    return cookie
 
 
 def getsession(timeframe):
@@ -54,7 +58,6 @@ def getsession(timeframe):
         return sessions[timeframe]
     else:
         sess = requests.Session()
-        sess.cookies = __cookie
         if timeframe is None:
             timeframe = -1 
         elif timeframe == 0:
@@ -75,7 +78,7 @@ def tokodiurl(url, domain=None, headers=None):
     else:
         domain = urlparse.urlparse(url).netloc
     cookiestr = ""
-    for cookie in __cookie:
+    for cookie in loadcookies():
         if cookie.domain and domain or domain in cookie.domain:
             cookiestr += ";%s=%s" % (cookie.name, cookie.value)
     if not cookiestr == "":
@@ -115,6 +118,7 @@ def http(url, params=None, data=None, headers=None, timeout=5, json=None, method
               "proxies": proxies
               }
     session = getsession(cache)
+    session.cookies = loadcookies()
     response = session.request(method, url, **kwargs)
     response = cloudflare(session, response, None, **kwargs)
     session.cookies.save(ignore_discard=True)
