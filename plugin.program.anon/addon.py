@@ -81,6 +81,7 @@ class navi(container.container):
                     gui.error("ANON", msg, True)
                     return
             gui.notify("ANON", "Anonimization started successfully !", True)
+        container.refresh()
 
     def _stop(self, silent=False):
         steps = ((self.platform.set_dns,
@@ -105,6 +106,7 @@ class navi(container.container):
     def stop(self):
         if self.checkreq() is None:
             self._stop()
+        container.refresh()
     def index(self):
         self.item("Settings", method="settings").dir()
 
@@ -126,8 +128,8 @@ class navi(container.container):
         self.item("Tor Status: %s" % tconnected).call()
 
         self.item("Statistics", method="statistics").dir()
-        self.item("Stop", method="stop").dir()
-        self.item("(Re)Start", method="start").dir()
+        self.item("Stop", method="stop").call()
+        self.item("(Re)Start", method="start").call()
 
     def statistics(self):
         self.item("Platform: %s" % self.platform.machineid)
@@ -141,17 +143,15 @@ class navi(container.container):
             self.platform.setsetting(key, range(len(defs.tor_countries)))
         else:
             self.platform.setsetting(key, [])
+        container.refresh()
 
     def settings(self):
         title = "View OVPN Config File"
         if self.platform.getsetting("openvpn_config") == "?":
             title = "[COLOR red]%s[/COLOR]" % title
         self.item(title, method="viewcfg").call()
-        self.item("Download OVPN Config File", method="setvpnconfig").dir()
-        self.item("Download OVPN Config File from archive", method="setvpnconfig").dir(True)
-
-        cntx = {self.item("No Specific Exit Node", method="setcfg"): ["tor_use_specific_exit_node",
-                                                                      "-", False, False],
+        self.item("Browse OVPN Config File", method="setvpnconfig").call()
+        cntx = {self.item("No Specific Exit Node", method="setcfg"): ["tor_use_specific_exit_node", "-", False, False],
                 self.item("Autoselect Exit In a Country", method="select_best_exit"): [],
                 self.item("Autoselect Exit In the World", method="select_best_exit"): [False]
                 }
@@ -161,9 +161,9 @@ class navi(container.container):
         select_none = self.item("Select None", method="select")
         limit_tor_nodes = self.item("Limit Location of All Tor Nodes to: %s Countriess" % len(self.platform.getsetting("tor_limit_nodes_to")),
                                     method="selectcountry")
-        limit_tor_nodes.context(select_all, True, "tor_limit_nodes_to", True)
-        limit_tor_nodes.context(select_none, True, "tor_limit_nodes_to", False)
-        limit_tor_nodes.dir("tor_limit_nodes_to")
+        limit_tor_nodes.context(select_all, False, "tor_limit_nodes_to", True)
+        limit_tor_nodes.context(select_none, False, "tor_limit_nodes_to", False)
+        limit_tor_nodes.call("tor_limit_nodes_to")
         if force_exit == "-":
             limit_tor_exit_nodes = self.item("Limit Location of Tor Exit Nodes to: %s Countries" % len(self.platform.getsetting("tor_limit_exit_nodes_to")),
                                              method="selectcountry")
@@ -180,7 +180,7 @@ class navi(container.container):
     def select_best_exit(self, showgui=True):
         if showgui:
             ctry = gui.select("Select Country", defs.tor_countries)
-            if ctry:
+            if ctry >= 0:
                 ctry = defs.tor_countries[ctry]
                 nodes = json.loads(self.download("https://onionoo.torproject.org/details?search=flag:exit country:%s" % ctry))
                 if not len(nodes["relays"]):
@@ -196,6 +196,7 @@ class navi(container.container):
                                                    int(relay.get("observed_bandwidth", 0) / 1000000),
                                                    " ".join(relay.get("exit_addresses", []))
                                                    )
+        container.refresh()
 
         gui.ok("Exit Node Selected", guistr)
         self.setcfg("tor_use_specific_exit_node", relay["fingerprint"], False, False)
@@ -211,8 +212,8 @@ class navi(container.container):
         item = self.item("%s : %s" % (title, old), method="setcfg")
         if cntx:
             for context, args in cntx.iteritems():
-                item.context(context, True, *args)
-        item.dir(key, old, ispw)
+                item.context(context, False, *args)
+        item.call(key, old, ispw)
         return old
 
     def selectcountry(self, key):
@@ -240,10 +241,11 @@ class navi(container.container):
                     return
                 return cfg
 
-    def setvpnconfig(self, archive=False):
+    def setvpnconfig(self):
         cfg = self.getfile()
         if cfg:
             self.platform.setsetting("openvpn_config", cfg)
+        container.refresh()
 
     def setcfg(self, key, value, hidden, showgui=True):
         if not showgui:
@@ -252,6 +254,7 @@ class navi(container.container):
             conf, nvalue = gui.keyboard(value, hidden=hidden)
             if conf and not value == "auto":
                 self.platform.setsetting(key, nvalue)
+        container.refresh()
 
     def viewcfg(self):
         gui.textviewer("OpenVPN Config File", self.platform.getsetting("openvpn_config"))
