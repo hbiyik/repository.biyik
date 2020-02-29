@@ -195,10 +195,10 @@ class turkcealtyazi(sublib.service):
             skip, priority = self.checkpriority(alcd)
             if skip:
                 continue
-            tran = elementsrc(tree.find(".//div[@class='alcevirmen']/a"))
+            tran = elementsrc(s.find(".//div[@class='alcevirmen']/a"))
             iso = "tr"
             qualrate = "4"
-            aldil = tree.find(".//div[@class='aldil']/span")
+            aldil = s.find(".//div[@class='aldil']/span")
             if aldil is not None:
                 cls = aldil.get("class")
                 riso = re.search('flag([a-z]{2})', cls)
