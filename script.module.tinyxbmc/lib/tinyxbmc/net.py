@@ -43,8 +43,8 @@ __cache = Cache(const.HTTPCACHEHAY)
 __cookie = cookielib.LWPCookieJar(filename=os.path.join(__profile, const.COOKIEFILE))
 try:
     __cookie.load()
-except Exception:
-    pass
+except Exception, e:
+    print e
 
 sessions = {}
 
@@ -114,8 +114,10 @@ def http(url, params=None, data=None, headers=None, timeout=5, json=None, method
               "verify": verify,
               "proxies": proxies
               }
-    response = getsession(cache).request(method, url, **kwargs)
-    response = cloudflare(response, **kwargs)
+    session = getsession(cache)
+    response = session.request(method, url, **kwargs)
+    response = cloudflare(session, response, None, **kwargs)
+    session.cookies.save(ignore_discard=True)
     if not text:
         return response
     if method == "HEAD":
@@ -129,21 +131,20 @@ def http(url, params=None, data=None, headers=None, timeout=5, json=None, method
             text = response.text
         text = tools.unescapehtml(text)
         ret = unicode(text)
-    getsession(cache).cookies.save(ignore_discard=True)
     return ret
 
 
-def cloudflare(response, **kwargs):
+def cloudflare(session, response, previous, **kwargs):
     def __extract_js(body):
         js = re.search(r"(var s,t,o,p,b,r,e,a,k,i,n,g,f,.+?;)", body).group(1)
         js += re.search(r";(.+?)\s?\+\s?t\.length", body).group(1)
-        js = re.sub(r'a\.value\s?\=\s?\+', '', js)
+        js = re.sub(r'a\.value.+', '', js)
         return js + ";"
 
-    def __redirect_clf(redirect, **kwargs):
+    def __redirect_clf(redirect, previous, **kwargs):
         redirect_url = redirect.headers.get("Location")
         if redirect_url is None:
-            return redirect
+            return cloudflare(redirect, previous, **kwargs)
         elif redirect_url.startswith("/"):
             redirect_url = "%s://%s%s" % (parsed_url.scheme, domain, redirect_url)
         kwargs["method"] = method
@@ -152,30 +153,36 @@ def cloudflare(response, **kwargs):
 
     if (response.status_code == 503 and "cloudflare" in response.headers.get("Server")
             and b"jschl_vc" in response.content and b"jschl_answer" in response.content):
+        if previous == "js":
+            return response
+        else:
+            previous = "js"
         import js2py
         body = response.text
         parsed_url = urlparse.urlparse(response.url)
         domain = parsed_url.netloc
-        submit_url = "%s://%s/cdn-cgi/l/chk_jschl" % (parsed_url.scheme, domain)
+        action = re.search("action=(?:\"|')(.+?)(?:\"|')", body)
+        submit_url = "%s://%s%s" % (parsed_url.scheme, domain, action.group(1))
         cfkwargs = copy.deepcopy(kwargs)
-        for key in ["headers", "params"]:
+        for key in ["headers", "data"]:
             if not isinstance(cfkwargs[key], dict):
                 cfkwargs[key] = {}
         cfkwargs["headers"]["Referer"] = response.url
-        cfkwargs["params"]["jschl_vc"] = re.search(r'name="jschl_vc" value="(\w+)"', body).group(1)
-        cfkwargs["params"]["pass"] = re.search(r'name="pass" value="(.+?)"', body).group(1)
-        js = __extract_js(body)
-        jseval = float(js2py.eval_js(js))
-        cfkwargs["params"]["jschl_answer"] = str(jseval + len(domain))
+        cfkwargs["data"]["jschl_vc"] = re.search(r'name="jschl_vc" value="(\w+)"', body).group(1)
+        cfkwargs["data"]["pass"] = re.search(r'name="pass" value="(.+?)"', body).group(1)
+        jsanswer = str(float(js2py.eval_js(__extract_js(body))) + len(domain))
+        cfkwargs["data"]["jschl_answer"] = jsanswer
         method = response.request.method
-        cfkwargs["allow_redirects"] = False
+        #cfkwargs["allow_redirects"] = False
         t = 5
         from tinyxbmc import gui
         gui.notify("CloudFlare", "Waiting %d seconds" % t, False)
         time.sleep(t)
-        return __redirect_clf(getsession(0)("GET", submit_url, **cfkwargs), **kwargs)
+        return cloudflare(session, session.request("POST", submit_url, **cfkwargs), "js", **kwargs)
 
     elif response.status_code == 403 and "cloudflare" in response.headers.get("Server"):
+        if previous == "cc":
+            return response
         formaddr = re.search('<form.+?id="challenge-form".+?action="(.+?)"', response.content)
         if formaddr:
             import recaptcha
@@ -188,7 +195,7 @@ def cloudflare(response, **kwargs):
             sitekey = re.search('data-sitekey="(.*?)"', body).group(1)
             ua = response.request.headers["user-agent"]
             headers = {'Referer': page_url, "User-agent": ua, "Accept-Language": tools.language()}
-            resp = getsession(0).request("GET", 'http://www.google.com/recaptcha/api/fallback?k=%s' % sitekey,
+            resp = session.request("GET", 'http://www.google.com/recaptcha/api/fallback?k=%s' % sitekey,
                                          headers=headers)
             html = resp.text
             token = ''
@@ -227,7 +234,7 @@ def cloudflare(response, **kwargs):
                 for captcha in captcha_response:
                     postdata["response"].append(str(captcha))
                 headers = {'Referer': resp.url, "User-agent": ua}
-                resp = getsession(0).request("POST", 'http://www.google.com/recaptcha/api/fallback?k=%s' % sitekey,
+                resp = session.request("POST", 'http://www.google.com/recaptcha/api/fallback?k=%s' % sitekey,
                                              headers=headers, data=postdata)
                 html = resp.text
             if token == "":
@@ -235,8 +242,7 @@ def cloudflare(response, **kwargs):
             submit_url = "%s://%s%s" % (parsed_url.scheme, domain, formaddr.group(1))
             query = {"r": r, "g-recaptcha-response": token}
             headers = {"Referer": page_url, "User-agent": ua}
-            return __redirect_clf(getsession(0).request("POST", submit_url, data=query, headers=headers,
-                                                        allow_redirects=False), **kwargs)
+            return cloudflare(session, session.request("POST", submit_url, data=query, headers=headers), "cc", **kwargs)
     return response
 
 
