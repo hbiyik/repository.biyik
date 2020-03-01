@@ -352,7 +352,7 @@
 	</extension>
 </addon>
 
-<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.0.15">
+<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.0.16">
     <requires>
 		<import addon="xbmc.python" version="2.1.0"/>
 		<import addon="script.module.cachecontrol"/>
