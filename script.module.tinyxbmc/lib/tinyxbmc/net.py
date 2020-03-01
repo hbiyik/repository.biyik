@@ -47,9 +47,12 @@ sessions = {}
 def loadcookies():
     cpath = os.path.join(__profile, const.COOKIEFILE)
     cookie = cookielib.LWPCookieJar(filename=cpath)
-    if not os.path.exists(cpath):
-        cookie.save()
-    cookie.load()
+    try:
+        if not os.path.exists(cpath):
+            cookie.save()
+        cookie.load()
+    except:
+        pass    
     return cookie
 
 
@@ -121,7 +124,10 @@ def http(url, params=None, data=None, headers=None, timeout=5, json=None, method
     session.cookies = loadcookies()
     response = session.request(method, url, **kwargs)
     response = cloudflare(session, response, None, **kwargs)
-    session.cookies.save(ignore_discard=True)
+    try:
+        session.cookies.save(ignore_discard=True)
+    except Exception:
+        pass
     if not text:
         return response
     if method == "HEAD":
