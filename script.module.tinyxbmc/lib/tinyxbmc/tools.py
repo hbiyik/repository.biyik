@@ -220,25 +220,30 @@ def kodiversion():
 
 class tz_local(datetime.tzinfo):
     _unixEpochOrdinal = datetime.datetime.utcfromtimestamp(0).toordinal()
-
+    
     def dst(self, dt):
         return datetime.timedelta(0)
-
+    
     def utcoffset(self, dt):
-        t = (dt.toordinal() - self._unixEpochOrdinal)*86400 + dt.hour*3600 + dt.minute*60 + dt.second + time.timezone
+        t = (dt.toordinal() - self._unixEpochOrdinal) * 86400 + dt.hour * 3600 + dt.minute * 60 + dt.second + time.timezone
         utc = datetime.datetime(*time.gmtime(t)[:6])
         local = datetime.datetime(*time.localtime(t)[:6])
         return local - utc
 
 
 class tz_utc(datetime.tzinfo):
-    _unixEpochOrdinal = datetime.datetime.utcfromtimestamp(0).toordinal()
-
+    def __init__(self, *args, **kwargs):
+        super(tz_utc, self).__init__(*args, **kwargs)
+        self.__timezone = 0
+        
+    def settimezone(self, hour):
+        self.__timezone = hour
+        
     def dst(self, dt):
         return datetime.timedelta(0)
-
+    
     def utcoffset(self, dt):
-        return self.dst(dt)
+        return datetime.timedelta(0, self.__timezone * 60 * 60)
 
 
 def isstub():
