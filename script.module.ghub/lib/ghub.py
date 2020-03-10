@@ -30,12 +30,7 @@ import sys
 import htmlement
 
 import xbmc
-import xbmcgui
-import traceback
 
-from distutils.version import LooseVersion
-
-_cannotify = LooseVersion(xbmcgui.__version__) >= LooseVersion("2.14.0")
 
 _dom = "github.com"
 _ddir = xbmc.translatePath("special://userdata/addon_data/").decode("utf-8")
@@ -51,35 +46,9 @@ def _mkdir(*args):
 _ddir = _mkdir(_ddir, "script.module.ghub", "src")
 
 
-def _page(u, chunk_size=8192):
-    dp = xbmcgui.DialogProgress()
-    dp.create("Github", u)
+def _page(u):
     response = urllib2.urlopen(u)
-    total_size = response.info().getheader('Content-Length')
-    if total_size:
-        try:
-            total_size = int(total_size.strip())
-        except Exception:
-            total_size = None
-    if not total_size:
-        dp.update(100)
-        ret = response.read()
-        dp.close()
-        return ret
-    else:
-        bytes_so_far = 0
-        data_so_far = ""
-        while True:
-            chunk = response.read(chunk_size)
-            data_so_far += chunk
-            bytes_so_far += len(chunk)
-            if not chunk:
-                break
-            if total_size:
-                percent = bytes_so_far * 100 / total_size
-                dp.update(percent)
-        dp.close()
-        return data_so_far
+    return response.read()
 
 
 def _getrels(uname, rname):
@@ -121,26 +90,6 @@ def _updatezip(u, tdir, rname):
     zp.extractall(tdir)
 
 
-def _makepack(tdir, path, rname):
-    sdir = None
-    for d in os.listdir(tdir):
-        sdir = os.path.join(tdir, d)
-        if os.path.isdir(sdir) and d.startswith(rname):
-            break
-    if sdir and sdir not in sys.path:
-        sys.path.append(os.path.join(sdir, *path))
-        return sdir
-
-
-def _silentcheck(mem, callback, *args, **kwargs):
-    try:
-        return callback(*args, **kwargs)
-    except Exception, e:
-        print traceback.format_exc()
-        if not mem:
-            raise e
-
-
 def load(uname, rname, branch, commit=None, path=[], period=24):
     """
     Loads, caches, and arranges paths for a repo from github.
@@ -175,39 +124,51 @@ def load(uname, rname, branch, commit=None, path=[], period=24):
     """
     mem = None
     bdir = _mkdir(_ddir, uname)
-    if not branch:
-        bdir = _mkdir(bdir, "release")
-    else:
+    
+    # load memory file
+    if branch:
         bdir = _mkdir(bdir, "branch", branch)
+    else:
+        bdir = _mkdir(bdir, "release")
     memfile = os.path.join(bdir, rname + ".json")
     if os.path.exists(memfile):
         with open(memfile) as infile:
             mem = json.load(infile)
+    
+    # prepare path
+    sdir = None
+    for d in os.listdir(bdir):
+        sdir = os.path.join(bdir, d)
+        if os.path.isdir(sdir) and d.startswith(rname):
+            break
+    if sdir and sdir not in sys.path:
+        sys.path.append(os.path.join(sdir, *path))
+    
+    # check if we need to update
     if mem and time.time() - mem["ts"] < period * 60 * 60:
-        return _makepack(bdir, path, rname)
+        print "GITHUB: INFO: Using Existing, no need to check: %s Repo:%s Branch:%s Commit: %s" % (uname, rname, branch, commit)
+        return True
     else:
-        dialog = xbmcgui.Dialog()
-        if _cannotify:
-            dialog.notification("%s:%s:%s" % (rname, uname, branch), "Updating..")
-        if branch:
-            ref = _silentcheck(mem, _getcommits, uname, rname, branch, commit)
-            if not ref:
-                return _makepack(bdir, path, rname)
-        else:
-            ref = _silentcheck(mem, _getrels, uname, rname)
-            if not ref:
-                return _makepack(bdir, path, rname)
-        latest = ref[0]
-        if not mem or not latest[0] == mem["latest"]:
-            _updatezip(latest[1], bdir, rname)
-        data = {
-                "ts": time.time(),
-                "latest": latest[0]
-                }
-        with open(memfile, 'w') as outfile:
-            json.dump(data, outfile)
-        if not branch:
-            branch = "release"
-        if _cannotify:
-            dialog.notification("%s:%s:%s" % (rname, uname, branch), latest[0][:7])
-        return _makepack(bdir, path, rname)
+        # get latest commits
+        try:
+            if branch:
+                ref = _getcommits(uname, rname, branch, commit)
+            else:
+                ref = _getrels(uname, rname)
+        except Exception:
+            print "GITHUB: WARNING: Can not get latest meta: User:%s Repo:%s Branch:%s Commit: %s" % (uname, rname, branch, commit)
+            return False
+        
+        # download new package, extract and update the memory file
+        lcommit, zipu = ref[0]
+        if not mem or not lcommit == mem["latest"]:
+            print "GITHUB: INFO: Updating to commit %s->%s for %s Repo:%s Branch:%s Commit: %s" % (lcommit, zipu,
+                                                                                                   uname, rname, branch, commit)
+            _updatezip(zipu, bdir, rname)
+            data = {
+                    "ts": time.time(),
+                    "latest": lcommit
+                    }
+            with open(memfile, 'w') as outfile:
+                json.dump(data, outfile)
+        return True
