@@ -201,7 +201,7 @@
 	</extension>
 </addon>
 
-<addon id="script.module.ghub" name="GHub" provider-name="hbiyik" version="0.0.2">
+<addon id="script.module.ghub" name="GHub" provider-name="hbiyik" version="0.0.3">
     <requires>
 		<import addon="xbmc.python" version="2.19.0"/>
 		<import addon="script.module.htmlement" version="0.2.3"/>
@@ -352,7 +352,7 @@
 	</extension>
 </addon>
 
-<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.0.17">
+<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.0.18">
     <requires>
 		<import addon="xbmc.python" version="2.1.0"/>
 		<import addon="script.module.cachecontrol"/>
