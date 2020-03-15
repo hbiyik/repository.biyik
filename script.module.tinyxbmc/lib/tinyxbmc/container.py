@@ -298,7 +298,7 @@ class container(object):
         return h
 
     def download(self, url, params=None, data=None, headers=None, timeout=None,
-                 json=None, method="GET", referer=None, useragent=None, encoding=None,
+                 json=None, method="GET", referer=None, useragent=None, encoding="utf-8",
                  verify=None, proxies=None, cache=0, text=True):
 
         if not (headers and "user-agent" in [x.lower() for x in headers] or useragent):

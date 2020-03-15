@@ -300,7 +300,10 @@ class stack(object):
             self.__execute("""DELETE FROM needles WHERE hash NOT IN (SELECT hash FROM
                             needles ORDER BY timestamp DESC LIMIT ?)""", (self.maxrows,))
         with Mutex(self.mutex):
-            self.conn.commit()
+            try:
+                self.conn.commit()
+            except sqlite3.OperationalError:
+                return
         if _debug:
             print "DB: %s, saved" % self.path
 

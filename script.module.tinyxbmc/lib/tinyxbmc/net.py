@@ -51,8 +51,8 @@ def loadcookies():
         if not os.path.exists(cpath):
             cookie.save()
         cookie.load()
-    except:
-        pass    
+    except Exception:
+        pass
     return cookie
 
 
@@ -139,8 +139,7 @@ def http(url, params=None, data=None, headers=None, timeout=5, json=None, method
             text = response.content.decode(encoding)
         else:
             text = response.text
-        text = tools.unescapehtml(text)
-        ret = unicode(text)
+        ret = unicode(tools.unescapehtml(text))
     return ret
 
 

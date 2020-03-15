@@ -63,8 +63,7 @@ def addon_details(aid):
         "method": "Addons.GetAddonDetails",
         "id": 1,
         "params": {"addonid": aid,
-                   "properties": [
-                                  "name",
+                   "properties": ["name",
                                   "version",
                                   "path",
                                   "dependencies",
@@ -82,12 +81,12 @@ def addon_details(aid):
 def toggle_addon(aid, enable=None):
     if enable is None:
         enable = "toggle"
-        
-    data = {"jsonrpc":"2.0",
-            "method":"Addons.SetAddonEnabled",
-            "params":{"addonid":aid,
-                      "enabled":enable},
-            "id":1}
+
+    data = {"jsonrpc": "2.0",
+            "method": "Addons.SetAddonEnabled",
+            "params": {"addonid": aid,
+                       "enabled": enable},
+            "id": 1}
     toggle = json.loads(xbmc.executeJSONRPC(json.dumps(data)))
     if "error" in toggle:
         return False
@@ -128,7 +127,7 @@ def get_addondir(aid=None):
         path = os.path.join(path, p)
         if not os.path.exists(path):
             os.makedirs(path)
-    return path
+    return os.path.abspath(path)
 
 
 def get_commondir():

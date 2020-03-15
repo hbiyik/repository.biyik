@@ -129,7 +129,9 @@ def relpath(path, *paths):
     return os.path.realpath(os.path.join(path, *paths))
 
 
-def elementsrc(element, exclude=[]):
+def elementsrc(element, exclude=None):
+    if not exclude:
+        exclude = []
     if element in exclude:
         return ""
     text = element.text or ''
@@ -220,10 +222,10 @@ def kodiversion():
 
 class tz_local(datetime.tzinfo):
     _unixEpochOrdinal = datetime.datetime.utcfromtimestamp(0).toordinal()
-    
+
     def dst(self, dt):
         return datetime.timedelta(0)
-    
+
     def utcoffset(self, dt):
         t = (dt.toordinal() - self._unixEpochOrdinal) * 86400 + dt.hour * 3600 + dt.minute * 60 + dt.second + time.timezone
         utc = datetime.datetime(*time.gmtime(t)[:6])
@@ -235,13 +237,13 @@ class tz_utc(datetime.tzinfo):
     def __init__(self, *args, **kwargs):
         super(tz_utc, self).__init__(*args, **kwargs)
         self.__timezone = 0
-        
+
     def settimezone(self, hour):
         self.__timezone = hour
-        
+
     def dst(self, dt):
         return datetime.timedelta(0)
-    
+
     def utcoffset(self, dt):
         return datetime.timedelta(0, self.__timezone * 60 * 60)
 
@@ -257,3 +259,13 @@ def language(_format=None, region=False):
         return xbmc.getLanguage(_format, region)
     except Exception:
         return xbmc.getLanguage()
+
+
+class ignoreexception(object):
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, tb):
+        if exc_type and not isinstance(exc_val, (GeneratorExit, StopIteration)):
+            print traceback.format_exc()
+            return True
