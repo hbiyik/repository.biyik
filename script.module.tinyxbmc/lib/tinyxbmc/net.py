@@ -102,7 +102,7 @@ def fromkodiurl(url):
 
 
 def http(url, params=None, data=None, headers=None, timeout=5, json=None, method="GET",
-         referer=None, useragent=None, encoding=None, verify=None, proxies=None, cache=0, text=True):
+         referer=None, useragent=None, encoding=None, verify=None, stream=None, proxies=None, cache=0, text=True):
     ret = None
     if url.startswith("//"):
         url = "http:%s" % url
@@ -118,6 +118,7 @@ def http(url, params=None, data=None, headers=None, timeout=5, json=None, method
               "timeout": timeout,
               "json": json,
               "verify": verify,
+              "stream": stream,
               "proxies": proxies
               }
     session = getsession(cache)
