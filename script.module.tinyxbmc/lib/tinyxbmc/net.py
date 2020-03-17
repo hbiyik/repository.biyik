@@ -62,7 +62,7 @@ def getsession(timeframe):
     else:
         sess = requests.Session()
         if timeframe is None:
-            timeframe = -1 
+            timeframe = -1
         elif timeframe == 0:
             sess.mount("http://", CacheControlAdapter(cache=__cache))
             sess.mount("https://", CacheControlAdapter(cache=__cache))
@@ -112,6 +112,8 @@ def http(url, params=None, data=None, headers=None, timeout=5, json=None, method
         headers["User-Agent"] = useragent
     if referer:
         headers["Referer"] = referer
+    if "user-agent" not in [x.lower() for x in headers.keys()]:
+        headers["User-Agent"] = const.USERAGENT
     kwargs = {"params": params,
               "data": data,
               "headers": headers,
@@ -161,8 +163,8 @@ def cloudflare(session, response, previous, **kwargs):
         kwargs["text"] = False
         return http(redirect_url, **kwargs)
 
-    if (response.status_code == 503 and "cloudflare" in response.headers.get("Server")
-            and b"jschl_vc" in response.content and b"jschl_answer" in response.content):
+    if (response.status_code == 503 and "cloudflare" in response.headers.get("Server") and
+            b"jschl_vc" in response.content and b"jschl_answer" in response.content):
         if previous == "js":
             return response
         else:
@@ -183,7 +185,7 @@ def cloudflare(session, response, previous, **kwargs):
         jsanswer = str(float(js2py.eval_js(__extract_js(body))) + len(domain))
         cfkwargs["data"]["jschl_answer"] = jsanswer
         method = response.request.method
-        #cfkwargs["allow_redirects"] = False
+        # cfkwargs["allow_redirects"] = False
         t = 5
         from tinyxbmc import gui
         gui.notify("CloudFlare", "Waiting %d seconds" % t, False)
@@ -193,10 +195,10 @@ def cloudflare(session, response, previous, **kwargs):
     elif response.status_code == 403 and "cloudflare" in response.headers.get("Server"):
         if previous == "cc":
             return response
-        formaddr = re.search('<form.+?id="challenge-form".+?action="(.+?)"', response.content)
+        body = tools.unescapehtml(response.text)
+        formaddr = re.search('<form.+?id="challenge-form".+?action="(.+?)"', body)
         if formaddr:
             import recaptcha
-            body = response.text
             r = re.search('input type="hidden" name="r" value="(.+?)"', body).group(1)
             page_url = response.url
             method = response.request.method
@@ -206,8 +208,8 @@ def cloudflare(session, response, previous, **kwargs):
             ua = response.request.headers["user-agent"]
             headers = {'Referer': page_url, "User-agent": ua, "Accept-Language": tools.language()}
             resp = session.request("GET", 'http://www.google.com/recaptcha/api/fallback?k=%s' % sitekey,
-                                         headers=headers)
-            html = resp.text
+                                   headers=headers)
+            html = tools.unescapehtml(resp.text)
             token = ''
             iteration = 0
             while True:
@@ -234,7 +236,7 @@ def cloudflare(session, response, previous, **kwargs):
                     print message
                     print iteration
                     print page_url
-                    captcha_response = [ int(x) for x in raw_input("").split()]
+                    captcha_response = [int(x) for x in raw_input("").split()]
                 else:
                     oSolver = recaptcha.cInputWindow(captcha=captcha_imgurl, msg=message, iteration=iteration, sitemsg=page_url)
                     captcha_response = oSolver.get()
@@ -245,14 +247,18 @@ def cloudflare(session, response, previous, **kwargs):
                     postdata["response"].append(str(captcha))
                 headers = {'Referer': resp.url, "User-agent": ua}
                 resp = session.request("POST", 'http://www.google.com/recaptcha/api/fallback?k=%s' % sitekey,
-                                             headers=headers, data=postdata)
+                                       headers=headers, data=postdata)
                 html = resp.text
             if token == "":
                 return response
             submit_url = "%s://%s%s" % (parsed_url.scheme, domain, formaddr.group(1))
-            query = {"r": r, "g-recaptcha-response": token}
+            data = kwargs.get("data")
+            if not data:
+                data = {}
+            data["r"] = r
+            data["g-recaptcha-response"] = token
             headers = {"Referer": page_url, "User-agent": ua}
-            return cloudflare(session, session.request("POST", submit_url, data=query, headers=headers), "cc", **kwargs)
+            return cloudflare(session, session.request("POST", submit_url, data=data, headers=headers), "cc", **kwargs)
     return response
 
 
