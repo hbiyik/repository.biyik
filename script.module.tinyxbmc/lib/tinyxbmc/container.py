@@ -37,7 +37,7 @@ from tinyxbmc import tools
 from tinyxbmc import gui
 from tinyxbmc import net
 
-REMOTE_DBG = True
+REMOTE_DBG = False
 
 if REMOTE_DBG:
     #pdevpath = "C:\\Users\\z0042jww\\.p2\\pool\\plugins\\org.python.pydev.core_7.2.1.201904261721\\pysrc"
