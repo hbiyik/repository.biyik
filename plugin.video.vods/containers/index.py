@@ -386,6 +386,7 @@ class index(container.container):
             if not isinstance(link, (str, unicode)):
                 continue
             item = self.item(link, info, art, method="geturls")
+            self.cacheresolve(link, info, art)
             item.resolve(link, True, **kwargs)
 
     def geturls(self, url, direct, **kwargs):
