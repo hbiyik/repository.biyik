@@ -429,16 +429,16 @@ class player(xbmc.Player):
         if self.canresolve:
             xbmcplugin.setResolvedUrl(int(sys.argv[1]), True, li)
         else:
-            if not self.fallbackinfo == {}:
+            if self.fallbackinfo:
                 li.setInfo("video", self.fallbackinfo)
-            if not self.fallbackart == {}:
+            if self.fallbackart:
                 gui.setArt(li, self.fallbackart)
             self.play(u, li)
         return self.waitplayback(u)
 
     def waitplayback(self, u=""):
         self.waiting = True
-        factor = 5
+        factor = 100
         startt = time.time()
         for i in range(self.timeout * factor):
             p = 100 * i / (self.timeout * factor)
