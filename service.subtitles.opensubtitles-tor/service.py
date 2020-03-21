@@ -9,6 +9,9 @@ import xbmcaddon
 import xbmcgui,xbmcplugin
 import xbmcvfs
 import uuid
+from tinyxbmc import net
+import StringIO
+import zipfile
 
 __addon__ = xbmcaddon.Addon()
 __author__     = __addon__.getAddonInfo('author')
@@ -88,23 +91,21 @@ def Download(id,url,format,stack=False):
   if not result:
     log( __name__,"Download Using HTTP")
     zip = os.path.join( __temp__, "OpenSubtitles.zip")
-    f = urllib.urlopen(url)
     if not os.path.exists( __temp__ ):
         os.mkdir( __temp__, mode=0775 )
-    with open(zip, "wb") as subFile:
-      subFile.write(f.read())
-    subFile.close()
-    xbmc.sleep(500)
-    xbmc.executebuiltin(('XBMC.Extract("%s","%s")' % (zip,__temp__,)).encode('utf-8'), True)
-    for file in xbmcvfs.listdir(zip)[1]:
-      file = os.path.join(__temp__, file)
+    post_data = {"form[url]": url, "form[dataCenter]": "random", "terms-agreed": "1"}
+    zip_data = net.http("https://www.hidemyass-freeproxy.com/process/tr-tr",
+                        data=post_data, text=False, method="POST",
+                        referer="https://www.hidemyass-freeproxy.com/"
+                        )
+    zf = zipfile.ZipFile(StringIO.StringIO(zip_data.content))
+    zf.extractall(__temp__)
+    for file in os.listdir(__temp__):
       if (os.path.splitext( file )[1] in exts):
-        subtitle_list.append(file)
+        subtitle_list.append(os.path.join(__temp__, file))
   else:
     subtitle_list.append(subtitle)
-
-  if xbmcvfs.exists(subtitle_list[0]):
-    return subtitle_list
+  return subtitle_list
 
 def takeTitleFromFocusedItem():
     labelMovieTitle = xbmc.getInfoLabel("ListItem.OriginalTitle")

@@ -12,11 +12,8 @@ class RequestsTransport(xmlrpclib.Transport):
     def request(self, host, handler, request_body, verbose):
         url = self._build_url(host, handler)
         try:
-            print url
-            print request_body
             headers = {"X-Requested-With": "XMLHttpRequest"}
-            resp = net.http(url, data=request_body, headers=headers, method="POST", text=False)
-            print resp.content
+            resp = net.http(url, timeout=20, data=request_body, headers=headers, method="POST", text=False)
         except ValueError:
             raise
         except Exception:
@@ -32,7 +29,7 @@ class RequestsTransport(xmlrpclib.Transport):
 
     def parse_response(self, resp):
         p, u = self.getparser()
-        p.feed(resp.text)
+        p.feed(resp.content)
         p.close()
         return u.close()
 
