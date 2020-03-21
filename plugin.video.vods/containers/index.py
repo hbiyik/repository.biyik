@@ -405,7 +405,6 @@ class index(container.container):
                     ins = pcls(self)
                     playerins[target] = (target, ins, pcls)
                     makenameart(ins)
-                    gui.notify("Initialized", ins.title, False)
                     return target, ins
                 except Exception:
                     print traceback.format_exc()
