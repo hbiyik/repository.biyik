@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>service.subtitles.opensubtitles-tor</name>
+	<name>service.subtitles.opensubtitlestor</name>
 	<comment></comment>
 	<projects>
 		<project>script.module.tinyxbmc</project>
