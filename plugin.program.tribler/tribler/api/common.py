@@ -36,14 +36,14 @@ def call(method, endpoint, **data):
     headers = {"X-Api-Key": config.get("http_api", "key")}
     print url
     print data
-    if endpoint in ["search"]:
+    if endpoint in ["search", "metadata"]:
         params = data
         js = True
     else:
         params = None
         js = data
 
-    resp = net.http(url, params=params, headers=headers, json=js, method=method)
+    resp = net.http(url, timeout=60, params=params, headers=headers, json=js, method=method)
     import json
     print json.dumps(resp)
     if "error" in resp:

@@ -23,32 +23,60 @@ from tinyxbmc import gui
 from tribler import defs
 from tribler import api
 
+import time
+import threading
+
 
 class navi(container.container):
 
     def index(self):
-        self.item("Search", method="search").dir()
+        self.item("Search Channels", method="search").dir(True)
+        self.item("Search Torrents", method="search").dir(False)
         self.item("Add Torrent", method="addtorrent").dir()
         self.item("Downloads", method="downloads").dir()
 
-    def search(self, txt_filter=None):
+    def search(self, ischannel=False, txt_filter=None):
         if not txt_filter:
             conf, txt_filter = gui.keyboard("", "Search")
             if conf:
-                self.item("Redirect", method="search").redirect(txt_filter)
+                self.item("Redirect", method="search").redirect(ischannel, txt_filter)
         else:
             resp = api.search.query(txt_filter)
             if resp:
-                for result in sorted(resp.get("results", []), key=lambda i: i.get("subscribed"), reverse=True):
+                for result in resp.get("results", []):
                     subbed = result.get("subscribed")
-                    if subbed is None:
-                        prefix = "S%s L%s: " % (result["num_seeders"], result["num_leechers"])
-                    elif subbed:
-                        prefix = "SUB CH: "
-                    else:
-                        prefix = "CH: "
-                    itemname = prefix + result["name"]
-                    self.item(itemname).call()
+                    if subbed is None and not ischannel:
+                        itemname = "S:%s L:%s - %s" % (result["num_seeders"],
+                                                       result["num_leechers"],
+                                                       result["name"])
+                        cntx_health = self.item("Check Health", method="healthcheck")
+                        item = self.item(itemname)
+                        item.context(cntx_health, False, result["infohash"], result["name"])
+                        item.call()
+                    elif subbed is not None and ischannel:
+                        itemname = "SUB: %s - %s" % ("YES" if subbed else "NO",
+                                                     result["name"])
+                        self.item(itemname).call()
+
+    def healthcheck(self, infohash, name=None):
+        timeout = 30
+        meta = -1
+        if not name:
+            name = infohash
+
+        def progress():
+            bgprogress = gui.bgprogress("DHT: %s" % name)
+            for i in range(int(timeout * 1.3)):
+                if not meta == -1:
+                    break
+                bgprogress.update(int(100 * float(i)/timeout))
+                time.sleep(1)
+            bgprogress.close()
+
+        threading.Thread(target=progress).start()
+        meta = api.metadata.torrenthealth(infohash, timeout=timeout)
+        container.refresh()
+        return meta
 
     def addtorrent(self):
         self.item("Add Torrent From Remote Magnet or URL", method="addtorrent_url").call()
