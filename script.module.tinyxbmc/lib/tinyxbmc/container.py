@@ -59,6 +59,7 @@ class container(object):
     def __init__(self, useragent=None, httptimeout=None, addon=None, *iargs, **ikwargs):
         self.__inittime = time.time()
         self.sysaddon = sys.argv[0]
+        self.player = None
         aurl = urlparse.urlparse(self.sysaddon)
         if aurl.scheme.lower() in ["plugin", "script"]:
             self.addon = aurl.netloc
@@ -115,36 +116,36 @@ class container(object):
         self._container.init(*iargs, **ikwargs)
         self._method = getattr(self._container, self._disp_method)
         if self._container._media == "resolver":
-            p = player()
+            self.player = player()
             redirects = []
             for u, finfo, fart in tools.dynamicret(tools.safeiter(self._method(*args, **kwargs))):
-                if p.dlg.iscanceled():
+                if self.player.dlg.iscanceled():
                     break
-                p.fallbackinfo = finfo
-                p.fallbackart = fart
+                self.player.fallbackinfo = finfo
+                self.player.fallbackart = fart
                 self._container._isplaying = 1
                 if "plugin://" in u:
                     redirects.append(u)
                     continue
                 item = xbmcgui.ListItem(path=u)
-                state = p.stream(u, item)
+                state = self.player.stream(u, item)
                 if state:
                     self._container._isplaying = 2
                     self._close()
                     return
                 else:
                     self._container._isplaying = 0
-                    p.dlg.update(100, "Skipping broken url: %s" % u)
+                    self.player.dlg.update(100, "Skipping broken url: %s" % u)
             if not self._container._isplaying == 2 and len(redirects):
                 redirects = list(set(redirects))
                 if len(redirects) == 1:
                     u = redirects[0]
                 else:
                     u = gui.select("Select Addon", *redirects)
-                if p.canresolve:
-                    p.stream("", xbmcgui.ListItem())
+                if self.player.canresolve:
+                    self.player.stream("", xbmcgui.ListItem())
                 tools.builtin(u)
-                state = p.waitplayback(u)
+                state = self.player.waitplayback(u)
                 self._close()
                 self._container._isplaying = 2
                 return
