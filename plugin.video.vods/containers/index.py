@@ -386,6 +386,7 @@ class index(container.container):
             if not isinstance(link, (str, unicode)):
                 continue
             item = self.item(link, info, art, method="geturls")
+            self.cacheresolve(link, info, art)
             item.resolve(link, True, **kwargs)
 
     def geturls(self, url, direct, **kwargs):
@@ -404,7 +405,6 @@ class index(container.container):
                     ins = pcls(self)
                     playerins[target] = (target, ins, pcls)
                     makenameart(ins)
-                    gui.notify("Initialized", ins.title, False)
                     return target, ins
                 except Exception:
                     print traceback.format_exc()

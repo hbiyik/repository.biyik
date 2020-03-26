@@ -93,7 +93,7 @@ def toggle_addon(aid, enable=None):
     return True
 
 
-def depend_addon(aid):
+def depend_addon(aid, *paths):
     """
     Adds directories of the addons dependencies to the system path for the given addonid
     """
@@ -107,6 +107,10 @@ def depend_addon(aid):
         if os.path.exists(axml):
             dxml = tools.readdom(axml)
         exts = dxml.getElementsByTagName("extension")
+        if len(paths):
+            ex_path = os.path.join(bpath, *paths)
+            if ex_path not in sys.path:
+                sys.path.append(ex_path)
         for ext in exts:
             if ext.getAttribute("point") == "xbmc.python.module":
                 lib = ext.getAttribute("library")

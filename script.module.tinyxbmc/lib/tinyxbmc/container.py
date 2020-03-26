@@ -41,8 +41,8 @@ REMOTE_DBG = False
 
 if REMOTE_DBG:
     #pdevpath = "C:\\Users\\z0042jww\\.p2\\pool\\plugins\\org.python.pydev.core_7.2.1.201904261721\\pysrc"
-    #pdevpath = "/home/boogie/.p2/pool/plugins/org.python.pydev.core_7.2.1.201904261721/pysrc/"
-    pdevpath = "/home/boogie/local/eclipse/plugins/org.python.pydev.core_7.5.0.202001101138/pysrc/"
+    pdevpath = "/home/boogie/.p2/pool/plugins/org.python.pydev.core_7.2.1.201904261721/pysrc/"
+    #pdevpath = "/home/boogie/local/eclipse/plugins/org.python.pydev.core_7.5.0.202001101138/pysrc/"
     sys.path.append(pdevpath)
     import pydevd  # @UnresolvedImport
     pydevd.settrace(stdoutToServer=True, stderrToServer=True, suspend=False)
@@ -246,7 +246,7 @@ class container(object):
         return d
 
     def _setview(self, ct):
-        stack = self.hay(const.OPTIONHAY, common=True)
+        stack = self.hay(const.OPTIONHAY)
         data = stack.find("views").data
         current = data.get(ct, {})
         spath = xbmc.getSkinDir().decode("utf-8")
@@ -437,16 +437,16 @@ class xbmcplayer(xbmc.Player):
         if self.canresolve:
             xbmcplugin.setResolvedUrl(int(sys.argv[1]), True, li)
         else:
-            if not self.fallbackinfo == {}:
+            if self.fallbackinfo:
                 li.setInfo("video", self.fallbackinfo)
-            if not self.fallbackart == {}:
+            if self.fallbackart:
                 gui.setArt(li, self.fallbackart)
             self.play(u, li)
         return self.waitplayback(u)
 
     def waitplayback(self, u=""):
         self.waiting = True
-        factor = 5
+        factor = 100
         startt = time.time()
         for i in range(self.timeout * factor):
             p = 100 * i / (self.timeout * factor)

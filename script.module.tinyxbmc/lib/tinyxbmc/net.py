@@ -199,7 +199,7 @@ def cloudflare(session, response, previous, **kwargs):
         formaddr = re.search('<form.+?id="challenge-form".+?action="(.+?)"', body)
         if formaddr:
             import recaptcha
-            r = re.search('input type="hidden" name="r" value="(.+?)"', body).group(1)
+            r = re.search('input type="hidden" name="r" value="(.*?)"', body).group(1)
             page_url = response.url
             method = response.request.method
             parsed_url = urlparse.urlparse(page_url)
@@ -252,11 +252,7 @@ def cloudflare(session, response, previous, **kwargs):
             if token == "":
                 return response
             submit_url = "%s://%s%s" % (parsed_url.scheme, domain, formaddr.group(1))
-            data = kwargs.get("data")
-            if not data:
-                data = {}
-            data["r"] = r
-            data["g-recaptcha-response"] = token
+            data = {"r": r, "g-recaptcha-response": token}
             headers = {"Referer": page_url, "User-agent": ua}
             return cloudflare(session, session.request("POST", submit_url, data=data, headers=headers), "cc", **kwargs)
     return response
