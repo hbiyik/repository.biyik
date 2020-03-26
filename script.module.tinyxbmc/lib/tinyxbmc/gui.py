@@ -76,6 +76,12 @@ def notify(title, content, sound=True, typ=None):
         xbmc.log("%s : %s" % (title, content))
 
 
+def yesno(title, *lines, **kwargs):
+    dialog = xbmcgui.Dialog()
+    # this is weak and wrong
+    return dialog.yesno(title, *lines, **kwargs)
+
+
 def ok(title, *lines):
     dialog = xbmcgui.Dialog()
     dialog.ok(title, *lines)
