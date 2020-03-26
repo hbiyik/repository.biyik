@@ -60,6 +60,7 @@ class container(object):
         self.__inittime = time.time()
         self.sysaddon = sys.argv[0]
         self.player = None
+        self.playertimeout = 60
         aurl = urlparse.urlparse(self.sysaddon)
         if aurl.scheme.lower() in ["plugin", "script"]:
             self.addon = aurl.netloc
@@ -116,7 +117,7 @@ class container(object):
         self._container.init(*iargs, **ikwargs)
         self._method = getattr(self._container, self._disp_method)
         if self._container._media == "resolver":
-            self.player = player()
+            self.player = xbmcplayer(timeout=self.playertimeout)
             redirects = []
             for u, finfo, fart in tools.dynamicret(tools.safeiter(self._method(*args, **kwargs))):
                 if self.player.dlg.iscanceled():
@@ -151,15 +152,18 @@ class container(object):
                 return
         elif self._container._media == "player":
             p = xbmc.PlayList(1)
+            p.clear()
             try:
                 ret = self._method(*args, **kwargs)
             except Exception:
                 print traceback.format_exc()
                 self._close()
                 sys.exit()
-            iterable = tools.safeiter(ret)
-            for u in iterable:
+            iterable = tools.dynamicret(tools.safeiter(ret))
+            for u, info, art in iterable:
                 item = xbmcgui.ListItem(path=u)
+                item.setInfo("video", info)
+                gui.setArt(item, art)
                 p.add(u, item)
             xbmc.Player().play(p)
         else:
@@ -332,6 +336,7 @@ class itemfactory(object):
         self.container = container
         self.method = method
         self.removeold = False
+        self.media = None
         self._contexts = []
 
     def dourl(self, media, *args, **kwargs):
@@ -392,7 +397,7 @@ class itemfactory(object):
         self._dir(False, None, "player", *args, **kwargs)
 
     def context(self, sub, isdir, *args, **kwargs):
-        url = sub.dourl(None, *args, **kwargs)
+        url = sub.dourl(sub.media, *args, **kwargs)
         sub.item.addContextMenuItems(sub._contexts)  # nested fun :)
         if isdir:
             self._contexts.append([sub.name, 'Container.Update(%s)' % url])
@@ -400,7 +405,7 @@ class itemfactory(object):
             self._contexts.append([sub.name, 'RunPlugin(%s)' % url])
 
 
-class player(xbmc.Player):
+class xbmcplayer(xbmc.Player):
 
     def __init__(self, fallbackinfo=None, fallbackart=None, *args, **kwargs):
         if not fallbackinfo:
@@ -418,7 +423,9 @@ class player(xbmc.Player):
         self.canresolve = True
         self.waiting = False
 
-    def stream(self, url, li):
+    def stream(self, url, li=None):
+        if not li:
+            li = xbmcgui.ListItem(path=url)
         u, headers = net.fromkodiurl(url)
         if headers is None:
             headers = {"User-agent": const.USERAGENT}

@@ -135,7 +135,7 @@ def http(url, params=None, data=None, headers=None, timeout=5, json=None, method
         return response
     if method == "HEAD":
         return response
-    if json:
+    if json is not None:
         ret = response.json()
     else:
         if encoding:
