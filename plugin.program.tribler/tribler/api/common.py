@@ -56,3 +56,7 @@ def call(method, endpoint, **data):
         gui.ok(title, msg)
     else:
         return resp
+
+
+def makemagnet(infohash):
+    return "magnet:?xt=urn:btih:%s" % infohash

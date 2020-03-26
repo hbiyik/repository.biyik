@@ -42,16 +42,27 @@ class navi(container.container):
                 self.item("Redirect", method="search").redirect(ischannel, txt_filter)
         else:
             resp = api.search.query(txt_filter)
+            downloads = [x["infohash"] for x in api.download.list()]
             if resp:
                 for result in resp.get("results", []):
                     subbed = result.get("subscribed")
                     if subbed is None and not ischannel:
-                        itemname = "S:%s L:%s - %s" % (result["num_seeders"],
-                                                       result["num_leechers"],
-                                                       result["name"])
-                        cntx_health = self.item("Check Health", method="healthcheck")
+                        infohash = result["infohash"]
+                        isdownload = infohash in downloads
+                        itemname = "S:%s L:%s D:%s - %s" % (result["num_seeders"],
+                                                            result["num_leechers"],
+                                                            u"+" if isdownload else "-",
+                                                            result["name"])
                         item = self.item(itemname)
-                        item.context(cntx_health, False, result["infohash"], result["name"])
+                        cntx_health = self.item("Check Health", method="healthcheck")
+                        item.context(cntx_health, False, infohash, result["name"])
+                        if not isdownload:
+                            cntx_download = self.item("Start Download",
+                                                      module="tribler.api.download",
+                                                      container="download",
+                                                      method="add")
+                            item.context(cntx_download, False,
+                                         api.makemagnet(infohash))
                         item.call()
                     elif subbed is not None and ischannel:
                         itemname = "SUB: %s - %s" % ("YES" if subbed else "NO",
@@ -95,14 +106,13 @@ class navi(container.container):
             api.download.add(txt)
 
     def downloads(self, cat=None):
-        downloads = api.call("GET", "downloads")
         if not cat:
             for state in defs.dl_states_short:
                 self.item(state.title(), method="downloads").dir(state)
             self.item("Credit Mining", method="downloads").dir("credit_mining")
             self.item("All", method="downloads").dir("all")
         else:
-            for download in downloads.get("downloads", []):
+            for download in api.download.list():
                 if cat == "credit_mining" and not download.get("credit_mining"):
                     continue
                 if cat not in ["all", "credit_mining"] and download.get("credit_mining"):

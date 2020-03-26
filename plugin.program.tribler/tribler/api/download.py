@@ -7,14 +7,23 @@ from tinyxbmc import gui
 from tinyxbmc import container
 
 import common
+from __builtin__ import staticmethod
 
 
 class download(container.container):
     @staticmethod
     def add(uri, silent=False):
+        try:
+            hops = int(common.config.get("download_defaults", "number_hops"))
+        except Exception:
+            hops = 1
+        try:
+            anon_seed = 1 if common.config.get("download_defaults", "safeseeding_enabled") else 0
+        except Exception:
+            anon_seed = 1
         resp = common.call("PUT", "downloads", uri=uri,
-                           anon_hops=int(common.config.get("download_defaults", "number_hops")),
-                           safe_seeding=1 if common.config.get("download_defaults", "safeseeding_enabled") else 0)
+                           anon_hops=hops,
+                           safe_seeding=anon_seed)
         if resp and not silent:
             gui.ok("Torrent Added", resp.get("infohash", ""))
 
@@ -56,3 +65,11 @@ class download(container.container):
                     txt += " has been removed."
                     gui.ok("Removed", txt)
             container.refresh()
+
+    @staticmethod
+    def list():
+        downloads = common.call("GET", "downloads")
+        if downloads:
+            return downloads.get("downloads", [])
+        else:
+            return []
