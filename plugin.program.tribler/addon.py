@@ -34,20 +34,24 @@ class navi(container.container):
         # currently only find already running linux app
         # in future call a binary and dispatch cross platform
         self.config = None
-        base_dir = os.path.expanduser("~/.Tribler")
-        for d in os.listdir(base_dir):
-            subdir = os.path.join(base_dir, d)
-            if os.path.isdir(subdir):
-                for subfile in os.listdir(subdir):
-                    if subfile == "triblerd.conf":
-                        self.config = ConfigParser.ConfigParser()
-                        self.config.read(os.path.join(subdir, subfile))
+        try:
+            base_dir = os.path.expanduser("~/.Tribler")
+            for d in os.listdir(base_dir):
+                subdir = os.path.join(base_dir, d)
+                if os.path.isdir(subdir):
+                    for subfile in os.listdir(subdir):
+                        if subfile == "triblerd.conf":
+                            self.config = ConfigParser.ConfigParser()
+                            self.config.read(os.path.join(subdir, subfile))
+                            break
+                    if self.config:
                         break
-                if self.config:
-                    break
+        except Exception:
+            self.config = None
         if not self.config:
             gui.ok("ERROR", "Can not find Tribler installation")
             return
+        self.playertimeout = 60 * 3
 
     def api(self, method, endpoint, **data):
         url = "http://localhost:%s/%s" % (self.config.get("http_api", "port"), endpoint)
@@ -144,7 +148,6 @@ class navi(container.container):
         return resp
 
     def iterstreams(self, ihash, fileindex=None, info=None, art=None):
-        self.playertimeout = 60 * 3
         progress = None
         findex = None
         lof = None
