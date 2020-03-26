@@ -35,7 +35,6 @@ from tinyxbmc import net
 import traceback
 import json
 from __builtin__ import property
-from tinyxbmc.container import player
 
 _prefix = "plugin.program.vods-"
 _resolvehay = "vods_resolve"
