@@ -14,6 +14,9 @@ import time
 
 
 class stream(container.container):
+    def init(self, *args, **kwargs):
+        self.playertimeout = 60 * 3
+
     @staticmethod
     def iterstreams(ihash, fileindex=None, info=None, art=None):
         progress = None

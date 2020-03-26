@@ -26,14 +26,29 @@ from tribler import api
 
 class navi(container.container):
 
-    def init(self):
-        # currently only find already running linux app
-        # in future call a binary and dispatch cross platform
-        self.playertimeout = 60 * 3
-
     def index(self):
+        self.item("Search", method="search").dir()
         self.item("Add Torrent", method="addtorrent").dir()
         self.item("Downloads", method="downloads").dir()
+
+    def search(self, txt_filter=None):
+        if not txt_filter:
+            conf, txt_filter = gui.keyboard("", "Search")
+            if conf:
+                self.item("Redirect", method="search").redirect(txt_filter)
+        else:
+            resp = api.search.query(txt_filter)
+            if resp:
+                for result in sorted(resp.get("results", []), key=lambda i: i.get("subscribed"), reverse=True):
+                    subbed = result.get("subscribed")
+                    if subbed is None:
+                        prefix = "S%s L%s: " % (result["num_seeders"], result["num_leechers"])
+                    elif subbed:
+                        prefix = "SUB CH: "
+                    else:
+                        prefix = "CH: "
+                    itemname = prefix + result["name"]
+                    self.item(itemname).call()
 
     def addtorrent(self):
         self.item("Add Torrent From Remote Magnet or URL", method="addtorrent_url").call()

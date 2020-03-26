@@ -34,7 +34,18 @@ config = getconfig()
 def call(method, endpoint, **data):
     url = "http://localhost:%s/%s" % (config.get("http_api", "port"), endpoint)
     headers = {"X-Api-Key": config.get("http_api", "key")}
-    resp = net.http(url, headers=headers, json=data, method=method)
+    print url
+    print data
+    if endpoint in ["search"]:
+        params = data
+        js = True
+    else:
+        params = None
+        js = data
+
+    resp = net.http(url, params=params, headers=headers, json=js, method=method)
+    import json
+    print json.dumps(resp)
     if "error" in resp:
         if isinstance(resp["error"], dict):
             title = resp["error"].get("code", "ERROR")
