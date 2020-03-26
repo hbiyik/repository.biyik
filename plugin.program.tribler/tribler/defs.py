@@ -17,3 +17,10 @@ dl_states_short = {"DOWNLOADING": ["DLSTATUS_DOWNLOADING"],
                    "SEEDING": ["DLSTATUS_SEEDING"],
                    "STOPPED": ["DLSTATUS_STOPPED", "DLSTATUS_STOPPED_ON_ERROR"]
                    }
+
+YES = "[COLOR yellowgreen]Y[/COLOR]"
+NO = "[COLOR red]N[/COLOR]"
+
+
+def BLUE(txt):
+    return "[COLOR blue]%s[/COLOR]" % txt

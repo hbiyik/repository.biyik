@@ -14,3 +14,11 @@ class metadata(container.container):
         return common.call("GET", "metadata/torrents/%s/health" % infohash,
                            refresh=refresh,
                            timeout=timeout)
+
+    @staticmethod
+    def subscribe(chanid, publickey, subscribed=True, silent=False):
+        resp = common.call("PATCH", "metadata/%s/%s" % (publickey,
+                                                        chanid), subscribed=subscribed)
+        if not silent:
+            container.refresh()
+        return resp

@@ -21,6 +21,7 @@ from tinyxbmc import container
 from tinyxbmc import gui
 
 from tribler import defs
+from tribler.defs import YES, NO, BLUE
 from tribler import api
 
 import time
@@ -44,14 +45,19 @@ class navi(container.container):
             resp = api.search.query(txt_filter)
             downloads = [x["infohash"] for x in api.download.list()]
             if resp:
-                for result in resp.get("results", []):
+                for result in sorted(resp.get("results", []),
+                                     key=lambda x: x.get("torrents") or x.get("num_seeders"),
+                                     reverse=True):
                     subbed = result.get("subscribed")
                     if subbed is None and not ischannel:
                         infohash = result["infohash"]
                         isdownload = infohash in downloads
-                        itemname = "S:%s L:%s D:%s - %s" % (result["num_seeders"],
+                        itemname = "%s%s %s%s %s%s - %s" % (BLUE("SE: "),
+                                                            result["num_seeders"],
+                                                            BLUE("LE: "),
                                                             result["num_leechers"],
-                                                            u"+" if isdownload else "-",
+                                                            BLUE("DOWN: "),
+                                                            YES if isdownload else NO,
                                                             result["name"])
                         item = self.item(itemname)
                         cntx_health = self.item("Check Health", method="healthcheck")
@@ -65,9 +71,31 @@ class navi(container.container):
                                          api.makemagnet(infohash))
                         item.call()
                     elif subbed is not None and ischannel:
-                        itemname = "SUB: %s - %s" % ("YES" if subbed else "NO",
-                                                     result["name"])
-                        self.item(itemname).call()
+                        mining = result.get("credit_mining")
+                        itemname = "%s%s %s%s %s%s - %s" % (BLUE("SUB: "),
+                                                            YES if subbed else NO,
+                                                            BLUE("MINE: "),
+                                                            YES if mining else NO,
+                                                            BLUE("TOR: "),
+                                                            BLUE(result["torrents"]),
+                                                            result["name"])
+                        item = self.item(itemname)
+                        cntx_sub = self.item("Unubscribe" if subbed else "Subscribe",
+                                             module="tribler.api.metadata",
+                                             container="metadata",
+                                             method="subscribe")
+                        item.context(cntx_sub, False,
+                                     result["id"],
+                                     result["public_key"],
+                                     False if subbed else True)
+                        cntx_mine = self.item("Stop Mining" if mining else "Start Mining",
+                                              module="tribler.api.settings",
+                                              container="settings",
+                                              method="setmining")
+                        item.context(cntx_mine, False,
+                                     result["id"],
+                                     False if mining else True)
+                        item.call()
 
     def healthcheck(self, infohash, name=None):
         timeout = 30
