@@ -35,6 +35,7 @@ from tinyxbmc import net
 import traceback
 import json
 from __builtin__ import property
+from tinyxbmc.container import player
 
 _prefix = "plugin.program.vods-"
 _resolvehay = "vods_resolve"
@@ -389,6 +390,10 @@ class index(container.container):
             self.cacheresolve(link, info, art)
             item.resolve(link, True, **kwargs)
 
+    def logplayer(self, msg, percent=0):
+        print msg
+        self.player.dlg.update(percent, msg)
+
     def geturls(self, url, direct, **kwargs):
         key = json.dumps(url)
         info = self.hay(_resolvehay).find(key + "_info").data
@@ -400,7 +405,7 @@ class index(container.container):
             if hasinit:
                 return target, hasinit
             else:
-                print "VODS is initializing %s" % target
+                # self.logplayer("VODS is initializing %s" % target)
                 try:
                     ins = pcls(self)
                     playerins[target] = (target, ins, pcls)
@@ -436,27 +441,36 @@ class index(container.container):
             playerins[priority] = ("direct", linkplayerextension(self), None)
         if self.chan.uselinkplayers:
             priority = prepareplayers(priority, _extlinkplayer)
-        for k in sorted(playerins, reverse=True):
-            print "VODS found player(%s): %s" % (k, playerins[k][0])
+        aplayers = ", ".join([playerins[x][0].replace("None", "") for x in sorted(playerins,
+                                                                                  reverse=True)])
+        self.logplayer("VODS found players (%s): %s" % (len(playerins), aplayers))
         for kodilink in tools.safeiter(links):
+            if self.player.dlg.iscanceled():
+                    raise StopIteration
             link, headers = net.fromkodiurl(kodilink)
+            alink = link.encode("ascii", "replace")
             if not isinstance(link, (str, unicode)):
-                print "VODS received broken link, skipping...: %s" % repr(link)
+                self.logplayer("VODS received broken link, skipping...: %s" % alink)
                 continue
-            gui.notify("Scraping", link, False)
-            print "VODS is scraping link: %s" % link.encode("ascii", "replace")
+            self.logplayer("VODS is scraping link: %s" % alink)
             for priority in sorted(playerins, reverse=True):
+                if self.player.dlg.iscanceled():
+                    raise StopIteration
                 target, pcls = getplayer(priority)
-                print "VODS is trying player: %s" % target
+                atarget = target.encode("ascii", "replace").replace("None", "")
+                self.logplayer("VODS is trying player: %s %s" % (alink, atarget))
                 if not pcls:
-                    print "VODS received broken player, skipping...: %s" % repr(target)
+                    self.logplayer("VODS received broken player, skipping...: %s %s" % (alink.
+                                                                                        atarget))
                     continue
                 found = False
                 isaddon = False
                 for url in tools.safeiter(pcls.geturls(link, headers)):
+                    if self.player.dlg.iscanceled():
+                        raise StopIteration
                     if not url:
-                        print "VODS received broken url, skipping...: %s" % repr(url)
-                        break
+                        continue
+                    aurl = url.encode("ascii", "replace")
                     found = True
                     if url.startswith("plugin://"):
                         try:
@@ -468,8 +482,8 @@ class index(container.container):
                     yield url, info, art
                 if found and not isaddon:
                     while True:
-                        if not self._isplaying == 1:
+                        if not self._isplaying == 1 or self.player.dlg.iscanceled():
                             break
                     if self._isplaying == 2:
-                        print "VODS started playback : %s" % repr(url)
+                        self.logplayer("VODS started playback : %s" % aurl, 100)
                         break
