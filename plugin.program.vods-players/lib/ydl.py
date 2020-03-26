@@ -18,6 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 from vods import linkplayerextension
+from tinyxbmc import const
 
 from vplay import proxydt
 from vplay import proxyisatty
@@ -67,7 +68,9 @@ class ydl(linkplayerextension):
             yield
         ytb = self.ydl.YoutubeDL({'format': 'bestvideo+bestaudio/best',
                                   "quiet": True,
-                                  "nocheckcertificate": True})
+                                  "nocheckcertificate": True,
+                                  "socket_timeout": const.HTTPTIMEOUT
+                                  })
         ytb._ies = [ie]
         with ytb:
             result = ytb.extract_info(str(link), download=False)

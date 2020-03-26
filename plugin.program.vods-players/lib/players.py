@@ -30,7 +30,7 @@ class youtube(addonplayerextension):
 
     def geturls(self, link, headers=None):
         if not addon.has_addon('plugin.video.youtube'):
-            yield
+            raise StopIteration
         up = urlparse.urlparse(link)
         dom = up.netloc.lower()
         if dom == "youtube.com" or dom.startswith("www.youtube.com"):
@@ -41,7 +41,7 @@ class youtube(addonplayerextension):
         elif dom in ["youtu.be", "www.youtu.be"]:
             vid = up.path[1:]
         else:
-            yield
+            raise StopIteration
         yield "plugin://plugin.video.youtube/play/?video_id=%s" % vid
 
 
