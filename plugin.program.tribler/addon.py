@@ -26,6 +26,7 @@ from tribler import api
 
 import time
 import threading
+import datetime
 
 
 class navi(container.container):
@@ -33,8 +34,22 @@ class navi(container.container):
     def index(self):
         self.item("Search Channels", method="search").dir(True)
         self.item("Search Torrents", method="search").dir(False)
+        self.item("Subscribed Channels", method="channels").dir(True)
+        self.item("Discovered Channels", method="channels").dir(False)
         self.item("Add Torrent", method="addtorrent").dir()
         self.item("Downloads", method="downloads").dir()
+
+    def channels(self, subbed=False):
+        self.handlechannels(api.channel.list(subbed))
+
+    def channeltorrents(self, chanid, publickey, start=1, count=20):
+        last = count + start - 1
+        num, torrents = api.channel.get(chanid, publickey, start, last)
+        self.handletorrents(torrents)
+        if num > last:
+            self.item("Next", method="channeltorrents").dir(chanid,
+                                                            publickey,
+                                                            start + count)
 
     def search(self, ischannel=False, txt_filter=None):
         if not txt_filter:
@@ -42,60 +57,74 @@ class navi(container.container):
             if conf:
                 self.item("Redirect", method="search").redirect(ischannel, txt_filter)
         else:
-            resp = api.search.query(txt_filter)
-            downloads = [x["infohash"] for x in api.download.list()]
-            if resp:
-                for result in sorted(resp.get("results", []),
-                                     key=lambda x: x.get("torrents") or x.get("num_seeders"),
-                                     reverse=True):
-                    subbed = result.get("subscribed")
-                    if subbed is None and not ischannel:
-                        infohash = result["infohash"]
-                        isdownload = infohash in downloads
-                        itemname = "%s%s %s%s %s%s - %s" % (BLUE("SE: "),
-                                                            result["num_seeders"],
-                                                            BLUE("LE: "),
-                                                            result["num_leechers"],
-                                                            BLUE("DOWN: "),
-                                                            YES if isdownload else NO,
-                                                            result["name"])
-                        item = self.item(itemname)
-                        cntx_health = self.item("Check Health", method="healthcheck")
-                        item.context(cntx_health, False, infohash, result["name"])
-                        if not isdownload:
-                            cntx_download = self.item("Start Download",
-                                                      module="tribler.api.download",
-                                                      container="download",
-                                                      method="add")
-                            item.context(cntx_download, False,
-                                         api.makemagnet(infohash))
-                        item.call()
-                    elif subbed is not None and ischannel:
-                        mining = result.get("credit_mining")
-                        itemname = "%s%s %s%s %s%s - %s" % (BLUE("SUB: "),
-                                                            YES if subbed else NO,
-                                                            BLUE("MINE: "),
-                                                            YES if mining else NO,
-                                                            BLUE("TOR: "),
-                                                            BLUE(result["torrents"]),
-                                                            result["name"])
-                        item = self.item(itemname)
-                        cntx_sub = self.item("Unubscribe" if subbed else "Subscribe",
-                                             module="tribler.api.metadata",
-                                             container="metadata",
-                                             method="subscribe")
-                        item.context(cntx_sub, False,
-                                     result["id"],
-                                     result["public_key"],
-                                     False if subbed else True)
-                        cntx_mine = self.item("Stop Mining" if mining else "Start Mining",
-                                              module="tribler.api.settings",
-                                              container="settings",
-                                              method="setmining")
-                        item.context(cntx_mine, False,
-                                     result["id"],
-                                     False if mining else True)
-                        item.call()
+            results = sorted(api.search.query(txt_filter),
+                             key=lambda x: x.get("torrents") or x.get("num_seeders"),
+                             reverse=True)
+            if ischannel:
+                self.handlechannels(results)
+            else:
+                self.handletorrents(results)
+
+    def handletorrents(self, torrents):
+        downloads = [x["infohash"] for x in api.download.list()]
+        for torrent in torrents:
+            updated = datetime.datetime.utcfromtimestamp(torrent["updated"])
+            subbed = torrent.get("subscribed")
+            if subbed is not None:
+                continue
+            infohash = torrent["infohash"]
+            isdownload = infohash in downloads
+            itemname = "%s%s %s%s %s%s - %s - U: %s" % (BLUE("SE: "),
+                                                        torrent["num_seeders"],
+                                                        BLUE("LE: "),
+                                                        torrent["num_leechers"],
+                                                        BLUE("DOWN: "),
+                                                        YES if isdownload else NO,
+                                                        torrent["name"],
+                                                        BLUE(updated.strftime(("%d.%m.%Y %H:%M"))))
+            item = self.item(itemname)
+            cntx_health = self.item("Check Health", method="healthcheck")
+            item.context(cntx_health, False, infohash, torrent["name"])
+            if not isdownload:
+                cntx_download = self.item("Start Download",
+                                          module="tribler.api.download",
+                                          container="download",
+                                          method="add")
+                item.context(cntx_download, False,
+                             api.makemagnet(infohash))
+            item.call()
+
+    def handlechannels(self, channels):
+        for channel in channels:
+            subbed = channel.get("subscribed")
+            if subbed is None:
+                continue
+            print channel
+            mining = channel.get("credit_mining")
+            itemname = "%s%s %s%s %s%s - %s" % (BLUE("SUB: "),
+                                                YES if subbed else NO,
+                                                BLUE("MINE: "),
+                                                YES if mining else NO,
+                                                BLUE("TOR: "),
+                                                BLUE(channel["torrents"]),
+                                                channel["name"])
+            item = self.item(itemname, method="channeltorrents")
+            cntx_sub = self.item("Unubscribe" if subbed else "Subscribe",
+                                 module="tribler.api.metadata",
+                                 container="metadata",
+                                 method="subscribe")
+            item.context(cntx_sub, False,
+                         channel["id"],
+                         channel["public_key"],
+                         False if subbed else True)
+            cntx_mine = self.item("Stop Mining" if mining else "Start Mining",
+                                  module="tribler.api.settings",
+                                  container="settings",
+                                  method="setmining")
+            item.context(cntx_mine, False,
+                         channel["id"],
+                         False if mining else True)
+            item.dir(channel["id"], channel["public_key"])
 
     def healthcheck(self, infohash, name=None):
         timeout = 30

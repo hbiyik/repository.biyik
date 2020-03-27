@@ -11,7 +11,11 @@ from . import common
 class search(container.container):
     @staticmethod
     def query(txt_filter, first=1, include_total=1, hide_xxx=1):
-        return common.call("GET", "search",
+        resp = common.call("GET", "search",
                            txt_filter=txt_filter,
                            first=first,
                            hide_xxx=hide_xxx)
+        if resp:
+            return resp.get("results", [])
+        else:
+            return []
