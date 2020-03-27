@@ -5,6 +5,7 @@ Created on 26 Mar 2020
 '''
 from tinyxbmc import net
 from tinyxbmc import gui
+from tinyxbmc import addon
 from requests.exceptions import StreamConsumedError, ConnectionError, ConnectTimeout
 
 import os
@@ -13,7 +14,7 @@ import ConfigParser
 import json
 
 
-def getconfig():
+def localconfig():
     try:
         base_dir = os.path.expanduser("~/.Tribler")
         for d in os.listdir(base_dir):
@@ -31,10 +32,32 @@ def getconfig():
     return config
 
 
-config = getconfig()
+class remoteconfig(object):
+    def __init__(self, address, apikey):
+        if address.endswith("/"):
+            address = address[:-1]
+        self.js = net.http(address + "/settings", headers={"X-Api-Key": apikey}, json=True)
+
+    def get(self, group, stg):
+        return self.js["settings"].get(group, {}).get(stg)
+
+
+settings = addon.kodisetting("plugin.program.tribler")
+if settings.getstr("conmode").lower() == "remote":
+    try:
+        config = remoteconfig(settings.getstr("address"), settings.getstr("apikey"))
+    except Exception:
+        gui.ok("Tribler", "Can not connect to daeom at %" % settings.getstr("address"))
+else:
+    try:
+        config = localconfig()
+    except Exception:
+        gui.ok("Tribler", "Can not find local installation")
 
 
 def call(method, endpoint, **data):
+    print config
+    print dir(config)
     url = "http://localhost:%s/%s" % (config.get("http_api", "port"), endpoint)
     headers = {"X-Api-Key": config.get("http_api", "key")}
     print url
