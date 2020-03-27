@@ -56,8 +56,6 @@ else:
 
 
 def call(method, endpoint, **data):
-    print config
-    print dir(config)
     url = "http://localhost:%s/%s" % (config.get("http_api", "port"), endpoint)
     headers = {"X-Api-Key": config.get("http_api", "key")}
     print url
@@ -103,9 +101,7 @@ class event(object):
                 try:
                     js = json.loads(content)
                 except ValueError:
-                    print "." + content.encode("ascii", "replace") + "."
                     continue
-                print js["event"]
                 yield js["event"]
             self.response.close()
         except GeneratorExit:

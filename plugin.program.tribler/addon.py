@@ -50,8 +50,6 @@ class navi(container.container):
                                              timeout=None,
                                              max_results=min(count, total - num)))
         self.handletorrents(torrents)
-        print total
-        print last
         if total > last:
             self.item("Next", method="channeltorrents").dir(chanid,
                                                             publickey,
