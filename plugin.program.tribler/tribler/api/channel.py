@@ -10,7 +10,7 @@ from . import common
 
 class channel(container.container):
     @staticmethod
-    def list(subscribed, first=1, last=500, sort_by="torrents", sort_desc=1):
+    def list(subscribed, first=1, last=500, sort_by="updated", sort_desc=1):
         resp = common.call("GET", "channels",
                            subscribed=1 if subscribed else None,
                            first=first,
@@ -32,7 +32,7 @@ class channel(container.container):
                            include_total=include_total)
         if resp:
             results = resp.get("results")
-            if results:
+            if results is not None:
                 return resp["total"], results
             else:
                 return 0, []

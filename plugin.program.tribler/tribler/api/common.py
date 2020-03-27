@@ -36,7 +36,7 @@ def call(method, endpoint, **data):
     headers = {"X-Api-Key": config.get("http_api", "key")}
     print url
     print data
-    if method == "GET":
+    if method in ["GET", "PUT"]:
         params = data
         js = True
     else:

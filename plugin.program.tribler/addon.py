@@ -42,14 +42,19 @@ class navi(container.container):
     def channels(self, subbed=False):
         self.handlechannels(api.channel.list(subbed))
 
-    def channeltorrents(self, chanid, publickey, start=1, count=20):
+    def channeltorrents(self, chanid, publickey, total=None, start=1, count=200):
         last = count + start - 1
         num, torrents = api.channel.get(chanid, publickey, start, last)
+        if not total:
+            total = num
+        if not len(torrents):
+            torrents = api.remote.query(channel_pk=publickey)
         self.handletorrents(torrents)
-        if num > last:
+        if total > last:
             self.item("Next", method="channeltorrents").dir(chanid,
                                                             publickey,
-                                                            start + count)
+                                                            total,
+                                                            start + num)
 
     def search(self, ischannel=False, txt_filter=None):
         if not txt_filter:
@@ -99,15 +104,18 @@ class navi(container.container):
             subbed = channel.get("subscribed")
             if subbed is None:
                 continue
-            print channel
             mining = channel.get("credit_mining")
-            itemname = "%s%s %s%s %s%s - %s" % (BLUE("SUB: "),
-                                                YES if subbed else NO,
-                                                BLUE("MINE: "),
-                                                YES if mining else NO,
-                                                BLUE("TOR: "),
-                                                BLUE(channel["torrents"]),
-                                                channel["name"])
+            num, _ = api.channel.get(channel["id"], channel["public_key"], 0, 0)
+            torrents = channel["torrents"]
+            percent = int(100 * float(num) / torrents) if torrents else 100
+            itemname = "%s%s%s %s%s %s%s - %s" % ("" if percent == 100 else BLUE(str(percent) + "% "),
+                                                  BLUE("SUB: "),
+                                                  YES if subbed else NO,
+                                                  BLUE("MINE: "),
+                                                  YES if mining else NO,
+                                                  BLUE("TOR: "),
+                                                  BLUE(channel["torrents"]),
+                                                  channel["name"])
             item = self.item(itemname, method="channeltorrents")
             cntx_sub = self.item("Unubscribe" if subbed else "Subscribe",
                                  module="tribler.api.metadata",
@@ -124,9 +132,9 @@ class navi(container.container):
             item.context(cntx_mine, False,
                          channel["id"],
                          False if mining else True)
-            item.dir(channel["id"], channel["public_key"])
+            item.dir(channel["id"], channel["public_key"], channel["torrents"])
 
-    def healthcheck(self, infohash, name=None):
+    def healthcheck(self, infohash, name=None, refresh="1"):
         timeout = 30
         meta = -1
         if not name:
@@ -137,12 +145,12 @@ class navi(container.container):
             for i in range(int(timeout * 1.3)):
                 if not meta == -1:
                     break
-                bgprogress.update(int(100 * float(i)/timeout))
+                bgprogress.update(int(100 * float(i) / timeout))
                 time.sleep(1)
             bgprogress.close()
 
         threading.Thread(target=progress).start()
-        meta = api.metadata.torrenthealth(infohash, timeout=timeout)
+        meta = api.metadata.torrenthealth(infohash, refresh, timeout=timeout)
         container.refresh()
         return meta
 
