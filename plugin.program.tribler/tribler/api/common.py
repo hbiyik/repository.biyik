@@ -39,7 +39,7 @@ def call(method, endpoint, **data):
     headers = {"X-Api-Key": config.get("http_api", "key")}
     print url
     print data
-    if method in ["GET", "PUT"]:
+    if method in ["GET"] or method == "PUT" and endpoint == "remote_query":
         params = data
         js = True
     else:
