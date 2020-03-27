@@ -122,15 +122,17 @@ class navi(container.container):
             mining = channel.get("credit_mining")
             num, _ = api.channel.get(channel["id"], channel["public_key"], 0, 0, hide_xxx=0)
             torrents = channel["torrents"]
-            percent = int(100 * float(num) / torrents) if torrents else 100
-            itemname = "%s%s%s %s%s %s%s - %s" % ("" if percent == 100 else BLUE(str(percent) + "% "),
-                                                  BLUE("SUB: "),
-                                                  YES if subbed else NO,
-                                                  BLUE("MINE: "),
-                                                  YES if mining else NO,
-                                                  BLUE("TOR: "),
-                                                  BLUE(channel["torrents"]),
-                                                  channel["name"])
+            if torrents and channel.get("state") not in ["Personal", "Complete"]:
+                num_tor = torrents if num >= torrents else "%s/%s" % (num, torrents)
+            else:
+                num_tor = torrents
+            itemname = "%s%s %s%s %s%s - %s" % (BLUE("SUB: "),
+                                                YES if subbed else NO,
+                                                BLUE("MINE: "),
+                                                YES if mining else NO,
+                                                BLUE("TOR: "),
+                                                BLUE(num_tor),
+                                                channel["name"])
             item = self.item(itemname, method="channeltorrents")
             cntx_sub = self.item("Unubscribe" if subbed else "Subscribe",
                                  module="tribler.api.metadata",
