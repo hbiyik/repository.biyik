@@ -5,9 +5,12 @@ Created on 26 Mar 2020
 '''
 from tinyxbmc import net
 from tinyxbmc import gui
+from requests.exceptions import StreamConsumedError, ConnectionError, ConnectTimeout
 
 import os
 import ConfigParser
+
+import json
 
 
 def getconfig():
@@ -44,7 +47,6 @@ def call(method, endpoint, **data):
         js = data
 
     resp = net.http(url, timeout=60, params=params, headers=headers, json=js, method=method)
-    import json
     print json.dumps(resp)
     if "error" in resp:
         if isinstance(resp["error"], dict):
@@ -60,3 +62,30 @@ def call(method, endpoint, **data):
 
 def makemagnet(infohash):
     return "magnet:?xt=urn:btih:%s" % infohash
+
+
+class event(object):
+    def __init__(self, timeout):
+        self.url = "http://localhost:%s/events" % config.get("http_api", "port")
+        self.headers = {"X-Api-Key": config.get("http_api", "key")}
+        self.timeout = timeout
+        self.prepare()
+
+    def prepare(self):
+        self.response = net.http(self.url, timeout=self.timeout, headers=self.headers, stream=True, text=False)
+
+    def iter(self):
+        try:
+            for content in self.response.iter_lines(delimiter="\n\ndata: "):
+                try:
+                    js = json.loads(content)
+                except ValueError:
+                    print "." + content.encode("ascii", "replace") + "."
+                    continue
+                print js["event"]
+                yield js["event"]
+            self.response.close()
+        except GeneratorExit:
+            self.response.close()
+        except (StreamConsumedError, AttributeError, ConnectionError, ConnectTimeout):
+            raise StopIteration

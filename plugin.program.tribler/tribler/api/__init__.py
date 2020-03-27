@@ -8,7 +8,6 @@ from stream import stream
 from search import search
 from metadata import metadata
 from channel import channel
-from event import event
 from remote import remote
 
 from tribler.api.common import config, call, makemagnet

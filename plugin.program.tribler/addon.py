@@ -32,8 +32,8 @@ import datetime
 class navi(container.container):
 
     def index(self):
-        self.item("Search Channels", method="search").dir(True)
         self.item("Search Torrents", method="search").dir(False)
+        self.item("Search Channels", method="search").dir(True)
         self.item("Subscribed Channels", method="channels").dir(True)
         self.item("Discovered Channels", method="channels").dir(False)
         self.item("Add Torrent", method="addtorrent").dir()
@@ -42,33 +42,48 @@ class navi(container.container):
     def channels(self, subbed=False):
         self.handlechannels(api.channel.list(subbed))
 
-    def channeltorrents(self, chanid, publickey, total=None, start=1, count=200):
-        last = count + start - 1
-        num, torrents = api.channel.get(chanid, publickey, start, last)
-        if not total:
-            total = num
+    def channeltorrents(self, chanid, publickey, total, start=1, count=200):
+        num, torrents = api.channel.get(chanid, publickey, start, count)
+        last = len(torrents) + start
         if not len(torrents):
-            torrents = api.remote.query(channel_pk=publickey)
+            torrents.extend(api.remote.query(channel_pk=publickey,
+                                             timeout=None,
+                                             max_results=min(count, total - num)))
         self.handletorrents(torrents)
+        print total
+        print last
         if total > last:
             self.item("Next", method="channeltorrents").dir(chanid,
                                                             publickey,
                                                             total,
-                                                            start + num)
+                                                            last)
 
     def search(self, ischannel=False, txt_filter=None):
         if not txt_filter:
             conf, txt_filter = gui.keyboard("", "Search")
             if conf:
+                txt_filter = "\"%s\"*" % txt_filter
                 self.item("Redirect", method="search").redirect(ischannel, txt_filter)
         else:
             results = sorted(api.search.query(txt_filter),
                              key=lambda x: x.get("torrents") or x.get("num_seeders"),
                              reverse=True)
+            metadata_type = "channel" if ischannel else "torrent"
+            if not len(results):
+                results = api.remote.query(txt_filter=txt_filter, metadata_type=metadata_type)
             if ischannel:
                 self.handlechannels(results)
             else:
                 self.handletorrents(results)
+            self.item("Query GigaChannels", method="searchgiga").dir(txt_filter, metadata_type)
+
+    def searchgiga(self, txt_filter, metadata_type):
+        results = api.remote.query(txt_filter=txt_filter, metadata_type=metadata_type)
+        if metadata_type == "torrent":
+            self.handletorrents(results)
+        else:
+            self.handlechannels(results)
+        self.item("Query GigaChannels", method="searchgiga").dir(txt_filter, metadata_type)
 
     def handletorrents(self, torrents):
         downloads = [x["infohash"] for x in api.download.list()]
@@ -105,7 +120,7 @@ class navi(container.container):
             if subbed is None:
                 continue
             mining = channel.get("credit_mining")
-            num, _ = api.channel.get(channel["id"], channel["public_key"], 0, 0)
+            num, _ = api.channel.get(channel["id"], channel["public_key"], 0, 0, hide_xxx=0)
             torrents = channel["torrents"]
             percent = int(100 * float(num) / torrents) if torrents else 100
             itemname = "%s%s%s %s%s %s%s - %s" % ("" if percent == 100 else BLUE(str(percent) + "% "),

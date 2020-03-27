@@ -23,13 +23,14 @@ class channel(container.container):
             return []
 
     @staticmethod
-    def get(chanid, publickey, first=1, last=20, sort_by="updated", sort_desc=1, include_total=1):
+    def get(chanid, publickey, first=1, last=20, sort_by="updated", sort_desc=1, include_total=1, hide_xxx=0):
         resp = common.call("GET", "channels/%s/%s" % (publickey, chanid),
                            first=first,
                            last=last,
                            sort_by=sort_by,
                            sort_desc=sort_desc,
-                           include_total=include_total)
+                           include_total=include_total,
+                           hide_xxx=hide_xxx)
         if resp:
             results = resp.get("results")
             if results is not None:
