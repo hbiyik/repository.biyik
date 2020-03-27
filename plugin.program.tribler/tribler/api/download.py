@@ -7,7 +7,6 @@ from tinyxbmc import gui
 from tinyxbmc import container
 
 import common
-from __builtin__ import staticmethod
 
 
 class download(container.container):
