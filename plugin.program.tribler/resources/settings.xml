@@ -1,4 +1,7 @@
 <?xml version="1.0" ?><settings>
 	<category id="Common" label="Common">
+		<setting default="Local" id="conmode" label="Connection Mode" type="select" values="Local|Remote"/>
+		<setting default="" id="address" label="Address" type="text" visible="eq(-1,Remote)"/>
+		<setting default="" id="apikey" label="Api Key" type="text" visible="eq(-2,Remote)"/>
 	</category>
 </settings>

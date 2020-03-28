@@ -5,6 +5,7 @@ Created on 26 Mar 2020
 '''
 from tinyxbmc import net
 from tinyxbmc import gui
+from tinyxbmc import addon
 from requests.exceptions import StreamConsumedError, ConnectionError, ConnectTimeout
 
 import os
@@ -13,7 +14,7 @@ import ConfigParser
 import json
 
 
-def getconfig():
+def localconfig():
     try:
         base_dir = os.path.expanduser("~/.Tribler")
         for d in os.listdir(base_dir):
@@ -28,14 +29,37 @@ def getconfig():
                     break
     except Exception:
         config = None
+    if config:
+        config.address = "http://localhost:%s" % config.get("http_api", "port")
     return config
 
 
-config = getconfig()
+class remoteconfig(object):
+    def __init__(self, address, apikey):
+        if address.endswith("/"):
+            address = address[:-1]
+        self.address = address
+        self.js = net.http(address + "/settings", headers={"X-Api-Key": apikey}, json=True)
+
+    def get(self, group, stg):
+        return self.js["settings"].get(group, {}).get(stg)
+
+
+settings = addon.kodisetting("plugin.program.tribler")
+if settings.getstr("conmode").lower() == "remote":
+    try:
+        config = remoteconfig(settings.getstr("address"), settings.getstr("apikey"))
+    except Exception:
+        gui.ok("Tribler", "Can not connect to daemon at %s" % settings.getstr("address"))
+else:
+    try:
+        config = localconfig()
+    except Exception:
+        gui.ok("Tribler", "Can not find local installation")
 
 
 def call(method, endpoint, **data):
-    url = "http://localhost:%s/%s" % (config.get("http_api", "port"), endpoint)
+    url = "%s/%s" % (config.address, endpoint)
     headers = {"X-Api-Key": config.get("http_api", "key")}
     print url
     print data
@@ -66,7 +90,7 @@ def makemagnet(infohash):
 
 class event(object):
     def __init__(self, timeout):
-        self.url = "http://localhost:%s/events" % config.get("http_api", "port")
+        self.url = "%s/events" % config.address
         self.headers = {"X-Api-Key": config.get("http_api", "key")}
         self.timeout = timeout
         self.prepare()
@@ -80,9 +104,7 @@ class event(object):
                 try:
                     js = json.loads(content)
                 except ValueError:
-                    print "." + content.encode("ascii", "replace") + "."
                     continue
-                print js["event"]
                 yield js["event"]
             self.response.close()
         except GeneratorExit:
