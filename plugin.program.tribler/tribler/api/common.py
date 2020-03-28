@@ -29,6 +29,8 @@ def localconfig():
                     break
     except Exception:
         config = None
+    if config:
+        config.address = "http://localhost:%s" % config.get("http_api", "port")
     return config
 
 
@@ -36,6 +38,7 @@ class remoteconfig(object):
     def __init__(self, address, apikey):
         if address.endswith("/"):
             address = address[:-1]
+        self.address = address
         self.js = net.http(address + "/settings", headers={"X-Api-Key": apikey}, json=True)
 
     def get(self, group, stg):
@@ -56,7 +59,7 @@ else:
 
 
 def call(method, endpoint, **data):
-    url = "http://localhost:%s/%s" % (config.get("http_api", "port"), endpoint)
+    url = "%s/%s" % (config.address, endpoint)
     headers = {"X-Api-Key": config.get("http_api", "key")}
     print url
     print data
@@ -87,7 +90,7 @@ def makemagnet(infohash):
 
 class event(object):
     def __init__(self, timeout):
-        self.url = "http://localhost:%s/events" % config.get("http_api", "port")
+        self.url = "%s/events" % config.address
         self.headers = {"X-Api-Key": config.get("http_api", "key")}
         self.timeout = timeout
         self.prepare()

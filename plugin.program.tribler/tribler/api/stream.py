@@ -65,16 +65,16 @@ class stream(container.container):
                         if progress:
                             progress.close()
                         info["path"] = lof[findex]
-                        url = "http://localhost:%s/downloads/%s/stream/%s?apikey=%s" % (common.config.get("http_api", "port"),
-                                                                                        ihash,
-                                                                                        findex,
-                                                                                        common.config.get("http_api", "key"))
+                        url = "%s/downloads/%s/stream/%s?apikey=%s" % (common.config.address,
+                                                                       ihash,
+                                                                       findex,
+                                                                       common.config.get("http_api", "key"))
                         yield url, info, art
                         stop = True
 
     def testplayer(self, ihash, findex=0):
-        url = "http://localhost:%s/downloads/%s/stream/%s?apikey=%s" % (common.config.get("http_api", "port"),
-                                                                        ihash,
-                                                                        findex,
-                                                                        common.config.get("http_api", "key"))
+        url = "%s/downloads/%s/stream/%s?apikey=%s" % (common.config.address,
+                                                       ihash,
+                                                       findex,
+                                                       common.config.get("http_api", "key"))
         yield url
