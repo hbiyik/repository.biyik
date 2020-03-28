@@ -47,7 +47,7 @@ if settings.getstr("conmode").lower() == "remote":
     try:
         config = remoteconfig(settings.getstr("address"), settings.getstr("apikey"))
     except Exception:
-        gui.ok("Tribler", "Can not connect to daeom at %" % settings.getstr("address"))
+        gui.ok("Tribler", "Can not connect to daemon at %s" % settings.getstr("address"))
 else:
     try:
         config = localconfig()
