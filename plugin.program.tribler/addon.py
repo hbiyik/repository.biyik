@@ -149,25 +149,26 @@ class navi(container.container):
                          False if mining else True)
             item.dir(channel["id"], channel["public_key"], channel["torrents"])
 
-    def healthcheck(self, infohash, name=None, refresh="1"):
+    def healthcheck(self, infohash, name=None, refresh=1):
+        state = {"health": None}
         timeout = 30
-        meta = -1
         if not name:
             name = infohash
+        bgprogress = gui.bgprogress("DHT: %s" % name)
 
         def progress():
-            bgprogress = gui.bgprogress("DHT: %s" % name)
             for i in range(int(timeout * 1.3)):
-                if not meta == -1:
+                if state["health"]:
                     break
                 bgprogress.update(int(100 * float(i) / timeout))
                 time.sleep(1)
             bgprogress.close()
 
         threading.Thread(target=progress).start()
-        meta = api.metadata.torrenthealth(infohash, refresh, timeout=timeout)
-        container.refresh()
-        return meta
+        state["health"] = api.metadata.torrenthealth(infohash, refresh, timeout=timeout)
+        if state["health"]:
+            container.refresh()
+        return state["health"]
 
     def addtorrent(self):
         self.item("Add Torrent From Remote Magnet or URL", method="addtorrent_url").call()
