@@ -66,8 +66,8 @@ class download(container.container):
             container.refresh()
 
     @staticmethod
-    def list():
-        downloads = common.call("GET", "downloads")
+    def list(get_files=0):
+        downloads = common.call("GET", "downloads", get_files=get_files)
         if downloads:
             return downloads.get("downloads", [])
         else:

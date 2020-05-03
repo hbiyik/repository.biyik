@@ -5,12 +5,13 @@ Created on 26 Mar 2020
 '''
 from tinyxbmc import container
 
+from tribler import defs
 from . import common
 
 
 class metadata(container.container):
     @staticmethod
-    def torrenthealth(infohash, refresh=0, timeout=5):
+    def torrenthealth(infohash, refresh=0, timeout=defs.DHT_TIMEOUT):
         return common.call("GET", "metadata/torrents/%s/health" % infohash,
                            refresh=refresh,
                            timeout=timeout)

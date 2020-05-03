@@ -6,15 +6,20 @@ Created on 26 Mar 2020
 from tinyxbmc import net
 from tinyxbmc import gui
 from tinyxbmc import addon
-from requests.exceptions import StreamConsumedError, ConnectionError, ConnectTimeout
+from requests.exceptions import StreamConsumedError, ConnectionError, ConnectTimeout, ReadTimeout
 
+from tribler import defs
+
+import traceback
 import os
 import ConfigParser
 
 import json
+from tribler.defs import HTTP_TIMEOUT
 
 
 def localconfig():
+    config = None
     try:
         base_dir = os.path.expanduser("~/.Tribler")
         for d in os.listdir(base_dir):
@@ -28,7 +33,7 @@ def localconfig():
                 if config:
                     break
     except Exception:
-        config = None
+        print traceback.format_exc()
     if config:
         config.address = "http://localhost:%s" % config.get("http_api", "port")
     return config
@@ -50,11 +55,13 @@ if settings.getstr("conmode").lower() == "remote":
     try:
         config = remoteconfig(settings.getstr("address"), settings.getstr("apikey"))
     except Exception:
+        print traceback.format_exc()
         gui.ok("Tribler", "Can not connect to daemon at %s" % settings.getstr("address"))
 else:
     try:
         config = localconfig()
     except Exception:
+        print traceback.format_exc()
         gui.ok("Tribler", "Can not find local installation")
 
 
@@ -70,8 +77,11 @@ def call(method, endpoint, **data):
         params = None
         js = data
 
-    resp = net.http(url, timeout=60, params=params, headers=headers, json=js, method=method)
-    print json.dumps(resp)
+    try:
+        resp = net.http(url, timeout=defs.HTTP_TIMEOUT, params=params, headers=headers, json=js, method=method)
+    except ReadTimeout:
+        resp = {"error": "Read timeout out in %s seconds" % HTTP_TIMEOUT}
+    # print json.dumps(resp)
     if "error" in resp:
         if isinstance(resp["error"], dict):
             title = resp["error"].get("code", "ERROR")
@@ -86,6 +96,14 @@ def call(method, endpoint, **data):
 
 def makemagnet(infohash):
     return "magnet:?xt=urn:btih:%s" % infohash
+
+
+def format_size(num, suffix='B'):
+    for unit in ['', 'k', 'M', 'G', 'T', 'P', 'E', 'Z']:
+        if abs(num) < 1024.0:
+            return "%3.1f %s%s" % (num, unit, suffix)
+        num /= 1024.0
+    return "%.1f %s%s" % (num, 'Yi', suffix)
 
 
 class event(object):

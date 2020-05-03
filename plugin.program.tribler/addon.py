@@ -23,9 +23,8 @@ from tinyxbmc import gui
 from tribler import defs
 from tribler.defs import YES, NO, BLUE
 from tribler import api
+from tribler.ui.window import Torrent
 
-import time
-import threading
 import datetime
 
 
@@ -100,8 +99,11 @@ class navi(container.container):
                                                         YES if isdownload else NO,
                                                         torrent["name"],
                                                         BLUE(updated.strftime(("%d.%m.%Y %H:%M"))))
-            item = self.item(itemname)
-            cntx_health = self.item("Check Health", method="healthcheck")
+            item = self.item(itemname, method="downloadwindow")
+            cntx_health = self.item("Check Health",
+                                    module="tribler.ui.containers",
+                                    container="common",
+                                    method="trackerquery")
             item.context(cntx_health, False, infohash, torrent["name"])
             if not isdownload:
                 cntx_download = self.item("Start Download",
@@ -110,7 +112,7 @@ class navi(container.container):
                                           method="add")
                 item.context(cntx_download, False,
                              api.makemagnet(infohash))
-            item.call()
+            item.call(infohash, isdownload)
 
     def handlechannels(self, channels):
         for channel in channels:
@@ -149,27 +151,6 @@ class navi(container.container):
                          False if mining else True)
             item.dir(channel["id"], channel["public_key"], channel["torrents"])
 
-    def healthcheck(self, infohash, name=None, refresh=1):
-        state = {"health": None}
-        timeout = 30
-        if not name:
-            name = infohash
-        bgprogress = gui.bgprogress("DHT: %s" % name)
-
-        def progress():
-            for i in range(int(timeout * 1.3)):
-                if state["health"]:
-                    break
-                bgprogress.update(int(100 * float(i) / timeout))
-                time.sleep(1)
-            bgprogress.close()
-
-        threading.Thread(target=progress).start()
-        state["health"] = api.metadata.torrenthealth(infohash, refresh, timeout=timeout)
-        if state["health"]:
-            container.refresh()
-        return state["health"]
-
     def addtorrent(self):
         self.item("Add Torrent From Remote Magnet or URL", method="addtorrent_url").call()
         self.item("Add Torrent From Local Torrent File or Mdblob DB", method="addtorrent_file").call()
@@ -206,10 +187,7 @@ class navi(container.container):
                                                               download["name"],
                                                               download["speed_down"],
                                                               download["speed_up"])
-                    d_item = self.item(itemname,
-                                       module="tribler.api.stream",
-                                       container="stream",
-                                       method="testplayer")
+                    d_item = self.item(itemname, method="downloadwindow")
                     ctxs = []
                     ihash = download["infohash"]
                     if download["status"] in defs.dl_states_short["STOPPED"]:
@@ -236,7 +214,15 @@ class navi(container.container):
                                            container="download", method="delete"), None))
                     for ctx, state in ctxs:
                         d_item.context(ctx, False, ihash, state)
-                    d_item.resolve(ihash)
+                    d_item.call(ihash)
+
+    def downloadwindow(self, infohash, hasdownload=None):
+        import time
+        t1 = time.time()
+        window = Torrent(infohash, hasdownload)
+        print time.time() - t1
+        window.doModal()
+        container.refresh()
 
 
 navi()

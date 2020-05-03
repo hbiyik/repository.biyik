@@ -36,29 +36,30 @@ class stream(container.container):
                 if jdownload["infohash"] == ihash:
                     resp = common.call("GET", "downloads/%s/files" % ihash)
                     if lof is None:
-                        lof = [x["name"] for x in resp["files"] if x.get("included")]
+                        lof = [x["name"] for x in resp["files"]]
                     if not len(lof):
                         stop = True
                     elif len(lof) == 1:
                         findex = 0
-                    elif findex is not None:
+                    elif findex is None:
                         findex = gui.select("Select File", lof)
                     if int(findex) < 0:
                         stop = True
                     download.setstate(ihash, "resume")
-                    if not jdownload['vod_mode']:
-                        download.setvodmode(ihash, True, findex)
-                    if jdownload['vod_prebuffering_progress'] < 0.1:
+                    download.setvodmode(ihash, True, findex)
+                    if jdownload['vod_prebuffering_progress'] < 1 or jdownload['vod_header_progress'] < 1 or jdownload['vod_footer_progress'] < 1:
                         if not progress:
                             progress = gui.progress("Prebuffering")
                         if progress.iscanceled():
                             stop = True
+                        print jdownload['vod_prebuffering_progress']
+                        print 111111111111
                         progress.update(int(jdownload['vod_prebuffering_progress'] * 100),
                                         "%s: %s / %s" % (defs.dl_states[jdownload["status"]],
                                                          jdownload["total_down"],
                                                          jdownload["size"]),
-                                        "Total Percent: %s" % int(jdownload['vod_prebuffering_progress'] * 100),
-                                        "Consecutive Percent: %s" % int(jdownload['vod_prebuffering_progress_consec'] * 100),
+                                        "Header Percent: %s%%" % int(jdownload['vod_header_progress'] * 100),
+                                        "Footer Percent: %s%%" % int(jdownload['vod_footer_progress'] * 100),
                                         )
                         time.sleep(1)
                     else:
