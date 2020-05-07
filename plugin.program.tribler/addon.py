@@ -23,7 +23,7 @@ from tinyxbmc import gui
 from tribler import defs
 from tribler.defs import YES, NO, BLUE
 from tribler import api
-from tribler.ui.window import Torrent
+from tribler.ui.window import TorrentWindow
 
 import datetime
 
@@ -219,7 +219,7 @@ class navi(container.container):
     def downloadwindow(self, infohash, hasdownload=None):
         import time
         t1 = time.time()
-        window = Torrent(infohash, hasdownload)
+        window = TorrentWindow(infohash, hasdownload)
         print time.time() - t1
         window.doModal()
         container.refresh()

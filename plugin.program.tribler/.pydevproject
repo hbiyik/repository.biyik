@@ -11,9 +11,5 @@
     
     <pydev_property name="org.python.pydev.PYTHON_PROJECT_INTERPRETER">Default</pydev_property>
     
-    <pydev_pathproperty name="org.python.pydev.PROJECT_EXTERNAL_SOURCE_PATH">
-        <path>/home/boogie/.kodi/addons/script.module.kodi-six/libs</path>
-        <path>/home/boogie/.kodi/addons/script.module.six/lib</path>
-        <path>/home/boogie/.kodi/addons/script.module.pyxbmct/lib</path>
-    </pydev_pathproperty>
+    
 </pydev_project>

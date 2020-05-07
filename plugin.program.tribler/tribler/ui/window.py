@@ -20,14 +20,88 @@ estuary.estuary = True
 bgimg = os.path.join(estuary.images, 'AddonWindow', 'dialogheader.png')
 
 
-class Torrent(pyxbmct.AddonDialogWindow):
+class Anonimity(pyxbmct.AddonDialogWindow):
+    def __init__(self, *args, **kwargs):
+        super(Anonimity, self).__init__(*args, **kwargs)
+        self.__hops = 1
+        self.__anonupload = True
+
+    @property
+    def hops(self):
+        return self.__hops
+
+    @hops.setter
+    def hops(self, value):
+        onehop = twohops = threehops = nohops = False
+        if value == 1:
+            onehop = True
+        elif value == 2:
+            twohops = True
+        elif value == 3:
+            threehops = True
+        else:
+            value = None
+            nohops = True
+        self.download_no_hops.setSelected(nohops)
+        self.download_1_hop.setSelected(onehop)
+        self.download_2_hops.setSelected(twohops)
+        self.download_3_hops.setSelected(threehops)
+        self.__hops = value
+
+    @property
+    def anonupload(self):
+        return self.__anonupload
+
+    @anonupload.setter
+    def anonupload(self, value):
+        value = bool(value)
+        self.upload_enc.setSelected(value)
+        self.upload_noenc.setSelected(not value)
+        self.__anonupload = value
+
+    def set_controls(self, row):
+        self.placeControl(pyxbmct.Label('Download Anonymity:'), row, 0, 1, 4)
+        self.download_no_hops = pyxbmct.RadioButton("Direct")
+        self.download_1_hop = pyxbmct.RadioButton("1 Hop")
+        self.download_2_hops = pyxbmct.RadioButton("2 Hops")
+        self.download_3_hops = pyxbmct.RadioButton("3 Hops")
+
+        row += 1
+        self.placeControl(self.download_no_hops, row, 0, 2)
+        self.placeControl(self.download_1_hop, row, 1, 2)
+        self.placeControl(self.download_2_hops, row, 2, 2)
+        self.placeControl(self.download_3_hops, row, 3, 2)
+
+        row += 2
+        self.placeControl(pyxbmct.Label('Upload Anonymity:'), row, 0, 1, 4)
+        self.upload_noenc = pyxbmct.RadioButton("Direct")
+        self.upload_enc = pyxbmct.RadioButton("Encrypted Proxy")
+
+        row += 1
+        self.placeControl(self.upload_noenc, row, 0, 2, 2)
+        self.placeControl(self.upload_enc, row, 2, 2, 2)
+
+        row += 2
+
+        self.connect(self.download_no_hops, lambda self: setattr(self, "hops", None))
+        self.connect(self.download_1_hop, lambda self: setattr(self, "hops", 1))
+        self.connect(self.download_2_hops, lambda self: setattr(self, "hops", 2))
+        self.connect(self.download_3_hops, lambda self: setattr(self, "hops", 3))
+
+        self.connect(self.upload_enc, lambda self: setattr(self, "anonupload", True))
+        self.connect(self.upload_noenc, lambda self: setattr(self, "anonupload", False))
+
+        return row
+
+
+class TorrentWindow(Anonimity):
 
     def __init__(self, infohash, hasdownload=None):
-        super(Torrent, self).__init__("Download")
+        super(TorrentWindow, self).__init__("Download")
         self.basewidth = None
         self.isclosing = False
         self.infohash = infohash
-        self.settings = settings.get()
+        self.settings = None
         self.setGeometry(1200, 700, 27, 4)
         self.set_controls()
         self.autoNavigation()
@@ -35,8 +109,6 @@ class Torrent(pyxbmct.AddonDialogWindow):
         self.__hasmeta = False
         self.__hastrackers = False
         self.__hasdownload = hasdownload
-        self.__hops = None
-        self.__anonupload = None
         self.__total = 0
         self.__prebuff = 0
         self.__header = 0
@@ -110,32 +182,6 @@ class Torrent(pyxbmct.AddonDialogWindow):
         self.updatecontrols()
 
     @property
-    def hops(self):
-        return self.__hops
-
-    @hops.setter
-    def hops(self, value):
-        if value == 1:
-            self.on_download_1_hop()
-        elif value == 2:
-            self.on_download_2_hops()
-        elif value == 3:
-            self.on_download_3_hops()
-        else:
-            self.on_dowload_no_hops()
-
-    @property
-    def anonupload(self):
-        return self.__anonupload
-
-    @anonupload.setter
-    def anonupload(self, value):
-        if value:
-            self.on_upload_enc()
-        else:
-            self.on_upload_noenc()
-
-    @property
     def total(self):
         return self.__total
 
@@ -173,116 +219,105 @@ class Torrent(pyxbmct.AddonDialogWindow):
 
     def applysettings(self):
         if not self.hasdownload:
+            self.settings = settings.get()
             self.hops = self.settings["settings"]["download_defaults"]["number_hops"]
             self.anonupload = self.settings["settings"]["download_defaults"]["safeseeding_enabled"]
-        else:
-            pass
-            # TODO: handle download config
 
     def set_controls(self):
-        self.placeControl(pyxbmct.Label('Status:'), 0, 0)
+        row = 0  # 0
+        self.placeControl(pyxbmct.Label('Status:'), row, 0)
         self.status = pyxbmct.Label('')
-        self.placeControl(self.status, 0, 1, 1, 3)
+        self.placeControl(self.status, row, 1, 1, 3)
 
-        self.placeControl(pyxbmct.Label('Seeders:'), 1, 0)
+        row += 1  # 1
+        self.placeControl(pyxbmct.Label('Seeders:'), row, 0)
         self.seeders = pyxbmct.Label('')
-        self.placeControl(self.seeders, 1, 1)
-
-        self.placeControl(pyxbmct.Label('Peers:'), 1, 2)
+        self.placeControl(self.seeders, row, 1)
+        self.placeControl(pyxbmct.Label('Peers:'), row, 2)
         self.peers = pyxbmct.Label('')
-        self.placeControl(self.peers, 1, 3)
+        self.placeControl(self.peers, row, 3)
 
-        self.placeControl(pyxbmct.Label('Download Speed:'), 2, 0)
+        row += 1  # 2
+        self.placeControl(pyxbmct.Label('Download Speed:'), row, 0)
         self.speed_download = pyxbmct.Label('')
-        self.placeControl(self.speed_download, 2, 1)
-
-        self.placeControl(pyxbmct.Label('Downloaded:'), 2, 2)
+        self.placeControl(self.speed_download, row, 1)
+        self.placeControl(pyxbmct.Label('Downloaded:'), row, 2)
         self.size_downloaded = pyxbmct.Label('')
-        self.placeControl(self.size_downloaded, 2, 3)
+        self.placeControl(self.size_downloaded, row, 3)
 
-        self.placeControl(pyxbmct.Label('Upload Speed:'), 3, 0)
+        row += 1  # 3
+        self.placeControl(pyxbmct.Label('Upload Speed:'), row, 0)
         self.speed_upload = pyxbmct.Label('')
-        self.placeControl(self.speed_upload, 3, 1)
-
-        self.placeControl(pyxbmct.Label('Uploaded:'), 3, 2)
+        self.placeControl(self.speed_upload, row, 1)
+        self.placeControl(pyxbmct.Label('Uploaded:'), row, 2)
         self.size_uploaded = pyxbmct.Label('')
-        self.placeControl(self.size_uploaded, 3, 3)
+        self.placeControl(self.size_uploaded, row, 3)
 
-        self.placeControl(pyxbmct.Label('File List:'), 4, 0)
+        row += 1  # 4
+        self.placeControl(pyxbmct.Label('File List:'), row, 0)
         self.totalfiles = pyxbmct.Label('')
-        self.placeControl(self.totalfiles, 4, 1)
-        self.placeControl(pyxbmct.Label('Total Size:'), 4, 2)
+        self.placeControl(self.totalfiles, row, 1)
+        self.placeControl(pyxbmct.Label('Total Size:'), row, 2)
         self.totalsize = pyxbmct.Label('')
-        self.placeControl(self.totalsize, 4, 3)
-        self.placeControl(pyxbmct.Label('File List:'), 4, 0, 1, 4)
+        self.placeControl(self.totalsize, row, 3)
+
+        row += 1  # 5
         self.file_list = pyxbmct.List()
-        self.placeControl(self.file_list, 5, 0, 6, 4)
+        self.placeControl(self.file_list, row, 0, 6, 4)
 
-        self.placeControl(pyxbmct.Label('Trackers:'), 9, 0, 1, 4)
+        row += 4 # 9
+        self.placeControl(pyxbmct.Label('Trackers:'), row, 0, 1, 4)
+
+        row += 1  # 10
         self.tracker_list = pyxbmct.List()
-        self.placeControl(self.tracker_list, 10, 0, 5, 4)
+        self.placeControl(self.tracker_list, row, 0, 5, 4)
 
-        self.placeControl(pyxbmct.Label('Download Anonymity:'), 13, 0, 1, 4)
-        self.download_no_hops = pyxbmct.RadioButton("Direct")
-        self.download_1_hop = pyxbmct.RadioButton("1 Hop")
-        self.download_2_hops = pyxbmct.RadioButton("2 Hops")
-        self.download_3_hops = pyxbmct.RadioButton("3 Hops")
-        self.placeControl(self.download_no_hops, 14, 0, 2)
-        self.placeControl(self.download_1_hop, 14, 1, 2)
-        self.placeControl(self.download_2_hops, 14, 2, 2)
-        self.placeControl(self.download_3_hops, 14, 3, 2)
+        row += 3  # 13
+        row = super(TorrentWindow, self).set_controls(row)
 
-        self.placeControl(pyxbmct.Label('Upload Anonymity:'), 16, 0, 1, 4)
-        self.upload_noenc = pyxbmct.RadioButton("Direct")
-        self.upload_enc = pyxbmct.RadioButton("Encrypted Proxy")
-        self.placeControl(self.upload_noenc, 17, 0, 2, 2)
-        self.placeControl(self.upload_enc, 17, 2, 2, 2)
-
+        # 19
         self.progress_total_label = pyxbmct.Label('Total Progress:')
-        self.placeControl(self.progress_total_label, 19, 0)
+        self.placeControl(self.progress_total_label, row, 0)
         self.progress_total = pyxbmct.Image(bgimg)
-        self.placeControl(self.progress_total, 19, 1, 1, 3)
+        self.placeControl(self.progress_total, row, 1, 1, 3)
 
+        row += 1  # 20
         self.progress_prebuff_label = pyxbmct.Label('Prebuffering Progress:')
-        self.placeControl(self.progress_prebuff_label, 20, 0)
+        self.placeControl(self.progress_prebuff_label, row, 0)
         self.progress_prebuff = pyxbmct.Image(bgimg)
-        self.placeControl(self.progress_prebuff, 20, 1, 1, 3)
+        self.placeControl(self.progress_prebuff, row, 1, 1, 3)
 
-        self.placeControl(pyxbmct.Label('Header Progress:'), 21, 0)
+        row += 1  # 21
+        self.placeControl(pyxbmct.Label('Header Progress:'), row, 0)
         self.progress_header = pyxbmct.Image(bgimg)
-        self.placeControl(self.progress_header, 21, 1, 1, 3)
+        self.placeControl(self.progress_header, row, 1, 1, 3)
 
-        self.placeControl(pyxbmct.Label('Footer Progress:'), 22, 0)
+        row += 1  # 22
+        self.placeControl(pyxbmct.Label('Footer Progress:'), row, 0)
         self.progress_footer = pyxbmct.Image(bgimg)
-        self.placeControl(self.progress_footer, 22, 1, 1, 3)
+        self.placeControl(self.progress_footer, row, 1, 1, 3)
 
+        row += 2  # 24
         self.button_recheck = pyxbmct.Button("Force Recheck")
         self.button_peers = pyxbmct.Button("Peers")
         self.button_updatetrackers = pyxbmct.Button("Update Trackers")
         self.button_querymeta = pyxbmct.Button("Query Metadata")
-        self.placeControl(self.button_recheck, 24, 0, 2)
-        self.placeControl(self.button_peers, 24, 1, 2)
-        self.placeControl(self.button_updatetrackers, 24, 2, 2)
-        self.placeControl(self.button_querymeta, 24, 3, 2)
+        self.placeControl(self.button_recheck, row, 0, 2)
+        self.placeControl(self.button_peers, row, 1, 2)
+        self.placeControl(self.button_updatetrackers, row, 2, 2)
+        self.placeControl(self.button_querymeta, row, 3, 2)
 
+        row += 2  # 26
         self.button_start = pyxbmct.Button("Start")
         self.button_stream = pyxbmct.Button("Stream")
         self.button_stop = pyxbmct.Button("Stop")
         self.button_close = pyxbmct.Button("Close")
-        self.placeControl(self.button_start, 26, 0, 2)
-        self.placeControl(self.button_stop, 26, 1, 2)
-        self.placeControl(self.button_stream, 26, 2, 2)
-        self.placeControl(self.button_close, 26, 3, 2)
+        self.placeControl(self.button_start, row, 0, 2)
+        self.placeControl(self.button_stop, row, 1, 2)
+        self.placeControl(self.button_stream, row, 2, 2)
+        self.placeControl(self.button_close, row, 3, 2)
 
         self.basewidth = self.progress_total.getWidth()
-
-        self.connect(self.download_no_hops, self.on_dowload_no_hops)
-        self.connect(self.download_1_hop, self.on_download_1_hop)
-        self.connect(self.download_2_hops, self.on_download_2_hops)
-        self.connect(self.download_3_hops, self.on_download_3_hops)
-
-        self.connect(self.upload_enc, self.on_upload_enc)
-        self.connect(self.upload_noenc, self.on_upload_noenc)
 
         self.connect(self.button_recheck, self.on_button_recheck)
         self.connect(self.button_peers, self.on_button_peers)
@@ -306,44 +341,6 @@ class Torrent(pyxbmct.AddonDialogWindow):
     def getpercent(self, progress):
         return float(progress.getWidth()) / self.basewidth
 
-    def on_dowload_no_hops(self):
-        self.download_no_hops.setSelected(True)
-        self.download_1_hop.setSelected(False)
-        self.download_2_hops.setSelected(False)
-        self.download_3_hops.setSelected(False)
-        self.__hops = None
-
-    def on_download_1_hop(self):
-        self.download_no_hops.setSelected(False)
-        self.download_1_hop.setSelected(True)
-        self.download_2_hops.setSelected(False)
-        self.download_3_hops.setSelected(False)
-        self.__hops = 1
-
-    def on_download_2_hops(self):
-        self.download_no_hops.setSelected(False)
-        self.download_1_hop.setSelected(False)
-        self.download_2_hops.setSelected(True)
-        self.download_3_hops.setSelected(False)
-        self.__hops = 2
-
-    def on_download_3_hops(self):
-        self.download_no_hops.setSelected(False)
-        self.download_1_hop.setSelected(False)
-        self.download_2_hops.setSelected(False)
-        self.download_3_hops.setSelected(True)
-        self.__hops = 3
-
-    def on_upload_enc(self):
-        self.upload_enc.setSelected(True)
-        self.upload_noenc.setSelected(False)
-        self.__anonupload = True
-
-    def on_upload_noenc(self):
-        self.upload_enc.setSelected(False)
-        self.upload_noenc.setSelected(True)
-        self.__anonupload = False
-
     def on_button_start(self):
         pass
 
@@ -366,9 +363,9 @@ class Torrent(pyxbmct.AddonDialogWindow):
                                                                                                     self,
                                                                                                     self.progress_prebuff_label,
                                                                                                     self.progress_prebuff))
-            tinfo = tinfo.get("info")
             files = []
-            if tinfo:
+            if tinfo and tinfo.get("info"):
+                tinfo = tinfo["info"]
                 self.setWindowTitle(tinfo.get("name", self.infohash))
                 lof = tinfo.get("files")
                 if lof:
@@ -421,7 +418,7 @@ class Torrent(pyxbmct.AddonDialogWindow):
 
     def close(self):
         self.isclosing = True
-        super(Torrent, self).close()
+        super(TorrentWindow, self).close()
 
     def updatewithdownload(self):
         hasdownload = False
@@ -447,8 +444,8 @@ class Torrent(pyxbmct.AddonDialogWindow):
                     self.anonupload = dload["safe_seeding"]
                     self.total = dload["progress"]
                     self.prebuff = dload["vod_prebuffering_progress"]
-                    self.header = dload["vod_header_progress"]
-                    self.footer = dload["vod_footer_progress"]
+                    self.header = dload.get("vod_header_progress", 0)
+                    self.footer = dload.get("vod_footer_progress", 0)
         self.hasdownload = hasdownload
 
 

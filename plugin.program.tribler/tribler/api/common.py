@@ -3,6 +3,8 @@ Created on 26 Mar 2020
 
 @author: boogie
 '''
+import re
+from distutils.version import LooseVersion
 from tinyxbmc import net
 from tinyxbmc import gui
 from tinyxbmc import addon
@@ -15,25 +17,31 @@ import os
 import ConfigParser
 
 import json
-from tribler.defs import HTTP_TIMEOUT
+from tribler.defs import HTTP_TIMEOUT, MIN_TRIBLER_VERSION
 
 
 def localconfig():
     config = None
-    try:
+    base_dir = os.getenv('APPDATA')
+    if base_dir:
+        base_dir = os.path.join(base_dir, ".Tribler")
+    if not os.path.exists(base_dir):
         base_dir = os.path.expanduser("~/.Tribler")
-        for d in os.listdir(base_dir):
-            subdir = os.path.join(base_dir, d)
-            if os.path.isdir(subdir):
-                for subfile in os.listdir(subdir):
-                    if subfile == "triblerd.conf":
-                        config = ConfigParser.ConfigParser()
-                        config.read(os.path.join(subdir, subfile))
-                        break
-                if config:
-                    break
-    except Exception:
-        print traceback.format_exc()
+    for version_dir in os.listdir(base_dir):
+        version_dir_check = re.search("[0-9\.]+", version_dir)
+        if version_dir_check and version_dir == version_dir_check.group(0):
+            if LooseVersion(version_dir) >= LooseVersion(MIN_TRIBLER_VERSION):
+                subdir = os.path.join(base_dir, version_dir)
+                if os.path.isdir(subdir):
+                    for subfile in os.listdir(subdir):
+                        if subfile == "triblerd.conf":
+                            try:
+                                conffile = os.path.join(subdir, subfile)
+                                print conffile
+                                config = ConfigParser.ConfigParser()
+                                config.read(conffile)
+                            except Exception:
+                                print traceback.format_exc()
     if config:
         config.address = "http://localhost:%s" % config.get("http_api", "port")
     return config
