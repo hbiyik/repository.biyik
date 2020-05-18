@@ -4,13 +4,16 @@ Created on 2 May 2020
 @author: boogie
 '''
 import os
+import time
 import threading
 import pyxbmct
 from pyxbmct.addonskin import Skin
 
 from tribler import defs
+from tribler.api.common import makemagnet
 from tribler.api.download import download
 from tribler.api.settings import settings
+from tribler.api.ipv8 import ipv8
 from tribler.api.common import format_size
 from tribler.ui.containers import common
 
@@ -20,18 +23,108 @@ estuary.estuary = True
 bgimg = os.path.join(estuary.images, 'AddonWindow', 'dialogheader.png')
 
 
+def lockelements(*elements):
+    def wrap(f):
+        def invoke_func(self, *args, **kwargs):
+            for element in elements:
+                getattr(self, element).setEnabled(False)
+            ret = f(self, *args, **kwargs)
+            for element in elements:
+                getattr(self, element).setEnabled(True)
+            return ret
+
+        return invoke_func
+    return wrap
+
+
 class Anonimity(pyxbmct.AddonDialogWindow):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, infohash, hops, anon, *args, **kwargs):
+        self.isclosing = False
+        self.__hops = hops
+        self.__anonupload = anon
+        self.__circuits = []
+        self.__triblertunnelcommunity = []
+        self.__dhtdiscoverycommunity = []
+        self.__discoverycommunity = []
+        self.circuits_label = pyxbmct.Label("")
+        self.dhtc_label = pyxbmct.Label("")
+        self.tunnelc_label = pyxbmct.Label("")
+        self.discoverc_label = pyxbmct.Label("")
         super(Anonimity, self).__init__(*args, **kwargs)
-        self.__hops = 1
-        self.__anonupload = True
+        self.infohash = infohash
+
+        self.anonimitylock = False
+        threading.Thread(target=self.updateipv8).start()
+
+    @property
+    def circuits(self):
+        return self.__circuits
+
+    @circuits.setter
+    def circuits(self, value):
+        self.__circuits = value
+        if self.hops or self.anonupload:
+            num = 0
+            for circuit in self.circuits:
+                if circuit["actual_hops"] == self.hops and circuit["type"] == "DATA" and circuit["state"] == "READY":
+                    num += 1
+        else:
+            num = "-"
+        self.circuits_label.setLabel("Circuits: %s/%s" % (num, len(self.circuits)))
+
+    @property
+    def triblertunnelcommunity(self):
+        return self.__triblertunnelcommunity
+
+    @triblertunnelcommunity.setter
+    def triblertunnelcommunity(self, value):
+        self.__triblertunnelcommunity = value
+        self.tunnelc_label.setLabel("Tunnel Community: %s" % len(self.triblertunnelcommunity))
+
+    @property
+    def dhtdiscoverycommunity(self):
+        return self.__dhtdiscoverycommunity
+
+    @dhtdiscoverycommunity.setter
+    def dhtdiscoverycommunity(self, value):
+        self.__dhtdiscoverycommunity = value
+        self.dhtc_label.setLabel("DHT Community: %s" % len(self.dhtdiscoverycommunity))
+
+    @property
+    def discoverycommunity(self):
+        return self.__discoverycommunity
+
+    @discoverycommunity.setter
+    def discoverycommunity(self, value):
+        self.__discoverycommunity = value
+        self.discoverc_label.setLabel("Discovery Community: %s" % len(self.discoverycommunity))
+
+    def updateipv8(self):
+        while True:
+            circuits = ipv8.circuits()
+            overlays = ipv8.overlays()
+            if circuits:
+                self.circuits = circuits.get("circuits", [])
+            if overlays:
+                for overlay in overlays.get("overlays", []):
+                    if overlay["overlay_name"] in ["DiscoveryCommunity", "DHTDiscoveryCommunity", "TriblerTunnelCommunity"]:
+                        setattr(self, overlay["overlay_name"].lower(), overlay["peers"])
+            if self.isclosing:
+                break
+            time.sleep(defs.TORRENT_UPDATE_INTERVAL)
+
+    @property
+    def hasdownload(self):
+        return True
 
     @property
     def hops(self):
         return self.__hops
 
     @hops.setter
+    @lockelements("download_no_hops", "download_1_hop", "download_2_hops", "download_3_hops")
     def hops(self, value):
+        self.anonimitylock = True
         onehop = twohops = threehops = nohops = False
         if value == 1:
             onehop = True
@@ -40,24 +133,47 @@ class Anonimity(pyxbmct.AddonDialogWindow):
         elif value == 3:
             threehops = True
         else:
-            value = None
+            value = 0
             nohops = True
+        if self.hops != value and self.hasdownload:
+            download.sethops(self.infohash, value)
+        self.__hops = value
+        self.anonupload = self.anonupload
         self.download_no_hops.setSelected(nohops)
         self.download_1_hop.setSelected(onehop)
         self.download_2_hops.setSelected(twohops)
         self.download_3_hops.setSelected(threehops)
-        self.__hops = value
+        self.anonimitylock = False
 
     @property
     def anonupload(self):
-        return self.__anonupload
+        return self.hops > 0 or self.__anonupload
 
     @anonupload.setter
     def anonupload(self, value):
+        self.anonimitylock = True
+        self.upload_enc.setEnabled(False)
+        self.upload_noenc.setEnabled(False)
         value = bool(value)
+        if self.hops:
+            value = True
+        elif self.hasdownload:
+            for dload in download.list(get_files=1):
+                if dload["infohash"] == self.infohash:
+                    value = dload["safe_seeding"]
+                    break
         self.upload_enc.setSelected(value)
         self.upload_noenc.setSelected(not value)
         self.__anonupload = value
+        if not self.hops:
+            self.upload_enc.setEnabled(True)
+            self.upload_noenc.setEnabled(True)
+            self.upload_label.setEnabled(True)
+        else:
+            self.upload_enc.setEnabled(False)
+            self.upload_noenc.setEnabled(False)
+            self.upload_label.setEnabled(False)
+        self.anonimitylock = False
 
     def set_controls(self, row):
         self.placeControl(pyxbmct.Label('Download Anonymity:'), row, 0, 1, 4)
@@ -73,9 +189,10 @@ class Anonimity(pyxbmct.AddonDialogWindow):
         self.placeControl(self.download_3_hops, row, 3, 2)
 
         row += 2
-        self.placeControl(pyxbmct.Label('Upload Anonymity:'), row, 0, 1, 4)
+        self.upload_label = pyxbmct.Label('Seeding Anonymity:')
+        self.placeControl(self.upload_label, row, 0, 1, 4)
         self.upload_noenc = pyxbmct.RadioButton("Direct")
-        self.upload_enc = pyxbmct.RadioButton("Encrypted Proxy")
+        self.upload_enc = pyxbmct.RadioButton("Anonymous")
 
         row += 1
         self.placeControl(self.upload_noenc, row, 0, 2, 2)
@@ -83,26 +200,36 @@ class Anonimity(pyxbmct.AddonDialogWindow):
 
         row += 2
 
-        self.connect(self.download_no_hops, lambda self: setattr(self, "hops", None))
-        self.connect(self.download_1_hop, lambda self: setattr(self, "hops", 1))
-        self.connect(self.download_2_hops, lambda self: setattr(self, "hops", 2))
-        self.connect(self.download_3_hops, lambda self: setattr(self, "hops", 3))
+        self.placeControl(self.circuits_label, row, 0)
+        self.placeControl(self.dhtc_label, row, 1)
+        self.placeControl(self.tunnelc_label, row, 2)
+        self.placeControl(self.discoverc_label, row, 3)
 
-        self.connect(self.upload_enc, lambda self: setattr(self, "anonupload", True))
-        self.connect(self.upload_noenc, lambda self: setattr(self, "anonupload", False))
+        row += 1
+
+        self.connect(self.download_no_hops, lambda: setattr(self, "hops", None))
+        self.connect(self.download_1_hop, lambda: setattr(self, "hops", 1))
+        self.connect(self.download_2_hops, lambda: setattr(self, "hops", 2))
+        self.connect(self.download_3_hops, lambda: setattr(self, "hops", 3))
+
+        self.connect(self.upload_enc, lambda: setattr(self, "anonupload", True))
+        self.connect(self.upload_noenc, lambda: setattr(self, "anonupload", False))
 
         return row
+
+    def close(self):
+        self.isclosing = True
+        super(Anonimity, self).close()
 
 
 class TorrentWindow(Anonimity):
 
     def __init__(self, infohash, hasdownload=None):
-        super(TorrentWindow, self).__init__("Download")
+        super(TorrentWindow, self).__init__(infohash, None, None)
         self.basewidth = None
-        self.isclosing = False
         self.infohash = infohash
         self.settings = None
-        self.setGeometry(1200, 700, 27, 4)
+        self.setGeometry(1200, 700, 29, 4)
         self.set_controls()
         self.autoNavigation()
         self.__state = None
@@ -122,6 +249,13 @@ class TorrentWindow(Anonimity):
             threading.Thread(target=self.on_button_updatetrackers, args=(0,)).start()
         if not self.hasmeta:
             threading.Thread(target=self.on_button_querymetadata).start()
+        threading.Thread(target=self.updatethread).start()
+
+    def updatethread(self):
+        while not self.isclosing:
+            if self.hasdownload:
+                self.updatewithdownload()
+            time.sleep(defs.TORRENT_UPDATE_INTERVAL)
 
     def updatecontrols(self):
         start = stop = stream = peers = recheck = meta = False
@@ -129,9 +263,9 @@ class TorrentWindow(Anonimity):
             start = stream = True
         if not self.isstopped:
             stop = True
-        if self.hasdownload:
+        if self.hasdownload and self.state not in ["DLSTATUS_ALLOCATING_DISKSPACE", "DLSTATUS_WAITING4HASHCHECK", "DLSTATUS_HASHCHECKING"]:
             recheck = True
-        if self.status in defs.dl_states_short["DOWNLOADING"] or self.status in defs.dl_states_short["SEEDING"]:
+        if self.state in defs.dl_states_short["DOWNLOADING"] or self.status in defs.dl_states_short["SEEDING"]:
             peers = True
         if not self.hasmeta:
             meta = True
@@ -227,7 +361,7 @@ class TorrentWindow(Anonimity):
         row = 0  # 0
         self.placeControl(pyxbmct.Label('Status:'), row, 0)
         self.status = pyxbmct.Label('')
-        self.placeControl(self.status, row, 1, 1, 3)
+        self.placeControl(self.status, row, 1)
 
         row += 1  # 1
         self.placeControl(pyxbmct.Label('Seeders:'), row, 0)
@@ -265,7 +399,7 @@ class TorrentWindow(Anonimity):
         self.file_list = pyxbmct.List()
         self.placeControl(self.file_list, row, 0, 6, 4)
 
-        row += 4 # 9
+        row += 4  # 9
         self.placeControl(pyxbmct.Label('Trackers:'), row, 0, 1, 4)
 
         row += 1  # 10
@@ -341,17 +475,21 @@ class TorrentWindow(Anonimity):
     def getpercent(self, progress):
         return float(progress.getWidth()) / self.basewidth
 
+    @lockelements("button_start")
     def on_button_start(self):
-        pass
+        if self.hasdownload:
+            download.setstate(self.infohash, "resume")
+        else:
+            download.add(makemagnet(self.infohash), True)
 
     def on_button_stop(self):
-        pass
+        download.setstate(self.infohash, "stop")
 
     def on_button_stream(self):
         pass
 
     def on_button_recheck(self):
-        pass
+        download.setstate(self.infohash, "recheck")
 
     def on_button_peers(self):
         pass
@@ -416,10 +554,6 @@ class TorrentWindow(Anonimity):
         self.peers.setLabel(str(peers))
         self.hastrackers = bool(seeders + peers)
 
-    def close(self):
-        self.isclosing = True
-        super(TorrentWindow, self).close()
-
     def updatewithdownload(self):
         hasdownload = False
         if self.infohash:
@@ -440,8 +574,10 @@ class TorrentWindow(Anonimity):
                     self.seeders.setLabel(str(dload["num_seeds"]))
                     self.size_downloaded.setLabel(format_size(dload["total_down"]))
                     self.size_uploaded.setLabel(format_size(dload["total_up"]))
-                    self.hops = dload["hops"]
-                    self.anonupload = dload["safe_seeding"]
+                    if not self.anonimitylock and not self.hops == dload["hops"]:
+                        self.hops = dload["hops"]
+                    if not self.anonimitylock and not self.anonupload == dload["safe_seeding"]:
+                        self.anonupload = dload["safe_seeding"]
                     self.total = dload["progress"]
                     self.prebuff = dload["vod_prebuffering_progress"]
                     self.header = dload.get("vod_header_progress", 0)

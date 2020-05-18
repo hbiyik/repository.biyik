@@ -29,6 +29,8 @@ import datetime
 
 
 class navi(container.container):
+    def ondispatch(self):
+        self.emptycontainer = False
 
     def index(self):
         self.item("Search Torrents", method="search").dir(False)
@@ -112,7 +114,7 @@ class navi(container.container):
                                           method="add")
                 item.context(cntx_download, False,
                              api.makemagnet(infohash))
-            item.call(infohash, isdownload)
+            item.dir(infohash, isdownload)
 
     def handlechannels(self, channels):
         for channel in channels:
@@ -214,7 +216,7 @@ class navi(container.container):
                                            container="download", method="delete"), None))
                     for ctx, state in ctxs:
                         d_item.context(ctx, False, ihash, state)
-                    d_item.call(ihash)
+                    d_item.dir(ihash)
 
     def downloadwindow(self, infohash, hasdownload=None):
         import time
@@ -222,7 +224,6 @@ class navi(container.container):
         window = TorrentWindow(infohash, hasdownload)
         print time.time() - t1
         window.doModal()
-        container.refresh()
 
 
 navi()

@@ -61,6 +61,7 @@ class container(object):
         self.sysaddon = sys.argv[0]
         self.player = None
         self.playertimeout = 60
+        self.emptycontainer = True
         aurl = urlparse.urlparse(self.sysaddon)
         if aurl.scheme.lower() in ["plugin", "script"]:
             self.addon = aurl.netloc
@@ -184,7 +185,8 @@ class container(object):
                         item.context(setview, False, cnttyp)
                         item.docontext()
                     xbmcplugin.addDirectoryItem(self.syshandle, url, item.item, isfolder, itemlen)
-            xbmcplugin.endOfDirectory(self.syshandle, cacheToDisc=True)
+            if self.emptycontainer or itemlen:
+                xbmcplugin.endOfDirectory(self.syshandle, cacheToDisc=True)
             if self._container.autoupdate:
                 d = self.item("Auto Update", method="_update")
                 d.run(self._container.autoupdate)

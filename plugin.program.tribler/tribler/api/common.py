@@ -25,7 +25,7 @@ def localconfig():
     base_dir = os.getenv('APPDATA')
     if base_dir:
         base_dir = os.path.join(base_dir, ".Tribler")
-    if not os.path.exists(base_dir):
+    if not base_dir or not os.path.exists(base_dir):
         base_dir = os.path.expanduser("~/.Tribler")
     for version_dir in os.listdir(base_dir):
         version_dir_check = re.search("[0-9\.]+", version_dir)

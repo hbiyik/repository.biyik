@@ -45,6 +45,10 @@ class download(container.container):
         return resp
 
     @staticmethod
+    def sethops(ihash, hops):
+        return common.call("PATCH", "downloads/%s" % ihash, anon_hops=hops)
+
+    @staticmethod
     def delete(ihash, remove_data=None, silent=False):
         if silent:
             confirm = True
