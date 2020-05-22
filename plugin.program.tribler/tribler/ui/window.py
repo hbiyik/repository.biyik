@@ -14,8 +14,10 @@ from tribler.api.common import makemagnet
 from tribler.api.download import download
 from tribler.api.settings import settings
 from tribler.api.ipv8 import ipv8
-from tribler.api.common import format_size
-from tribler.ui.containers import common
+from tribler.api.common import format_size, config
+from tribler.ui import containers
+
+from tinyxbmc import gui
 
 
 estuary = Skin()
@@ -37,24 +39,48 @@ def lockelements(*elements):
     return wrap
 
 
-class Anonimity(pyxbmct.AddonDialogWindow):
-    def __init__(self, infohash, hops, anon, *args, **kwargs):
+class TorrentWindow(pyxbmct.AddonDialogWindow):
+
+    def __init__(self, infohash, uri=None, hasdownload=None):
+        super(TorrentWindow, self).__init__()
+        self.basewidth = None
+        self.infohash = infohash
         self.isclosing = False
-        self.__hops = hops
-        self.__anonupload = anon
+        self.uri = makemagnet(self.infohash) if self.infohash and not uri else uri
+        self.settings = None
+        self.setGeometry(1200, 700, 29, 4)
+        self.set_controls()
+        self.autoNavigation()
+        self.streamurl = None
+        self.streamname = None
+        self.__hops = None
+        self.__anonupload = None
         self.__circuits = []
         self.__triblertunnelcommunity = []
         self.__dhtdiscoverycommunity = []
         self.__discoverycommunity = []
-        self.circuits_label = pyxbmct.Label("")
-        self.dhtc_label = pyxbmct.Label("")
-        self.tunnelc_label = pyxbmct.Label("")
-        self.discoverc_label = pyxbmct.Label("")
-        super(Anonimity, self).__init__(*args, **kwargs)
-        self.infohash = infohash
-
+        self.__state = None
+        self.__hasmeta = False
+        self.__hastrackers = None
+        self.__hasdownload = hasdownload
+        self.__total = 0
+        self.__prebuff = 0
+        self.__header = 0
+        self.__footer = 0
         self.anonimitylock = False
-        threading.Thread(target=self.updateipv8).start()
+        self.vodmode = False
+        self.fileindex = 0
+        self.setWindowTitle(self.infohash)
+        if self.hasdownload or self.hasdownload is None:
+            self.updatewithdownload()
+        if self.vodmode:
+            self.on_button_stream()
+        self.applysettings()
+        self.updatecontrols()
+        if not self.hasmeta:
+            threading.Thread(target=self.on_button_querymetadata).start()
+        threading.Thread(target=self.updatethread).start()
+        self.autofocus()
 
     @property
     def circuits(self):
@@ -98,24 +124,6 @@ class Anonimity(pyxbmct.AddonDialogWindow):
     def discoverycommunity(self, value):
         self.__discoverycommunity = value
         self.discoverc_label.setLabel("Discovery Community: %s" % len(self.discoverycommunity))
-
-    def updateipv8(self):
-        while True:
-            circuits = ipv8.circuits()
-            overlays = ipv8.overlays()
-            if circuits:
-                self.circuits = circuits.get("circuits", [])
-            if overlays:
-                for overlay in overlays.get("overlays", []):
-                    if overlay["overlay_name"] in ["DiscoveryCommunity", "DHTDiscoveryCommunity", "TriblerTunnelCommunity"]:
-                        setattr(self, overlay["overlay_name"].lower(), overlay["peers"])
-            if self.isclosing:
-                break
-            time.sleep(defs.TORRENT_UPDATE_INTERVAL)
-
-    @property
-    def hasdownload(self):
-        return True
 
     @property
     def hops(self):
@@ -175,97 +183,46 @@ class Anonimity(pyxbmct.AddonDialogWindow):
             self.upload_label.setEnabled(False)
         self.anonimitylock = False
 
-    def set_controls(self, row):
-        self.placeControl(pyxbmct.Label('Download Anonymity:'), row, 0, 1, 4)
-        self.download_no_hops = pyxbmct.RadioButton("Direct")
-        self.download_1_hop = pyxbmct.RadioButton("1 Hop")
-        self.download_2_hops = pyxbmct.RadioButton("2 Hops")
-        self.download_3_hops = pyxbmct.RadioButton("3 Hops")
-
-        row += 1
-        self.placeControl(self.download_no_hops, row, 0, 2)
-        self.placeControl(self.download_1_hop, row, 1, 2)
-        self.placeControl(self.download_2_hops, row, 2, 2)
-        self.placeControl(self.download_3_hops, row, 3, 2)
-
-        row += 2
-        self.upload_label = pyxbmct.Label('Seeding Anonymity:')
-        self.placeControl(self.upload_label, row, 0, 1, 4)
-        self.upload_noenc = pyxbmct.RadioButton("Direct")
-        self.upload_enc = pyxbmct.RadioButton("Anonymous")
-
-        row += 1
-        self.placeControl(self.upload_noenc, row, 0, 2, 2)
-        self.placeControl(self.upload_enc, row, 2, 2, 2)
-
-        row += 2
-
-        self.placeControl(self.circuits_label, row, 0)
-        self.placeControl(self.dhtc_label, row, 1)
-        self.placeControl(self.tunnelc_label, row, 2)
-        self.placeControl(self.discoverc_label, row, 3)
-
-        row += 1
-
-        self.connect(self.download_no_hops, lambda: setattr(self, "hops", None))
-        self.connect(self.download_1_hop, lambda: setattr(self, "hops", 1))
-        self.connect(self.download_2_hops, lambda: setattr(self, "hops", 2))
-        self.connect(self.download_3_hops, lambda: setattr(self, "hops", 3))
-
-        self.connect(self.upload_enc, lambda: setattr(self, "anonupload", True))
-        self.connect(self.upload_noenc, lambda: setattr(self, "anonupload", False))
-
-        return row
-
-    def close(self):
-        self.isclosing = True
-        super(Anonimity, self).close()
-
-
-class TorrentWindow(Anonimity):
-
-    def __init__(self, infohash, hasdownload=None):
-        super(TorrentWindow, self).__init__(infohash, None, None)
-        self.basewidth = None
-        self.infohash = infohash
-        self.settings = None
-        self.setGeometry(1200, 700, 29, 4)
-        self.set_controls()
-        self.autoNavigation()
-        self.__state = None
-        self.__hasmeta = False
-        self.__hastrackers = False
-        self.__hasdownload = hasdownload
-        self.__total = 0
-        self.__prebuff = 0
-        self.__header = 0
-        self.__footer = 0
-        self.setWindowTitle(self.infohash)
-        if self.hasdownload or self.hasdownload is None:
-            self.updatewithdownload()
-        self.applysettings()
-        self.updatecontrols()
-        if not self.hastrackers:
-            threading.Thread(target=self.on_button_updatetrackers, args=(0,)).start()
-        if not self.hasmeta:
-            threading.Thread(target=self.on_button_querymetadata).start()
-        threading.Thread(target=self.updatethread).start()
+    def autofocus(self):
+        for control in (self.button_stream, self.button_start, self.button_stop, self.button_close):
+            if control.isEnabled():
+                self.setFocus(control)
+                break
 
     def updatethread(self):
         while not self.isclosing:
+            if self.hasmeta and self.hastrackers is None:
+                threading.Thread(target=self.on_button_updatetrackers).start()
             if self.hasdownload:
                 self.updatewithdownload()
+            if self.vodmode and self.prebuff == 1 and self.header == 1 and self.footer == 1:
+                self.streamurl = "%s/downloads/%s/stream/%s?apikey=%s" % (config.address,
+                                                                          self.infohash,
+                                                                          self.fileindex,
+                                                                          config.get("http_api", "key"))
+                self.streamname = download.files(self.infohash)[self.fileindex]["name"]
+                self.close()
+            circuits = ipv8.circuits()
+            overlays = ipv8.overlays()
+            if circuits:
+                self.circuits = circuits.get("circuits", [])
+            if overlays:
+                for overlay in overlays.get("overlays", []):
+                    if overlay["overlay_name"] in ["DiscoveryCommunity", "DHTDiscoveryCommunity", "TriblerTunnelCommunity"]:
+                        setattr(self, overlay["overlay_name"].lower(), overlay["peers"])
             time.sleep(defs.TORRENT_UPDATE_INTERVAL)
 
     def updatecontrols(self):
         start = stop = stream = peers = recheck = meta = False
+        if self.hasmeta:
+            stream = True
         if self.hasmeta and (self.isstopped or not self.hasdownload):
-            start = stream = True
-        if not self.isstopped:
+            start = True
+        if self.hasdownload and not self.isstopped:
             stop = True
         if self.hasdownload and self.state not in ["DLSTATUS_ALLOCATING_DISKSPACE", "DLSTATUS_WAITING4HASHCHECK", "DLSTATUS_HASHCHECKING"]:
             recheck = True
-        if self.state in defs.dl_states_short["DOWNLOADING"] or self.status in defs.dl_states_short["SEEDING"]:
+        if self.state in defs.dl_states_short["DOWNLOADING"] or defs.dl_states_short["SEEDING"]:
             peers = True
         if not self.hasmeta:
             meta = True
@@ -275,6 +232,10 @@ class TorrentWindow(Anonimity):
         self.button_recheck.setEnabled(recheck)
         self.button_peers.setEnabled(peers)
         self.button_querymeta.setEnabled(meta)
+        if self.vodmode:
+            self.button_stream.setLabel("Stop Streaming")
+        else:
+            self.button_stream.setLabel("Start Streaming")
 
     @property
     def state(self):
@@ -360,7 +321,7 @@ class TorrentWindow(Anonimity):
     def set_controls(self):
         row = 0  # 0
         self.placeControl(pyxbmct.Label('Status:'), row, 0)
-        self.status = pyxbmct.Label('')
+        self.status = pyxbmct.Label('NOT IN DOWNLOADS')
         self.placeControl(self.status, row, 1)
 
         row += 1  # 1
@@ -407,7 +368,47 @@ class TorrentWindow(Anonimity):
         self.placeControl(self.tracker_list, row, 0, 5, 4)
 
         row += 3  # 13
-        row = super(TorrentWindow, self).set_controls(row)
+        self.placeControl(pyxbmct.Label('Download Anonymity:'), row, 0, 1, 4)
+        self.download_no_hops = pyxbmct.RadioButton("Direct")
+        self.download_1_hop = pyxbmct.RadioButton("1 Hop")
+        self.download_2_hops = pyxbmct.RadioButton("2 Hops")
+        self.download_3_hops = pyxbmct.RadioButton("3 Hops")
+
+        row += 1
+        self.placeControl(self.download_no_hops, row, 0, 2)
+        self.placeControl(self.download_1_hop, row, 1, 2)
+        self.placeControl(self.download_2_hops, row, 2, 2)
+        self.placeControl(self.download_3_hops, row, 3, 2)
+
+        row += 2
+        self.upload_label = pyxbmct.Label('Seeding Anonymity:')
+        self.placeControl(self.upload_label, row, 0, 1, 4)
+        self.upload_noenc = pyxbmct.RadioButton("Direct")
+        self.upload_enc = pyxbmct.RadioButton("Anonymous")
+
+        row += 1
+        self.placeControl(self.upload_noenc, row, 0, 2, 2)
+        self.placeControl(self.upload_enc, row, 2, 2, 2)
+
+        row += 2
+        self.dhtc_label = pyxbmct.Label("")
+        self.tunnelc_label = pyxbmct.Label("")
+        self.discoverc_label = pyxbmct.Label("")
+        self.circuits_label = pyxbmct.Label("")
+        self.placeControl(self.circuits_label, row, 0)
+        self.placeControl(self.dhtc_label, row, 1)
+        self.placeControl(self.tunnelc_label, row, 2)
+        self.placeControl(self.discoverc_label, row, 3)
+
+        row += 1
+
+        self.connect(self.download_no_hops, lambda: setattr(self, "hops", None))
+        self.connect(self.download_1_hop, lambda: setattr(self, "hops", 1))
+        self.connect(self.download_2_hops, lambda: setattr(self, "hops", 2))
+        self.connect(self.download_3_hops, lambda: setattr(self, "hops", 3))
+
+        self.connect(self.upload_enc, lambda: setattr(self, "anonupload", True))
+        self.connect(self.upload_noenc, lambda: setattr(self, "anonupload", False))
 
         # 19
         self.progress_total_label = pyxbmct.Label('Total Progress:')
@@ -443,7 +444,7 @@ class TorrentWindow(Anonimity):
 
         row += 2  # 26
         self.button_start = pyxbmct.Button("Start")
-        self.button_stream = pyxbmct.Button("Stream")
+        self.button_stream = pyxbmct.Button("")
         self.button_stop = pyxbmct.Button("Stop")
         self.button_close = pyxbmct.Button("Close")
         self.placeControl(self.button_start, row, 0, 2)
@@ -480,14 +481,26 @@ class TorrentWindow(Anonimity):
         if self.hasdownload:
             download.setstate(self.infohash, "resume")
         else:
-            download.add(makemagnet(self.infohash), True)
+            download.add(self.uri, True)
+            self.hasdownload = True
 
+    @lockelements("button_stop")
     def on_button_stop(self):
         download.setstate(self.infohash, "stop")
 
+    @lockelements("button_stream")
     def on_button_stream(self):
-        pass
+        if self.vodmode:
+            download.setvodmode(self.infohash, False)
+        else:
+            if not self.hasdownload:
+                download.add(self.uri, True)
+                self.hasdownload = True
+            self.fileindex = fileindex(self.infohash)
+            if self.fileindex is not None:
+                download.setvodmode(self.infohash, True, self.fileindex)
 
+    @lockelements("button_recheck")
     def on_button_recheck(self):
         download.setstate(self.infohash, "recheck")
 
@@ -495,14 +508,17 @@ class TorrentWindow(Anonimity):
         pass
 
     def on_button_querymetadata(self):
-        if self.infohash:
+        if self.uri:
             self.button_querymeta.setEnabled(False)
-            tinfo = common.metadataquery(None, self.infohash, self.hops, progress_callback=Progress("Metadata Update",
-                                                                                                    self,
-                                                                                                    self.progress_prebuff_label,
-                                                                                                    self.progress_prebuff))
+            tinfo = containers.common.metadataquery(self.uri, None, self.hops, progress_callback=Progress("Metadata Update",
+                                                                                                          self,
+                                                                                                          self.progress_prebuff_label,
+                                                                                                          self.progress_prebuff))
             files = []
+            infohash = tinfo.get("infohash")
             if tinfo and tinfo.get("info"):
+                if not self.infohash and infohash:
+                    self.infohash = infohash
                 tinfo = tinfo["info"]
                 self.setWindowTitle(tinfo.get("name", self.infohash))
                 lof = tinfo.get("files")
@@ -527,16 +543,18 @@ class TorrentWindow(Anonimity):
             self.hasmeta = False
 
     def on_button_updatetrackers(self, refresh=1):
+        if self.hastrackers is None:
+            self.hastrackers = False
         if self.infohash:
             self.button_updatetrackers.setEnabled(False)
-            health = common.trackerquery(self.infohash, None, refresh, progress_callback=Progress("Tracker Update",
-                                                                                                  self,
-                                                                                                  self.progress_total_label,
-                                                                                                  self.progress_total))
+            health = containers.common.trackerquery(self.infohash, None, refresh, progress_callback=Progress("Tracker Update",
+                                                                                                             self,
+                                                                                                             self.progress_total_label,
+                                                                                                             self.progress_total))
             self.button_updatetrackers.setEnabled(True)
             self.updatetrackers(health.get("health", {}).items())
 
-    def updatetrackers(self, trackers):
+    def updatetrackers(self, trackers, updatepeers=True):
         self.tracker_list.reset()
         seeders = 0
         peers = 0
@@ -550,9 +568,10 @@ class TorrentWindow(Anonimity):
                 seeders += seeder
                 peers += peer
             self.tracker_list.addItem("%s %s" % (tracker, sp))
-        self.seeders.setLabel(str(seeders))
-        self.peers.setLabel(str(peers))
-        self.hastrackers = bool(seeders + peers)
+        if updatepeers:
+            self.seeders.setLabel(str(seeders))
+            self.peers.setLabel(str(peers))
+        self.hastrackers = bool(len(trackers))
 
     def updatewithdownload(self):
         hasdownload = False
@@ -563,15 +582,19 @@ class TorrentWindow(Anonimity):
                     self.hasmeta = bool(dload["files"])
                     self.updatefiles(dload["files"])
                     self.hastrackers = bool(dload["trackers"])
-                    self.updatetrackers([(x["url"], {"leechers": x["peers"]}) for x in dload["trackers"]])
+                    self.updatetrackers([(x["url"], {"leechers": x["peers"]}) for x in dload["trackers"]], False)
                     self.setWindowTitle(dload["name"])
                     self.speed_download.setLabel(format_size(dload["speed_down"]) + "/s")
                     self.speed_upload.setLabel(format_size(dload["speed_up"]) + "/s")
+                    self.vodmode = dload["vod_mode"]
                     self.state = dload["status"]
-                    self.status.setLabel(defs.dl_states[self.state])
+                    if self.vodmode:
+                        self.status.setLabel("PREBUFFERING")
+                    else:
+                        self.status.setLabel(defs.dl_states[self.state])
                     self.totalsize.setLabel(format_size(dload["size"]))
-                    self.peers.setLabel(str(dload["num_peers"]))
-                    self.seeders.setLabel(str(dload["num_seeds"]))
+                    self.peers.setLabel("%s/%s" % (dload["num_connected_peers"], dload["num_peers"]))
+                    self.seeders.setLabel("%s/%s" % (dload["num_connected_seeds"], dload["num_seeds"]))
                     self.size_downloaded.setLabel(format_size(dload["total_down"]))
                     self.size_uploaded.setLabel(format_size(dload["total_up"]))
                     if not self.anonimitylock and not self.hops == dload["hops"]:
@@ -583,6 +606,10 @@ class TorrentWindow(Anonimity):
                     self.header = dload.get("vod_header_progress", 0)
                     self.footer = dload.get("vod_footer_progress", 0)
         self.hasdownload = hasdownload
+
+    def close(self, *args, **kwargs):
+        self.isclosing = True
+        super(TorrentWindow, self).close(*args, **kwargs)
 
 
 class Progress():
@@ -603,3 +630,15 @@ class Progress():
 
     def isFinished(self):
         return self.context.isclosing
+
+
+def fileindex(infohash):
+    lof = [x["name"] for x in download.files(infohash)]
+    if len(lof) == 1:
+        findex = 0
+    else:
+        findex = gui.select("Select File", lof)
+    if int(findex) < 0:
+        return None
+    else:
+        return findex

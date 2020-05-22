@@ -25,14 +25,13 @@ class download(container.container):
                            safe_seeding=anon_seed)
         if resp and not silent:
             gui.ok("Torrent Added", resp.get("infohash", ""))
+            return resp.get("infohash")
 
     @staticmethod
     def setstate(ihash, state):
         if state == "stop":
             download.setvodmode(ihash, False)
-        resp = common.call("PATCH", "downloads/%s" % ihash, state=state)
-        if resp.get("modified"):
-            container.refresh()
+        return common.call("PATCH", "downloads/%s" % ihash, state=state)
 
     @staticmethod
     def setvodmode(ihash, vod_mode, fileindex=None):
@@ -40,8 +39,6 @@ class download(container.container):
             resp = common.call("PATCH", "downloads/%s" % ihash, vod_mode=True, fileindex=fileindex)
         else:
             resp = common.call("PATCH", "downloads/%s" % ihash, vod_mode=False)
-        if resp.get("modified"):
-            container.refresh()
         return resp
 
     @staticmethod
@@ -67,12 +64,19 @@ class download(container.container):
                         txt += " + stored data"
                     txt += " has been removed."
                     gui.ok("Removed", txt)
-            container.refresh()
 
     @staticmethod
     def list(get_files=0):
         downloads = common.call("GET", "downloads", get_files=get_files)
         if downloads:
             return downloads.get("downloads", [])
+        else:
+            return []
+
+    @staticmethod
+    def files(infohash):
+        resp = common.call("GET", "downloads/%s/files" % infohash)
+        if resp and "files" in resp:
+            return resp.get("files", [])
         else:
             return []

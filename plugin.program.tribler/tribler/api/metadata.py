@@ -17,9 +17,7 @@ class metadata(container.container):
                            timeout=timeout)
 
     @staticmethod
-    def subscribe(chanid, publickey, subscribed=True, silent=False):
+    def subscribe(chanid, publickey, subscribed=True):
         resp = common.call("PATCH", "metadata/%s/%s" % (publickey,
                                                         chanid), subscribed=subscribed)
-        if not silent:
-            container.refresh()
         return resp

@@ -114,7 +114,7 @@ class navi(container.container):
                                           method="add")
                 item.context(cntx_download, False,
                              api.makemagnet(infohash))
-            item.dir(infohash, isdownload)
+            item.dir(infohash, None, isdownload)
 
     def handlechannels(self, channels):
         for channel in channels:
@@ -154,20 +154,20 @@ class navi(container.container):
             item.dir(channel["id"], channel["public_key"], channel["torrents"])
 
     def addtorrent(self):
-        self.item("Add Torrent From Remote Magnet or URL", method="addtorrent_url").call()
-        self.item("Add Torrent From Local Torrent File or Mdblob DB", method="addtorrent_file").call()
+        self.item("Add Torrent From Remote Magnet or URL", method="addtorrent_url").dir()
+        self.item("Add Torrent From Local Torrent File or Mdblob DB", method="addtorrent_file").dir()
 
     def addtorrent_file(self):
         fpath = gui.browse(1, "Select Torrent")
         if not fpath == "":
             fpath = u"file://" + unicode(fpath.decode("utf8"))
-            api.download.add(fpath)
+            self.downloadwindow(None, fpath)
 
     def addtorrent_url(self):
         conf, txt = gui.keyboard("", "Magnet Link")
         if conf:
             txt = unicode(txt.decode("utf8"))
-            api.download.add(txt)
+            self.downloadwindow(None, txt)
 
     def downloads(self, cat=None):
         if not cat:
@@ -218,12 +218,14 @@ class navi(container.container):
                         d_item.context(ctx, False, ihash, state)
                     d_item.dir(ihash)
 
-    def downloadwindow(self, infohash, hasdownload=None):
-        import time
-        t1 = time.time()
-        window = TorrentWindow(infohash, hasdownload)
-        print time.time() - t1
-        window.doModal()
+    def downloadwindow(self, infohash, uri=None, hasdownload=None):
+        if infohash or uri:
+            window = TorrentWindow(infohash, uri, hasdownload)
+            window.doModal()
+            if window.streamurl:
+                player = container.xbmcplayer(fallbackinfo={"title": window.streamname})
+                player.canresolve = False
+                player.stream(window.streamurl)
 
 
 navi()

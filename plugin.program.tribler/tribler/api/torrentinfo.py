@@ -4,6 +4,8 @@ Created on 26 Mar 2020
 @author: boogie
 '''
 import json
+import hashlib
+import bencode
 from tinyxbmc import container
 
 from . import common
@@ -19,6 +21,9 @@ class torrentinfo(container.container):
             kwargs["hops"] = hops
         resp = common.call("GET", "torrentinfo", **kwargs)
         if resp and resp.get("metainfo"):
-            return json.loads(resp["metainfo"].decode("hex"))
+            metainfo = json.loads(resp["metainfo"].decode("hex"))
+            metainfo["info"]["pieces"] = metainfo["info"]["pieces"].decode("hex")
+            metainfo["infohash"] = hashlib.sha1(bencode.encode(metainfo['info'])).digest().encode("hex")
+            return metainfo
         else:
             return resp
