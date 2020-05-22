@@ -3,15 +3,12 @@ Created on 26 Mar 2020
 
 @author: boogie
 '''
-from tinyxbmc import gui
-from tinyxbmc import container
-
 import common
 
 
-class download(container.container):
+class download:
     @staticmethod
-    def add(uri, silent=False):
+    def add(uri):
         try:
             hops = int(common.config.get("download_defaults", "number_hops"))
         except Exception:
@@ -23,9 +20,7 @@ class download(container.container):
         resp = common.call("PUT", "downloads", uri=uri,
                            anon_hops=hops,
                            safe_seeding=anon_seed)
-        if resp and not silent:
-            gui.ok("Torrent Added", resp.get("infohash", ""))
-            return resp.get("infohash")
+        return resp.get("infohash")
 
     @staticmethod
     def setstate(ihash, state):
@@ -46,24 +41,8 @@ class download(container.container):
         return common.call("PATCH", "downloads/%s" % ihash, anon_hops=hops)
 
     @staticmethod
-    def delete(ihash, remove_data=None, silent=False):
-        if silent:
-            confirm = True
-        else:
-            txt = "Are you sure you want to remove the torrent?"
-            if remove_data is None:
-                remove_data = gui.yesno("Remove Files", "Do you want to completely remove the stored files from the file system as well?")
-                txt += " This will also remove the stored files!"
-            confirm = gui.yesno("Delete Torrent", txt)
-        if confirm:
-            resp = common.call("DELETE", "downloads/%s" % ihash, remove_data=remove_data)
-            if not silent:
-                if resp and resp.get("removed"):
-                    txt = "Trorent"
-                    if remove_data:
-                        txt += " + stored data"
-                    txt += " has been removed."
-                    gui.ok("Removed", txt)
+    def delete(ihash, remove_data=None):
+        return common.call("DELETE", "downloads/%s" % ihash, remove_data=remove_data)
 
     @staticmethod
     def list(get_files=0):

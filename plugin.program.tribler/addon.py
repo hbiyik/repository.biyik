@@ -107,13 +107,6 @@ class navi(container.container):
                                     container="common",
                                     method="trackerquery")
             item.context(cntx_health, False, infohash, torrent["name"])
-            if not isdownload:
-                cntx_download = self.item("Start Download",
-                                          module="tribler.api.download",
-                                          container="download",
-                                          method="add")
-                item.context(cntx_download, False,
-                             api.makemagnet(infohash))
             item.dir(infohash, None, isdownload)
 
     def handlechannels(self, channels):
@@ -136,21 +129,14 @@ class navi(container.container):
                                                 BLUE(num_tor),
                                                 channel["name"])
             item = self.item(itemname, method="channeltorrents")
-            cntx_sub = self.item("Unubscribe" if subbed else "Subscribe",
-                                 module="tribler.api.metadata",
-                                 container="metadata",
-                                 method="subscribe")
+            cntx_sub = self.item("Unsubscribe" if subbed else "Subscribe",
+                                 module="tribler.ui.containers",
+                                 container="common",
+                                 method="subscribechannel")
             item.context(cntx_sub, False,
                          channel["id"],
                          channel["public_key"],
                          False if subbed else True)
-            cntx_mine = self.item("Stop Mining" if mining else "Start Mining",
-                                  module="tribler.api.settings",
-                                  container="settings",
-                                  method="setmining")
-            item.context(cntx_mine, False,
-                         channel["id"],
-                         False if mining else True)
             item.dir(channel["id"], channel["public_key"], channel["torrents"])
 
     def addtorrent(self):
@@ -194,26 +180,22 @@ class navi(container.container):
                     ihash = download["infohash"]
                     if download["status"] in defs.dl_states_short["STOPPED"]:
                         ctxs.append((self.item("Start",
-                                               module="tribler.api.download",
-                                               container="download",
-                                               method="setstate"), "resume"))
+                                               module="tribler.ui.containers",
+                                               container="common",
+                                               method="setdownloadstate"), "resume"))
                     else:
                         ctxs.append((self.item("Stop",
-                                               module="tribler.api.download",
-                                               container="download",
-                                               method="setstate"), "stop"))
-                    if download.get("vod_mode"):
-                        ctxs.append((self.item("Stop Streaming",
-                                               module="tribler.api.download",
-                                               container="download",
-                                               method="setvodmode"), False))
+                                               module="tribler.ui.containers",
+                                               container="common",
+                                               method="setdownloadstate"), "stop"))
                     ctxs.append((self.item("Recheck",
-                                           module="tribler.api.download",
-                                           container="download",
-                                           method="setstate"), "recheck"))
+                                           module="tribler.ui.containers",
+                                           container="common",
+                                           method="setdownloadstate"), "recheck"))
                     ctxs.append((self.item("Delete",
-                                           module="tribler.api.download",
-                                           container="download", method="delete"), None))
+                                           module="tribler.ui.containers",
+                                           container="common",
+                                           method="deletedownload"), False))
                     for ctx, state in ctxs:
                         d_item.context(ctx, False, ihash, state)
                     d_item.dir(ihash)

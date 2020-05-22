@@ -10,6 +10,7 @@ from tinyxbmc import gui
 
 from tribler.api.metadata import metadata
 from tribler.api.torrentinfo import torrentinfo
+from tribler.api.download import download
 from tribler.defs import DHT_TIMEOUT, HTTP_TIMEOUT
 
 
@@ -52,3 +53,42 @@ class common(container.container):
         return timerprogress(caption, HTTP_TIMEOUT, progress_callback, torrentinfo.get,
                              uri=uri, hops=hops, infohash=infohash
                              )
+
+    @staticmethod
+    def subscribechannel(chanid, publickey, subscribed):
+        ret = metadata.subscribe(chanid, publickey, subscribed)
+        container.refresh()
+        return ret
+
+    @staticmethod
+    def setdownloadstate(infohash, state):
+        ret = download.setstate(infohash, state)
+        time.sleep(2)
+        container.refresh()
+        return ret
+
+    @staticmethod
+    def deletedownload(infohash, silent=False):
+        remove_data = False
+        confirm = silent or gui.yesno("Are you sure?", "Are you sure you want to remove the torrent?")
+        if confirm:
+            remove_data = silent or gui.yesno("Remove Files Also?", "Do you want to completely remove the stored files from the file system as well?")
+            ret = download.delete(infohash, remove_data)
+            if ret.get("removed"):
+                txt = "Torrent"
+                if remove_data:
+                    txt += " + stored data"
+                txt += " has been removed."
+                if not silent:
+                    gui.ok("Removed", txt)
+                container.refresh()
+                return ret
+
+    @staticmethod
+    def callapiwithrefresh(address, *args, **kwargs):
+        mdlname, mtdname = address.split(".")
+        mdl = __import__("tribler.api.%s" % mdlname, locals=None, globals=None, fromlist=[None], level=0)
+        method = getattr(getattr(mdl, mdlname), mtdname)
+        ret = method(*args, **kwargs)
+        container.refresh()
+        return ret

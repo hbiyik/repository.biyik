@@ -3,7 +3,6 @@ Created on 26 Mar 2020
 
 @author: boogie
 '''
-from tinyxbmc import container
 from tinyxbmc import gui
 
 import common
@@ -13,7 +12,7 @@ import threading
 import time
 
 
-class remote(container.container):
+class remote:
     @staticmethod
     def query(txt_filter=None, channel_pk=None, metadata_type="torrent", sort_by="updated", sort_desc=1, timeout=None, max_results=None, hide_xxx=0):
         loop_timeout = 3

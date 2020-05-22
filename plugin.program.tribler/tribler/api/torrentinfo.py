@@ -6,12 +6,11 @@ Created on 26 Mar 2020
 import json
 import hashlib
 import bencode
-from tinyxbmc import container
 
 from . import common
 
 
-class torrentinfo(container.container):
+class torrentinfo:
     @staticmethod
     def get(uri, hops=None, infohash=None):
         if not uri:

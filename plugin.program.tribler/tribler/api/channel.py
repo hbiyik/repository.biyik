@@ -3,12 +3,11 @@ Created on 26 Mar 2020
 
 @author: boogie
 '''
-from tinyxbmc import container
 
 from . import common
 
 
-class channel(container.container):
+class channel:
     @staticmethod
     def list(subscribed, first=1, last=500, sort_by="updated", sort_desc=1):
         resp = common.call("GET", "channels",
