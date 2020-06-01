@@ -481,7 +481,7 @@ class TorrentWindow(pyxbmct.AddonDialogWindow):
         if self.hasdownload:
             download.setstate(self.infohash, "resume")
         else:
-            download.add(self.uri, True)
+            download.add(self.uri)
             self.hasdownload = True
 
     @lockelements("button_stop")
@@ -494,7 +494,7 @@ class TorrentWindow(pyxbmct.AddonDialogWindow):
             download.setvodmode(self.infohash, False)
         else:
             if not self.hasdownload:
-                download.add(self.uri, True)
+                download.add(self.uri)
                 self.hasdownload = True
             self.fileindex = fileindex(self.infohash)
             if self.fileindex is not None:
