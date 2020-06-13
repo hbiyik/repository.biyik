@@ -24,8 +24,11 @@ from tribler import defs
 from tribler.defs import YES, NO, BLUE
 from tribler import api
 from tribler.ui.window import TorrentWindow
-
+from tribler import core
 import datetime
+
+
+print core.getbinary()
 
 
 class navi(container.container):

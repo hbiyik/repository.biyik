@@ -40,3 +40,4 @@ HTTP_TIMEOUT = 60
 
 MIN_TRIBLER_VERSION = "7.5"
 TORRENT_UPDATE_INTERVAL = 1
+BINARY_URL = "https://raw.githubusercontent.com/hbiyik/triblerd-buildsys/master/dist"
