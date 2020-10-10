@@ -247,6 +247,7 @@ class blockingloop(object):
                     break
                 xbmc.sleep(int(self.wait * 1000))
         if e:
+            print traceback.print_exc()
             raise(e)
 
     def init(self, *args, **kwargs):

@@ -42,7 +42,7 @@ REMOTE_DBG = False
 if REMOTE_DBG:
     #pdevpath = "C:\\Users\\z0042jww\\.p2\\pool\\plugins\\org.python.pydev.core_7.2.1.201904261721\\pysrc"
     #pdevpath = "/home/boogie/.p2/pool/plugins/org.python.pydev.core_7.2.1.201904261721/pysrc/"
-    pdevpath = "/home/boogie/local/eclipse/plugins/org.python.pydev.core_7.5.0.202001101138/pysrc/"
+    pdevpath = "/home/boogie/local/eclipse/plugins/org.python.pydev.core_7.6.0.202006041357/pysrc"
     sys.path.append(pdevpath)
     import pydevd  # @UnresolvedImport
     pydevd.settrace(stdoutToServer=True, stderrToServer=True, suspend=False)
@@ -118,8 +118,8 @@ class container(object):
         self._container.init(*iargs, **ikwargs)
         self._method = getattr(self._container, self._disp_method)
         if self._container._media == "resolver":
-            self.player = xbmcplayer(timeout=self.playertimeout)
             redirects = []
+            self.player = xbmcplayer(timeout=self.playertimeout)
             for u, finfo, fart in tools.dynamicret(tools.safeiter(self._method(*args, **kwargs))):
                 if self.player.dlg.iscanceled():
                     break
@@ -151,6 +151,8 @@ class container(object):
                 self._close()
                 self._container._isplaying = 2
                 return
+            if self._container._isplaying == 0:
+                self.player.dlg.close()
         elif self._container._media == "player":
             p = xbmc.PlayList(1)
             p.clear()
