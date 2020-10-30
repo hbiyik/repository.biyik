@@ -121,16 +121,22 @@ class container(object):
             redirects = []
             self.player = xbmcplayer(timeout=self.playertimeout)
             for u, finfo, fart in tools.dynamicret(tools.safeiter(self._method(*args, **kwargs))):
+                if not isinstance(u, (str, unicode, net.mpdurl)):
+                    # not a playable url
+                    continue
+                if isinstance(u, net.mpdurl) and not u.inputstream:
+                    # mpdurl but inputstream not available
+                    continue
                 if self.player.dlg.iscanceled():
                     break
                 self.player.fallbackinfo = finfo
                 self.player.fallbackart = fart
                 self._container._isplaying = 1
-                if "plugin://" in u:
+                if isinstance(u, (str, unicode)) and "plugin://" in u:
+                    # play in another addon
                     redirects.append(u)
                     continue
-                item = xbmcgui.ListItem(path=u)
-                state = self.player.stream(u, item)
+                state = self.player.stream(u)
                 if state:
                     self._container._isplaying = 2
                     self._close()
@@ -428,14 +434,28 @@ class xbmcplayer(xbmc.Player):
         self.waiting = False
 
     def stream(self, url, li=None):
-        if not li:
-            li = xbmcgui.ListItem(path=url)
-        u, headers = net.fromkodiurl(url)
-        if headers is None:
-            headers = {"User-agent": const.USERAGENT}
-        elif "user-agent" not in [x.lower() for x in headers.keys()]:
-            headers["User-agent"] = const.USERAGENT
-        u = net.tokodiurl(u, headers=headers)
+        if isinstance(url, net.mpdurl):
+            u = url.kodiurl
+            if not li:
+                li = xbmcgui.ListItem(path=u)
+            if tools.kodiversion() >= 19:
+                li.setProperty('inputstream', url.inputstream)
+            else:
+                li.setProperty('inputstreamaddon', url.inputstream)
+            li.setProperty('inputstream.adaptive.manifest_type', url.manifest)
+            if url.kodilurl:
+                li.setProperty('inputstream.adaptive.license_type', url.license)
+                li.setProperty('inputstream.adaptive.license_key', url.kodilurl)
+        else:
+            u, headers = net.fromkodiurl(url)
+            if headers is None:
+                headers = {"User-agent": const.USERAGENT}
+            elif "user-agent" not in [x.lower() for x in headers.keys()]:
+                headers["User-agent"] = const.USERAGENT
+                
+            u = net.tokodiurl(u, headers=headers)
+            if not li:
+                li = xbmcgui.ListItem(path=u)
         if self.dlg.iscanceled():
             return
         if self.canresolve:

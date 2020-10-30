@@ -32,9 +32,13 @@ HTTPCACHEHAY = "httpcache"
 OBJCACHEHAY = "objcache"
 ADDONHAY = "xmlcache"
 COOKIEFILE = "cookie"
-USERAGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.86 Safari/537.36"
+USERAGENT = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0"
 HTTPTIMEOUT = 5
 EXTPREFIX = "plugin.program.tinyxbmc-"
 XMLROOTNODE = "tinyxbmc"
 XMLPLUGINNODE = "plugin"
 XMLPLUGINATTRS = ["id", "path", "package", "module", "instance"]
+
+
+class URL:
+    pass

@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.0.26">
+<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.0.27">
     <requires>
 		<import addon="xbmc.python" version="2.1.0"/>
 		<import addon="script.module.cachecontrol"/>
 		<import addon="script.module.requests"/>
 		<import addon="script.module.js2py"/>
 		<import addon="script.module.importlib" optional="true"/>
+		<import addon="script.module.inputstreamhelper" optional="true"/>
+		<import addon="inputstream.adaptive" optional="true"/>
 	</requires>
 	<extension point="xbmc.python.module" library="lib" />
 	<extension point="xbmc.addon.metadata">

@@ -82,7 +82,7 @@ def tokodiurl(url, domain=None, headers=None):
         domain = urlparse.urlparse(url).netloc
     cookiestr = ""
     for cookie in loadcookies():
-        if cookie.domain and domain or domain in cookie.domain:
+        if domain in cookie.domain:
             cookiestr += ";%s=%s" % (cookie.name, cookie.value)
     if not cookiestr == "":
         headers["Cookie"] = headers.get("cookie", headers.get("Cookie", "")) + cookiestr
@@ -274,3 +274,72 @@ class timecache(BaseHeuristic):
     def warning(self, response):
         msg = 'Automatically cached! Response is Stale.'
         return '110 - "%s"' % msg
+
+
+class mpdurl(const.URL):
+    def __init__(self, url, headers=None, lurl=None, lheaders=None, lbody="R{SSM}", lresponse=""):
+        self.manifest = "mpd"
+        self.license = "com.widevine.alpha"
+        self.__inputstream = 0
+        self.url = url
+        self.lurl = lurl
+        self.headers = headers or {}
+        self.lheaders = lheaders or {}
+        if "user-agent" not in [x.lower() for x in self.headers]:
+            self.headers["User-Agent"] = const.USERAGENT
+        if "user-agent" not in [x.lower() for x in self.lheaders]:
+            self.lheaders["User-Agent"] = const.USERAGENT
+        self.lbody = lbody
+        self.lresponse = lresponse
+
+    def _supress(self, *args, **kwargs):
+        return True
+
+    @property
+    def inputstream(self):
+        if self.__inputstream == 0:
+            self.__inputstream = None
+            if addon.has_addon("inputstream.adaptive"):
+                if self.kodilurl:
+                    if addon.has_addon("script.module.inputstreamhelper"):
+                        import inputstreamhelper
+                        inputstreamhelper.ok_dialog = self._supress
+                        inputstreamhelper.widevine_eula = self._supress
+                        helper = inputstreamhelper.Helper(self.manifest)
+                        haswv = inputstreamhelper.has_widevinecdm()
+                        if haswv:
+                            self.__inputstream = "inputstream.adaptive"
+                        elif helper._supports_widevine():
+                            import xbmc
+                            xbmc.executebuiltin('Dialog.Close(all,true)​')
+                            if helper.install_widevine():
+                                self.__inputstream = "inputstream.adaptive"
+                else:
+                    self.__inputstream = "inputstream.adaptive"
+        print self.__inputstream
+        return self.__inputstream
+
+    @property
+    def kodiurl(self):
+        return tokodiurl(self.url, headers=self.headers)
+
+    @property
+    def kodilurl(self):
+        if self.lurl:
+            lurl = tokodiurl(self.lurl, headers=self.lheaders)
+            if "|" not in lurl:
+                return lurl + "|"
+            return "%s|%s|%s" % (lurl, self.lbody, self.lresponse)
+
+
+def absurl(url, fromurl):
+    if url.startswith("https://") or url.startswith("http://"):
+        return url
+    else:
+        up = urlparse.urlparse(fromurl)
+        if url.startswith("//"):
+            return "%s:%s" % (up.scheme, url)
+        elif url.startswith("/"):
+            return "%s://%s%s" % (up.scheme, up.netloc, url)
+        else:
+            return "%s://%s/%s/%s" % (up.scheme, up.netloc, up.path, url)

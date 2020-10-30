@@ -24,6 +24,7 @@ import xbmcvfs
 import os
 import datetime
 import time
+from tinyxbmc import const
 
 from xml.dom import minidom
 
@@ -41,7 +42,7 @@ def safeiter(iterable):
 
 def dynamicret(iterable):
     for ret in iterable:
-        if isinstance(ret, (str, unicode)):
+        if isinstance(ret, (str, unicode, const.URL)):
             yield ret, {}, {}
         elif isinstance(ret, (tuple, list)):
             lsize = len(ret)
