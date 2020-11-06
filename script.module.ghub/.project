@@ -5,6 +5,7 @@
 	<projects>
 		<project>Kodistubs-master</project>
 		<project>script.module.htmlement</project>
+		<project>script.module.tinyxbmc</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
