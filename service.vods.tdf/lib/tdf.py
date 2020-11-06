@@ -169,4 +169,8 @@ class tdf(vods.movieextension):
             page = self.download(url, referer=domain)
             tree = htmlement.fromstring(page)
             for u in tree.findall(".//meta[@itemprop='embedUrl']"):
-                yield u.get("content")
+                url = u.get("content")
+                if "youtube-nocookie.com" in url:
+                    url = re.search("(?:\"|\')VIDEO_ID(?:\"|\')\s*?:\s*?(?:\"|\')(.+?)(?:\"|\')", self.download(url)).group(1)
+                    url = "https://www.youtube.com/watch?v=%s" % url
+                yield url
