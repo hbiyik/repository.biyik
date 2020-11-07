@@ -3,6 +3,7 @@
 	<name>service.subtitles.planetdp</name>
 	<comment></comment>
 	<projects>
+		<project>script.module.htmlement</project>
 		<project>script.module.sublib</project>
 	</projects>
 	<buildSpec>

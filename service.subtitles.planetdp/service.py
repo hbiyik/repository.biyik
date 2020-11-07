@@ -22,13 +22,13 @@ import sublib
 import re
 import os
 
+
 domain = "https://www.planetdp.org"
-isotoquery = {
-           "tr": u"Türkçe",
-           "en": u"İngilizce",
-           "es": u"İspanyolca",
-           "de": u"Almanca",
-           "fr": u"Fransızca",
+isotoquery = {"tr": u"Türkçe",
+              "en": u"İngilizce",
+              "es": u"İspanyolca",
+              "de": u"Almanca",
+              "fr": u"Fransızca",
               }
 
 
@@ -39,15 +39,16 @@ def norm(txt):
 
 
 def imagecode(url):
-    if "en.png" in url:
+    url = url.lower()
+    if "ngilizce" in url:
         return "en"
-    if "tr.png" in url:
+    if "rk" in url:
         return "tr"
-    if "es.png" in url:
+    if "spanyolca" in url:
         return "es"
-    if "gr.png" in url:
+    if "alman" in url:
         return "de"
-    if "fr.png" in url:
+    if "frans" in url:
         return "fr"
     return "tr"
 
@@ -55,12 +56,31 @@ def imagecode(url):
 class planetdp(sublib.service):
 
     def search(self):
-        if self.item.imdb and self.item.imdb.startswith("tt"):
-            self.searchimdb()
-        if not self.num() and self.item.year:
-            self.searchnameyear()
-        if not self.num():
-            self.searchpredict()
+        self.item.imdb = "tt0182576"
+        query = {"title": self.item.imdb or self.item.title,
+                 "year_date": "" if self.item.show else self.item.year,
+                 "is_serial": int(self.item.show)
+                 }
+        page = self.request(domain + "/movie/search", query, referer=domain)
+        if re.search('class="baba_main_right"', page):
+            # direct page without search result
+            self.scrapesubs(page)
+            return
+        for result in re.finditer("right2\">[\s\n]*?<a href=\"(.+?)\"><h4>(.+?)<\/h4><\/a>[\s\n]*?<h5>(.+?)<\/h5>", page, re.DOTALL):
+            # TODO: take akas
+            title = norm(result.group(2))
+            year = re.search("\s([0-9]{4})\s", result.group(3))
+            imdb = re.search("\s([0-9]{7})\s", result.group(3))
+            if norm(self.item.title) == title:
+                self.scrapesubs(self.request(domain + result.group(1), referer=domain))
+                if self.item.imdb:
+                    imdb = "tt" + re.search("\s([0-9]{7})\s", imdb)
+                    if imdb == self.item.imdb:
+                        break
+                if self.item.year and not self.item.show:
+                    year = int(year.group(1))
+                    if year == self.item.year:
+                        break
 
     def download(self, link):
         page = self.request(link, referer=domain)
@@ -143,66 +163,22 @@ class planetdp(sublib.service):
         return skip, ispack + epmatch + packmatch
 
     def scrapesubs(self, page):
-        for row in re.findall("<tr(.*?)</tr>", page, re.DOTALL):
-            index = 0
-            link = None
-            name = None
-            iso = None
-            priority = 0
-            for column in re.findall("<td(.*?)</td>", row, re.DOTALL):
-                index += 1
-                if index == 1:
-                    # get name and link
-                    res = re.search('href="(.*?)".*?title="(.*?)">(.+)', column)
-                    link = domain + res.group(1)
-                    reldata = re.sub('<.*?>', '', res.group(3)).strip()
-                    skip, priority = self.checkpriority(reldata)
-                    if skip:
-                        break
-                    name = "%s: %s" % (reldata, res.group(2))
-                if index == 2:
-                    # get langauge code
-                    res = re.search("<img src='(.*?)'", column)
-                    if res:
-                        iso = imagecode(res.group(1))
-                    else:
-                        iso = "tr"
-                if index == 3:
-                    res = re.search("<a.*?>(.*?)</a", column)
-                    name += " ~ %s" % res.group(1)
-            if link and iso and name:
-                sub = self.sub(name, iso)
-                sub.download(link)
-                sub.priority = priority
-                self.addsub(sub)
-
-    def scrapemovie(self, page):
-        regstr = '<tr.*?class="rowinfo(.*?<tr.*?class="alt_div.*?<tr.*?class="alt_div.*?)</tr>'
+        regstr = '<tr class=\"row.+?</tr>'
         for row in re.findall(regstr, page, re.DOTALL):
             index = 0
             link = None
             name = None
             iso = None
-            trans = None
             priority = 0
-            for column in re.findall("<td(.*?)</td>", row, re.DOTALL):
+            for column in re.findall("<td.+?>(.*?)</td>", row, re.DOTALL):
                 skip = None
                 index += 1
                 if index == 1:
                     res = re.search('href="(.*?)".*?title="(.*?)"', column)
+                    if not res:
+                        break
                     link = domain + res.group(1)
-                    name = "%s" % res.group(2)
-                if index == 2:
-                    res = re.search("src='(.*?)'", column)
-                    if res:
-                        iso = imagecode(res.group(1))
-                    else:
-                        iso = "tr"
-                if index == 5:
-                    res = re.search("<a.*?>(.*?)</a", column)
-                    if res:
-                        trans = res.group(1)
-                if index == 9:
+                    name = res.group(2).replace(u"altyazı", "").strip()
                     release = re.search("<span>(.*?)</span>", column)
                     if release:
                         release = re.sub("<.*?>", "", release.group(1)).strip()
@@ -211,91 +187,16 @@ class planetdp(sublib.service):
                     if skip:
                         name = None
                         break
-                if index == 12:
-                    version = re.search(' / Notlar</b>(.*?)</span>', column)
-                    if version:
-                        name += re.sub("<.*?>", "", version.group(1))
+                if index == 2:
+                    res = re.search('alt="(.*?)"', column)
+                    if res:
+                        iso = imagecode(res.group(1))
+                    else:
+                        iso = "tr"
+                if index in [5, 7]:
+                    name = "%s | %s" % (name, re.sub('<.*?>', '', column).strip())
             if link and name and iso:
-                if trans:
-                    name += " ~ %s" % trans
                 sub = self.sub(name, iso)
                 sub.download(link)
                 self.priority = priority
                 self.addsub(sub)
-
-    def scraperesult(self, page):
-        # if we are here we must have a year
-        divs = re.findall('<div class="col-sm-7(.*?)</div>', page, re.DOTALL)
-        nname = norm(self.item.title)
-        for div in divs:
-            rlinkname = re.search("<a href='(.*?)'  itemprop=\"url\".*?>(.*?)</a>", div)
-            if rlinkname:
-                link = rlinkname.group(1)
-                name1 = rlinkname.group(2)
-                name1 = re.sub("<.*?>", "", name1)
-            else:
-                continue
-            akas = []
-            aka = re.search('Aka: </strong>(.*?)</p>', div)
-            if aka:
-                akas = [norm(x.strip()) for x in aka.group(1).split(",")]
-            submatch = re.match("(.*?)\s\(([0-9]{4})\)", name1)
-            if submatch.lastindex == 2:
-                name = submatch.group(1)
-                year = int(submatch.group(2))
-                if year == self.item.year and \
-                        (nname == norm(name) or nname in akas):
-                    page = self.request(domain + link, referer=domain)
-                    self.scrapemovie(page)
-                    break
-
-    def searchimdb(self):
-        if self.item.season < 0:
-            season = ""
-        else:
-            season = self.item.season
-        query = {
-                 "title": self.item.imdb,
-                 "translator": "",
-                 "name": "",
-                 "release_info": "",
-                 "fps": "",
-                 "season": season,
-                 "episode": "",
-                 "lang": "",
-                 }
-
-        page = self.request(domain + "/subtitlelist", query, referer=domain)
-        return self.scrapesubs(page)
-
-    def searchnameyear(self):
-        # if we are here we must have a year
-        query = {
-                 "title": self.item.title,
-                 "year_date": self.item.year,
-                 "is_serial": int(self.item.show)
-                 }
-        page = self.request(domain + "/movie/search", query, referer=domain)
-        ismultiple = re.search("btn--info", page)
-        if ismultiple:
-            return self.scraperesult(page)
-        else:
-            return self.scrapemovie(page)
-
-    def searchpredict(self):
-        if self.item.season < 0:
-            season = ""
-        else:
-            season = self.item.season
-        query = {
-                 "title": self.item.title,
-                 "translator": "",
-                 "name": "",
-                 "release_info": "",
-                 "fps": "",
-                 "season": season,
-                 "episode": "",
-                 "lang": "",
-                 }
-        page = self.request(domain + "/subtitlelist", query, referer=domain)
-        return self.scrapesubs(page)
