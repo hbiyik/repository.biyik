@@ -459,7 +459,7 @@ class index(container.container):
                 atarget = target.encode("ascii", "replace").replace("None", "")
                 self.logplayer("VODS is trying player: %s %s" % (alink, atarget))
                 if not pcls:
-                    self.logplayer("VODS received broken player, skipping...: %s %s" % (alink.
+                    self.logplayer("VODS received broken player, skipping...: %s %s" % (alink,
                                                                                         atarget))
                     continue
                 found = False
