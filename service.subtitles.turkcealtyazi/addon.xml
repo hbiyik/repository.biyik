@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<addon id="service.subtitles.turkcealtyazi" name="Turkcealtyazi.org" provider-name="hbiyik" version="0.0.7">
+<addon id="service.subtitles.turkcealtyazi" name="Turkcealtyazi.org" provider-name="hbiyik" version="0.0.8">
   <requires>
     <import addon="xbmc.python" version="2.1.0"/>
     <import addon="script.module.sublib" version="0.0.5"/>
@@ -7,6 +7,7 @@
   </requires>
   <extension library="addon.py" point="xbmc.subtitle.module"/>
   <extension point="xbmc.addon.metadata">
+    <broken>New Cloudflare</broken>
   	<platform>all</platform>
     <summary lang="en">Turkcealtyazi.org</summary>
     <description lang="en">Turkish / English Subtitle Service from turkcealtyazi.org</description>
