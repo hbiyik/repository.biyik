@@ -56,7 +56,6 @@ def imagecode(url):
 class planetdp(sublib.service):
 
     def search(self):
-        self.item.imdb = "tt0182576"
         query = {"title": self.item.imdb or self.item.title,
                  "year_date": "" if self.item.show else self.item.year,
                  "is_serial": int(self.item.show)
