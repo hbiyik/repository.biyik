@@ -1,6 +1,6 @@
 <?xml version="1.0" ?><settings>
 	<category id="ydl" label="Youtube-DL">
-		<setting default="l1ving" id="ydl_uname" label="Github Username" type="text"/>
+		<setting default="blackjack4494" id="ydl_uname" label="Github Username" type="text"/>
 		<setting default="Custom Branch" id="ydl_source" label="Github Source" type="select" values="Latest Release|Custom Branch"/>
 		<setting default="master" id="ydl_branch" label="Github Branch" type="text" visible="eq(-1,Custom Branch)"/>
 		<setting default="Latest Commit" id="ydl_branch_source" label="Github Branch Source" type="select" values="Latest Commit|Custom Commit" visible="eq(-2,Custom Branch)"/>

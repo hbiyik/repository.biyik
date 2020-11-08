@@ -37,8 +37,8 @@ class ydl(linkplayerextension):
         sys.stderr.isatty = proxyisatty
         datetime.datetime = proxydt
         uname, branch, commit = getconfig("ydl")
-        ghub.load(uname, "youtube-dl", branch, commit)
-        import youtube_dl as ydl
+        ghub.load(uname, "yt-dlc", branch, commit)
+        import youtube_dlc as ydl
         self.ydl = ydl
         self.ies = ydl.extractor.gen_extractors()
 
@@ -66,7 +66,7 @@ class ydl(linkplayerextension):
                 break
         if not supported:
             yield
-        ytb = self.ydl.YoutubeDL({'format': 'bestvideo+bestaudio/best',
+        ytb = self.ydl.YoutubeDL({'format': 'best',
                                   "quiet": True,
                                   "nocheckcertificate": True,
                                   "socket_timeout": const.HTTPTIMEOUT
