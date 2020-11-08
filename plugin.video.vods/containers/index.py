@@ -237,6 +237,8 @@ class index(container.container):
             for i, [name, arg, info, art] in enumerate(self.chan.items):
                 percent = (i + 1) * 100 / numitems
                 info, art = self._cachemeta(arg, info, art, "movie", cache, percent)
+                if info == {}:
+                    info = {"title": name}
                 self.cacheresolve(arg, info, art)
                 lname = "[%s] %s" % (self.chan.title, name)
                 li = self.item(lname, info, art, method="geturls")
@@ -257,6 +259,8 @@ class index(container.container):
             for i, [name, arg, info, art] in enumerate(self.chan.items):
                 percent = (i + 1) * 100 / numitems
                 info, art = self._cachemeta(arg, info, art, "show", cache, percent)
+                if info == {}:
+                    info = {"tvshowtitle": name}
                 lname = "[%s] %s" % (self.chan.title, name)
                 canseason = self._isimp(showextension, "getseasons")
                 if canseason:
