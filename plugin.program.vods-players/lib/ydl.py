@@ -32,6 +32,7 @@ import urllib
 
 class ydl(linkplayerextension):
     title = "Youtube DL Link Extension"
+    allowed = ["youtube", "youtu.be", "dailymotion"]
 
     def init(self):
         sys.stderr.isatty = proxyisatty
@@ -57,23 +58,27 @@ class ydl(linkplayerextension):
             yield result["url"] + suffix
 
     def geturls(self, link, headers=None):
-        if "youtube" in link or "youtu.be" in link:
-            yield
-        supported = False
-        for ie in self.ies:
-            if ie.suitable(link) and ie.IE_NAME != 'generic':
-                supported = True
+        relevant = False
+        for allowed in self.allowed:
+            if allowed in link:
+                relevant = True
                 break
-        if not supported:
-            yield
-        ytb = self.ydl.YoutubeDL({'format': 'best',
-                                  "quiet": True,
-                                  "nocheckcertificate": True,
-                                  "socket_timeout": const.HTTPTIMEOUT
-                                  })
-        ytb._ies = [ie]
-        with ytb:
-            result = ytb.extract_info(str(link), download=False)
+        if relevant:
+            supported = False
+            for ie in self.ies:
+                if ie.suitable(link) and ie.IE_NAME != 'generic':
+                    supported = True
+                    break
+            if not supported:
+                yield
+            ytb = self.ydl.YoutubeDL({'format': 'best',
+                                      "quiet": True,
+                                      "nocheckcertificate": True,
+                                      "socket_timeout": const.HTTPTIMEOUT
+                                      })
+            ytb._ies = [ie]
+            with ytb:
+                result = ytb.extract_info(str(link), download=False)
 
-        for url in self.getresults(result):
-            yield url
+            for url in self.getresults(result):
+                yield url
