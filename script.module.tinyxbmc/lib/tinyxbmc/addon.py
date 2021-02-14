@@ -37,6 +37,9 @@ if len(sys.argv):
     url = urlparse.urlparse(sys.argv[0])
     if url.scheme.lower() in ["plugin", "script"]:
         addon = url.netloc
+if tools.isstub():
+    import stubmod
+    xbmcaddon.Addon = stubmod.Addon
 
 
 def has_addon(aid):
@@ -48,7 +51,7 @@ def has_addon(aid):
 
 def get_addon(aid=None):
     """
-    Returns the __addon instance gicen by __addon id, if id is not given and called by a script,
+    Returns the __addon instance given by __addon id, if id is not given and called by a script,
     tinyxbmc __addon is returned
     """
     if not aid:

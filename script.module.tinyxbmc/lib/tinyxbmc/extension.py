@@ -42,7 +42,7 @@ def _doesinherit(cls, parents=None):
         parents = []
     badchild = False
     for parent in parents:
-        if not issubclass(cls, parent) or cls == parent:
+        if not inspect.isclass(parent) or not issubclass(cls, parent) or cls == parent:
             badchild = True
     return not badchild
 
@@ -222,7 +222,7 @@ def getobjects(directory, mod=None, cls=None, parents=None, stack=None):
         gc.collect()
         objid = os.path.join(directory, f + ".py")
         if not os.path.exists(objid):
-            print "Skipping %s" % objid
+            # print "Skipping %s" % objid
             continue
         objid += str(os.path.getsize(objid)) + pid
         if stack:
