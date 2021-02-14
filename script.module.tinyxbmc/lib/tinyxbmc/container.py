@@ -38,6 +38,7 @@ from tinyxbmc import gui
 from tinyxbmc import net
 
 REMOTE_DBG = False
+PROFILE = False
 
 if REMOTE_DBG:
     #pdevpath = "C:\\Users\\z0042jww\\.p2\\pool\\plugins\\org.python.pydev.core_7.2.1.201904261721\\pysrc"
@@ -46,6 +47,10 @@ if REMOTE_DBG:
     sys.path.append(pdevpath)
     import pydevd  # @UnresolvedImport
     pydevd.settrace(stdoutToServer=True, stderrToServer=True, suspend=False)
+
+if PROFILE:
+    import pprofile
+    profiler = pprofile.Profile()
 
 _startt = time.time()
 _default_method = "index"
@@ -57,6 +62,8 @@ def refresh():
 
 class container(object):
     def __init__(self, useragent=None, httptimeout=None, addon=None, *iargs, **ikwargs):
+        if PROFILE:
+            profiler.enable()
         self.__inittime = time.time()
         self.sysaddon = sys.argv[0]
         self.player = None
@@ -211,6 +218,11 @@ class container(object):
                                 break
                             xbmc.sleep(100)
         self._close()
+        if PROFILE:
+            profiler.disable()
+            profiler.dump_stats("tinyxbmcprofile.txt")
+            with open("cachegrind.out.tinyxbmc", "w") as f:
+                profiler.callgrind(f)
 
     def option(self, useragent=None, httptimeout=None):
         opthay = self.hay(const.OPTIONHAY)
@@ -332,8 +344,9 @@ class itemfactory(object):
         self.art = art
         item = xbmcgui.ListItem(label=name)
         gui.setArt(item, context._art(art))
-        item.setInfo("video", info)
-        item.addStreamInfo('video', {'Codec': ''})
+        if info:
+            item.setInfo("video", info)
+        # item.addStreamInfo('video', {'Codec': ''})
         self.item = item
         self._cntx = context
         if not module:

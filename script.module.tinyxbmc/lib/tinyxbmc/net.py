@@ -55,6 +55,14 @@ def loadcookies():
         pass
     return cookie
 
+# caching cookies may cause issues when http method is called from container.download
+# and module.http, since they will use different cookijars, therefore always
+# container.download method to have a cookie managed session
+
+
+cookicache = loadcookies()
+cookicachelist = list(cookicache)
+
 
 def getsession(timeframe):
     if timeframe in sessions:
@@ -81,7 +89,7 @@ def tokodiurl(url, domain=None, headers=None):
     else:
         domain = urlparse.urlparse(url).netloc
     cookiestr = ""
-    for cookie in loadcookies():
+    for cookie in cookicachelist:
         if domain in cookie.domain:
             cookiestr += ";%s=%s" % (cookie.name, cookie.value)
     if not cookiestr == "":
@@ -124,7 +132,7 @@ def http(url, params=None, data=None, headers=None, timeout=5, json=None, method
               "proxies": proxies
               }
     session = getsession(cache)
-    session.cookies = loadcookies()
+    session.cookies = cookicache
     response = session.request(method, url, **kwargs)
     response = cloudflare(session, response, None, **kwargs)
     try:
