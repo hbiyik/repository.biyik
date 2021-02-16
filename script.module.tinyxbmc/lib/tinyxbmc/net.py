@@ -31,6 +31,8 @@ import calendar
 
 
 from cachecontrol import CacheControlAdapter
+from hyper.contrib import HTTP20Adapter
+
 from cachecontrol.heuristics import BaseHeuristic
 from cachecontrol.caches import HayCache as Cache
 
@@ -42,6 +44,7 @@ __profile = addon.get_commondir()
 __cache = Cache(const.HTTPCACHEHAY)
 
 sessions = {}
+http2adapter = HTTP20Adapter()
 
 
 def loadcookies():
@@ -64,20 +67,25 @@ cookicache = loadcookies()
 cookicachelist = list(cookicache)
 
 
-def getsession(timeframe):
-    if timeframe in sessions:
-        return sessions[timeframe]
+def getsession(seskey):
+    if seskey in sessions:
+        return sessions[seskey]
     else:
         sess = requests.Session()
-        if timeframe is None:
-            timeframe = -1
-        elif timeframe == 0:
+        sess.cookies = cookicache
+        if seskey == "http2":
+            sess.mount("http://", http2adapter)
+            sess.mount("https://", http2adapter)
+        elif seskey is None:
+            seskey = -1
+        elif seskey == 0:
             sess.mount("http://", CacheControlAdapter(cache=__cache))
             sess.mount("https://", CacheControlAdapter(cache=__cache))
         else:
-            sess.mount("http://", CacheControlAdapter(cache=__cache, heuristic=timecache(timeframe)))
-            sess.mount("https://", CacheControlAdapter(cache=__cache, heuristic=timecache(timeframe)))
-        sessions[timeframe] = sess
+            pass
+            sess.mount("http://", CacheControlAdapter(cache=__cache, heuristic=timecache(seskey)))
+            sess.mount("https://", CacheControlAdapter(cache=__cache, heuristic=timecache(seskey)))
+        sessions[seskey] = sess
         return sess
 
 
@@ -88,6 +96,10 @@ def tokodiurl(url, domain=None, headers=None):
         domain = urlparse.urlparse(domain).netloc
     else:
         domain = urlparse.urlparse(url).netloc
+    if "|" in url:
+        _, oldheaders = fromkodiurl(url)
+        oldheaders.update(headers)
+        headers = oldheaders
     cookiestr = ""
     for cookie in cookicachelist:
         if domain in cookie.domain:
@@ -110,7 +122,7 @@ def fromkodiurl(url):
 
 
 def http(url, params=None, data=None, headers=None, timeout=5, json=None, method="GET",
-         referer=None, useragent=None, encoding=None, verify=None, stream=None, proxies=None, cache=0, text=True):
+         referer=None, useragent=None, encoding=None, verify=None, stream=None, proxies=None, cache=0, text=True, http2=False):
     ret = None
     if url.startswith("//"):
         url = "http:%s" % url
@@ -131,8 +143,10 @@ def http(url, params=None, data=None, headers=None, timeout=5, json=None, method
               "stream": stream,
               "proxies": proxies
               }
-    session = getsession(cache)
-    session.cookies = cookicache
+    if http2:
+        session = getsession("http2")
+    else:
+        session = getsession(cache)
     response = session.request(method, url, **kwargs)
     response = cloudflare(session, response, None, **kwargs)
     try:
@@ -350,4 +364,7 @@ def absurl(url, fromurl):
         elif url.startswith("/"):
             return "%s://%s%s" % (up.scheme, up.netloc, url)
         else:
-            return "%s://%s/%s/%s" % (up.scheme, up.netloc, up.path, url)
+            if up.path == "/" or up.path == "":
+                return "%s://%s/%s" % (up.scheme, up.netloc, url)
+            else:
+                return "%s://%s%s/%s" % (up.scheme, up.netloc, up.path, url)

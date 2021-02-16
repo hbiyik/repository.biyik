@@ -326,14 +326,14 @@ class container(object):
 
     def download(self, url, params=None, data=None, headers=None, timeout=None,
                  json=None, method="GET", referer=None, useragent=None, encoding="utf-8",
-                 verify=None, stream=None, proxies=None, cache=0, text=True):
+                 verify=None, stream=None, proxies=None, cache=0, text=True, http2=False):
 
         if not (headers and "user-agent" in [x.lower() for x in headers] or useragent):
             useragent = self._container.useragent
         if not timeout:
             timeout = self._container.httptimeout
         ret = net.http(url, params, data, headers, timeout, json, method, referer,
-                       useragent, encoding, verify, stream, proxies, cache, text)
+                       useragent, encoding, verify, stream, proxies, cache, text, http2)
         return ret
 
 
@@ -344,8 +344,7 @@ class itemfactory(object):
         self.art = art
         item = xbmcgui.ListItem(label=name)
         gui.setArt(item, context._art(art))
-        if info:
-            item.setInfo("video", info)
+        item.setInfo("video", info)
         # item.addStreamInfo('video', {'Codec': ''})
         self.item = item
         self._cntx = context

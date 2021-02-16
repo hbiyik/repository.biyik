@@ -3,6 +3,7 @@ encoding//plugin.program.anon/addon.py=utf-8
 encoding//plugin.program.tribler/addon.py=utf-8
 encoding//script.module.ghub/lib/ghub.py=utf-8
 encoding//script.module.tinyxbmc/lib/tinyxbmc/addon.py=utf-8
+encoding//script.module.tinyxbmc/lib/tinyxbmc/gui.py=utf-8
 encoding//script.module.tinyxbmc/lib/tinyxbmc/net.py=utf-8
 encoding//script.module.tinyxbmc/lib/tinyxbmc/tools.py=utf-8
 encoding//service.subtitles.planetdp/service.py=utf-8
