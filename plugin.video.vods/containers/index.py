@@ -32,9 +32,11 @@ from tinyxbmc import addon as tinyaddon
 from tinyxbmc import tools
 from tinyxbmc import net
 
+from six import string_types
+import six
+
 import traceback
 import json
-from __builtin__ import property
 
 _prefix = "plugin.program.vods-"
 _resolvehay = "vods_resolve"
@@ -49,17 +51,17 @@ _extaddonplayer = "vodsaddonplayer"
 def channelmethod(chanmethod):
     def wrapped(self, page, *args, **kwargs):
         try:
-            self.getscrapers(page=page,
-                             mtd=chanmethod.__name__,
-                             args=args,
-                             **kwargs).next()
+            six.next(self.getscrapers(page=page,
+                                      mtd=chanmethod.__name__,
+                                      args=args,
+                                      **kwargs))
         except Exception:
-            print traceback.format_exc()
+            print(traceback.format_exc())
             return
         ret = chanmethod(self, *args)
         if self.chan.nextpage[0] and self._next:
             name, arg, info, art = self.chan.nextpage
-            info["sorttitle"] = unichr(255)  # :) hope this always works
+            info["sorttitle"] = chr(255)  # :) hope this always works
             li = self.item(name, info, art, method=chanmethod.__name__)
             li.dir(arg, *args, **kwargs)
             self._next = False
@@ -74,16 +76,16 @@ def makenameart(cls):
         cls.art = {"thumb": icon, "poster": icon, "icon": icon}
 
     # auto config title form info or class name
-    if not hasattr(cls, "title") or not isinstance(cls.title, (str, unicode)) or \
+    if not hasattr(cls, "title") or not isinstance(cls.title, string_types) or \
             cls.title == vextension.title:
         if hasattr(cls, "info") and isinstance(cls.info, dict) and \
-                isinstance(cls.info.get("title"), (str, unicode)):
+                isinstance(cls.info.get("title"), string_types):
             cls.title = cls.info["title"]
         else:
             cls.title = cls.__class__.__name__.title()
 
     # make title unicode
-    if not isinstance(cls.title, unicode):
+    if six.PY2 and not isinstance(cls.title, unicode):
         try:
             cls.title = unicode(cls.title)
         except UnicodeError:
@@ -118,23 +120,23 @@ class index(container.container):
             return False
         clsmtd = getattr(clsob, mtd)
         chnmtd = getattr(base, mtd)
-        return not clsmtd.__func__ == chnmtd.__func__
+        return not clsmtd.__func__ == chnmtd
 
     def _context(self, mode=None, *args, **kwargs):
         if mode == "settings":
             tinyaddon.builtin("Addon.OpenSettings(%s)" % args[0])
         elif mode == "meta":
             try:
-                self.getscrapers(**kwargs).next()
+                six.next(self.getscrapers(**kwargs))
             except Exception:
-                print traceback.format_exc()
+                print(traceback.format_exc())
                 return
             self._cachemeta(*args)
             tinyaddon.builtin("Container.Refresh")
 
     def _cachemeta(self, arg, info, art, typ, scrape=True, percent=None):
         if arg and not len(arg):
-            print "VODS: Warning, argument is empty, nothing to cache"
+            print("VODS: Warning, argument is empty, nothing to cache")
             return info, art
         if typ == "movie":
             base = movieextension
@@ -155,7 +157,7 @@ class index(container.container):
                 try:
                     cinfo, cart = cache(arg)
                 except Exception:
-                    print traceback.format_exc()
+                    print(traceback.format_exc())
                     return info, art
                 name = cinfo.get("title", info.get("title"))
                 if not name:
@@ -163,7 +165,7 @@ class index(container.container):
                 cachehay.throw("%s%sinfo" % (repr(arg), typ), cinfo)
                 cachehay.throw("%s%sart" % (repr(arg), typ), cart)
                 if not (cinfo == {} and cart == {}) and percent:
-                    self.bgprg.update(percent, "Caching", name)
+                    self.bgprg.update(int(percent), "Caching", name)
             info.update(cinfo)
             art.update(cart)
         return info, art
@@ -185,7 +187,7 @@ class index(container.container):
                     m = getattr(chan, mtd)
                     ret = m(*args)
             except Exception:
-                print traceback.format_exc()
+                print(traceback.format_exc())
                 continue
 
             # auto config art for icon fallback
@@ -382,19 +384,18 @@ class index(container.container):
         info = self.hay(_resolvehay).find(key + "_info").data
         art = self.hay(_resolvehay).find(key + "_art").data
         try:
-            links = self.getscrapers(mtd="geturls", args=[url], **kwargs).next()
+            links = six.next(self.getscrapers(mtd="geturls", args=[url], **kwargs))
         except Exception:
-            print traceback.format_exc()
+            print(traceback.format_exc())
             return
         for link in tools.safeiter(links):
-            if not isinstance(link, (str, unicode)):
+            if not isinstance(link, string_types):
                 continue
             item = self.item(link, info, art, method="geturls")
             self.cacheresolve(link, info, art)
             item.resolve(link, True, **kwargs)
 
     def logplayer(self, msg, percent=0):
-        print msg
         self.player.dlg.update(percent, msg)
 
     def geturls(self, url, direct, **kwargs):
@@ -415,7 +416,7 @@ class index(container.container):
                     makenameart(ins)
                     return target, ins
                 except Exception:
-                    print traceback.format_exc()
+                    print(traceback.format_exc())
                     return target, None
 
         def prepareplayers(priority, entrypoint):
@@ -427,14 +428,14 @@ class index(container.container):
 
         if not direct:
             try:
-                links = self.getscrapers(mtd="geturls", args=[url], **kwargs).next()
+                links = six.next(self.getscrapers(mtd="geturls", args=[url], **kwargs))
             except Exception:
-                print traceback.format_exc()
+                print(traceback.format_exc())
         else:
             try:
-                self.getscrapers(**kwargs).next()
+                six.next(self.getscrapers(**kwargs))
             except Exception:
-                print traceback.format_exc()
+                print(traceback.format_exc())
             links = iter([url])
         priority = 0
         if self.chan.useaddonplayers:
@@ -451,8 +452,11 @@ class index(container.container):
             if self.player.dlg.iscanceled():
                     raise StopIteration
             link, headers = net.fromkodiurl(kodilink)
-            alink = link.encode("ascii", "replace")
-            if not isinstance(link, (str, unicode)):
+            if six.PY2:
+                alink = link.encode("ascii", "replace")
+            else:
+                alink = link
+            if not isinstance(link, six.string_types):
                 self.logplayer("VODS received broken link, skipping...: %s" % alink)
                 continue
             self.logplayer("VODS is scraping link: %s" % alink)
@@ -460,7 +464,10 @@ class index(container.container):
                 if self.player.dlg.iscanceled():
                     raise StopIteration
                 target, pcls = getplayer(priority)
-                atarget = target.encode("ascii", "replace").replace("None", "")
+                if six.PY2:
+                    atarget = target.encode("ascii", "replace").replace("None", "")
+                else:
+                    atarget = target
                 self.logplayer("VODS is trying player: %s %s" % (alink, atarget))
                 if not pcls:
                     self.logplayer("VODS received broken player, skipping...: %s %s" % (alink,
@@ -473,13 +480,16 @@ class index(container.container):
                         raise StopIteration
                     if not url:
                         continue
-                    aurl = url.encode("ascii", "replace")
+                    if six.PY2:
+                        aurl = url.encode("ascii", "replace")
+                    else:
+                        aurl = url
                     found = True
                     if url.startswith("plugin://"):
                         try:
                             url = pcls.builtin % url
                         except Exception:
-                            print traceback.format_exc()
+                            print(traceback.format_exc())
                             continue
                         isaddon = True
                     yield url, info, art

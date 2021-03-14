@@ -21,8 +21,7 @@
 from tinyxbmc import container
 from tinyxbmc import addon
 
-addons = (
-          ("Youtube-DL", "script.module.ghub", "Resolves Various HTTP Streams"),
+addons = (("Youtube-DL", "script.module.ghub", "Resolves Various HTTP Streams"),
           ("Youtube", "plugin.video.youtube", "Plays Youtube Videos"),
           ("Daily Motion", "plugin.video.dailymotion_com", "Plays DailyMotion Videos"),
           )

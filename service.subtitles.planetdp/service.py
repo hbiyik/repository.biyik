@@ -88,8 +88,7 @@ class planetdp(sublib.service):
         uniqk = re.search('rel\-tag="(.*?)"', page)
 
         if token and subid and uniqk:
-            data = {
-                    "_token": token.group(1),
+            data = {"_token": token.group(1),
                     "_method": "POST",
                     "subtitle_id": subid.group(1),
                     "uniquekey": uniqk.group(1),

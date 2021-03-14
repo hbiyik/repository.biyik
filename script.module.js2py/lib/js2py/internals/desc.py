@@ -15,7 +15,7 @@ def is_accessor_descriptor(desc):
 
 def is_generic_descriptor(
         desc
-):  # generic means not the data and not the setter - therefore it must be one that changes only enum and conf
+):  # generic means not the data and not the setter - therefore it must be one that changes only enum2 and conf
     return desc and not (is_data_descriptor(desc)
                          or is_accessor_descriptor(desc))
 

@@ -365,7 +365,7 @@ def isOctalDigit(ch):
 
 
 def isFutureReservedWord(w):
-    return w in ('enum', 'export', 'import', 'super')
+    return w in ('enum2', 'export', 'import', 'super')
 
 
 RESERVED_WORD = set(('implements', 'interface', 'package', 'private',
@@ -382,7 +382,7 @@ def isRestrictedWord(w):
 
 KEYWORDS = set(
     ('if', 'in', 'do', 'var', 'for', 'new', 'try', 'let', 'this', 'else',
-     'case', 'void', 'with', 'enum', 'while', 'break', 'catch', 'throw',
+     'case', 'void', 'with', 'enum2', 'while', 'break', 'catch', 'throw',
      'const', 'yield', 'class', 'super', 'return', 'typeof', 'delete',
      'switch', 'export', 'import', 'default', 'finally', 'extends', 'function',
      'continue', 'debugger', 'instanceof', 'pyimport'))

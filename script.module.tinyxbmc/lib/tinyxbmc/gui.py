@@ -21,6 +21,7 @@ import xbmcgui
 import xbmc
 import os
 import math
+import six
 
 from distutils.version import LooseVersion
 
@@ -47,7 +48,7 @@ def browse(typ, heading, shares="files", mask="", useThumbs=True, treatAsFolder=
     dialog = xbmcgui.Dialog()
     return dialog.browse(typ, heading, shares, mask, useThumbs, treatAsFolder,
                          default, enableMultiple)
-    
+
 
 def textviewer(heading, text, mono=False):
     dialog = xbmcgui.Dialog()
@@ -110,7 +111,10 @@ def bgprogress(name):
 def keyboard(default="", heading=None, hidden=False):
     kb = xbmc.Keyboard(default, heading, hidden)
     kb.doModal()
-    text = unicode(kb.getText().decode("utf-8"))
+    if six.PY2:
+        text = kb.getText().decode("utf-8")
+    else:
+        text = kb.getText()
     return kb.isConfirmed(), text
 
 
@@ -132,15 +136,14 @@ class form(addon.blockingloop, xbmcgui.WindowDialog):
         self.__eid = 0
         self.__numbtns = 0
         self.__focus = None
-        self.__etypes = {
-                "label": ("setLabel", "getLabel", [], False),
-                "edit": ("setText", "getText", [], True),
-                "text": ("setText", "reset", [], False),
-                "bool": ("setSelected", "isSelected", [], True),
-                "button": ("setLabel", "getLabel", [], True),
-                "list": ("getSelectedPosition", "selectItem", [], False),
-                "image": ("setImage", "getId", [], False),
-                }
+        self.__etypes = {"label": ("setLabel", "getLabel", [], False),
+                         "edit": ("setText", "getText", [], True),
+                         "text": ("setText", "reset", [], False),
+                         "bool": ("setSelected", "isSelected", [], True),
+                         "button": ("setLabel", "getLabel", [], True),
+                         "list": ("getSelectedPosition", "selectItem", [], False),
+                         "image": ("setImage", "getId", [], False),
+                         }
         self.__pre = None
         self.__header = header
         with hay.stack(const.OPTIONHAY, write=False) as stack:
@@ -172,7 +175,7 @@ class form(addon.blockingloop, xbmcgui.WindowDialog):
             elem.controlUp(self.__pre)
             elem.controlLeft(self.__pre)
         if not self.__focus:
-            typ, lbl, clck, fcs, h, felem = self.__elems[eid]
+            typ, _lbl, _clck, _fcs, h, felem = self.__elems[eid]
             if self.__etypes[typ][3]:
                 self.__focus = eid
                 self.setFocus(felem)
@@ -197,7 +200,7 @@ class form(addon.blockingloop, xbmcgui.WindowDialog):
         h = 0
         w = self.__w1 + self.__w2
         bw = minbuttonw = (w - self.__padx * 2) / 3
-        for eid, elem in self.__elems.iteritems():
+        for eid, elem in self.__elems.items():
             if not elem[0] == "button":
                 h += elem[-2] + self.__pady
         bsize = int(w / minbuttonw)
@@ -206,24 +209,21 @@ class form(addon.blockingloop, xbmcgui.WindowDialog):
         h -= self.__pady
         x = rx = (self.__cw - w) / 2
         y = ry = (self.__ch - h) / 2
-        self.addControl(xbmcgui.ControlImage(
-                                             rx - self.__padx,
+        self.addControl(xbmcgui.ControlImage(rx - self.__padx,
                                              ry - self.__pady - self.__rowh,
                                              w + 2 * self.__padx,
                                              self.__rowh,
                                              _red
                                              )
                         )
-        self.addControl(xbmcgui.ControlLabel(
-                                             rx,
+        self.addControl(xbmcgui.ControlLabel(rx,
                                              ry - self.__pady - self.__rowh,
                                              w + 2 * self.__padx,
                                              self.__rowh,
                                              header,
                                              )
                         )
-        self.addControl(xbmcgui.ControlImage(
-                                             rx - self.__padx,
+        self.addControl(xbmcgui.ControlImage(rx - self.__padx,
                                              ry - self.__pady,
                                              w + 2 * self.__padx,
                                              h + 2 * self.__pady,
@@ -231,7 +231,7 @@ class form(addon.blockingloop, xbmcgui.WindowDialog):
                                              )
                         )
 
-        for eid, (typ, label, clck, wdth, rh, elem) in self.__elems.iteritems():
+        for eid, (typ, label, _clck, wdth, rh, elem) in self.__elems.items():
             if typ in ["label", "edit", "text", "bool", "list", "image"]:
                 y = self.__row(eid, rx, y, rh, wdth, label)
             if typ == "progress":
@@ -241,7 +241,7 @@ class form(addon.blockingloop, xbmcgui.WindowDialog):
             if typ == "text" and False:
                 elem.autoScroll(1, 1000, 1)
         numbtns = 0
-        for eid, (typ, label, clck, fcs, rh, elem) in self.__elems.iteritems():
+        for eid, (typ, label, _clck, _fcs, rh, elem) in self.__elems.items():
             if typ == "button":
                 if minbuttonw * self.__numbtns + self.__padx * (self.__numbtns - 1) < w:
                     bw = (w - (self.__numbtns - 1) * self.__padx) / self.__numbtns
@@ -261,7 +261,7 @@ class form(addon.blockingloop, xbmcgui.WindowDialog):
         pass
 
     def focus(self, eid):
-        typ, lbl, clck, fcs, h, elem = self.__elems[eid]
+        typ, _lbl, _clck, _fcs, _h, elem = self.__elems[eid]
         if self.__etypes[typ][3]:
             self.__focus = eid
             self.setFocus(elem)
@@ -270,31 +270,31 @@ class form(addon.blockingloop, xbmcgui.WindowDialog):
         return self.__elems[eid][-1]
 
     def enable(self, eid):
-        typ, lbl, clck, fcs, h, elem = self.__elems[eid]
+        typ, _lbl, _clck, _fcs, _h, elem = self.__elems[eid]
         if not typ == "progress":
             elem.setEnabled(True)
 
     def disable(self, eid):
-        typ, lbl, clck, fcs, h, elem = self.__elems[eid]
+        typ, _lbl, _clck, _fcs, _h, elem = self.__elems[eid]
         if not typ == "progress":
             elem.setEnabled(False)
 
     def get(self, eid):
-        typ, lbl, clck, fcs, h, elem = self.__elems[eid]
+        typ, _lbl, _clck, _fcs, _h, elem = self.__elems[eid]
         if typ == "progress":
             return elem.getWidth() * 100 / (self.__w1 + self.__w2)
         else:
-            setter, getter, args, canfocus = self.__etypes[typ]
+            _setter, getter, args, _canfocus = self.__etypes[typ]
             return getattr(elem, getter)(*args)
 
     def set(self, eid, value):
-        typ, lbl, clck, fcs, h, elem = self.__elems[eid]
+        typ, _lbl, _clck, _fcs, _h, elem = self.__elems[eid]
         if typ == "progress":
             if value > 100:
                 value = 100
             elem.setWidth(int(value * (self.__w1 + self.__w2) / 100))
         else:
-            setter, getter, args, canfocus = self.__etypes[typ]
+            setter, _getter, _args, _canfocus = self.__etypes[typ]
             getattr(elem, setter)(value)
 
     def text(self, label="", height=None):
@@ -414,16 +414,15 @@ class form(addon.blockingloop, xbmcgui.WindowDialog):
         return self.__eid
 
     def onAction(self, action):
-        if action in [
-                      10, #  xbmcgui.ACTION_PREVIOUS_MENU
-                      92, #  xbmcgui.ACTION_NAV_BACK
+        if action in [10,  # xbmcgui.ACTION_PREVIOUS_MENU
+                      92,  # xbmcgui.ACTION_NAV_BACK
                       ]:
             self.close()
 
     def onControl(self, ctrl):
         eid = self.__cmap.get(ctrl.getId())
         if eid:
-            typ, lbl, clck, fcs, h, elem = self.__elems[eid]
+            _typ, _lbl, clck, _fcs, _h, _elem = self.__elems[eid]
             clck()
 
     def close(self):

@@ -1,5 +1,6 @@
 from ..cache import BaseCache
 from tinyxbmc import hay
+from six import PY3
 
 
 class HayCache(BaseCache):
@@ -10,6 +11,8 @@ class HayCache(BaseCache):
         data = self.hay.find(key).data
         if data == {}:
             data = None
+        elif PY3:
+            data = data.encode()
         return data
 
     def set(self, key, value):

@@ -8,7 +8,7 @@ API for manipulating HTTP/2 settings, keeping track of both the current active
 state of the settings and the unacknowledged future values of the settings.
 """
 import collections
-import enum
+import enum2
 
 from hyperframe.frame import SettingsFrame
 
@@ -16,7 +16,7 @@ from h2.errors import ErrorCodes
 from h2.exceptions import InvalidSettingsValueError
 
 
-class SettingCodes(enum.IntEnum):
+class SettingCodes(enum2.IntEnum):
     """
     All known HTTP/2 setting codes.
 

@@ -26,35 +26,42 @@
 from __future__ import unicode_literals
 
 # Standard library imports
-import _ElementTree as Etree
 from codecs import open as _open
 import warnings
 import sys
 import re
-from _HTMLParser import HTMLParser
 
 # Check python version to set the object that can detect non unicode strings
 if sys.version_info >= (3, 0):
+    import xml.etree.ElementTree as Etree
     # noinspection PyUnresolvedReferences,PyCompatibility
-    # from html.parser import HTMLParser
+    from html.parser import HTMLParser
     # noinspection PyUnresolvedReferences, PyCompatibility
     from html.entities import name2codepoint
     # Python2 compatibility
     _chr = chr
 else:
     # noinspection PyUnresolvedReferences,PyCompatibility
-    # from HTMLParser import HTMLParser
+    from _HTMLParser import HTMLParser
     # noinspection PyUnresolvedReferences, PyCompatibility
     from htmlentitydefs import name2codepoint
     # noinspection PyUnresolvedReferences
     _chr = unichr
+
+    try:
+        # This attemps to import the C version of ElementTree
+        import xml.etree.cElementTree as Etree
+        # This will fail if the implementation is broken
+        Etree.Comment("Test for broken cElementTree")
+    except (ImportError, TypeError):
+        import xml.etree.ElementTree as Etree
 
 __all__ = ["HTMLement", "fromstring", "fromstringlist", "parse"]
 __repo__ = "https://github.com/willforde/python-htmlement"
 __copyright__ = "Copyright (C) 2016 William Forde"
 __author__ = "William Forde"
 __license__ = "MIT"
-__version__ = "0.2.3"
+__version__ = "1.0.0"
 __credit__ = "Rafael Marmelo"
 
 # Add missing codepoints
@@ -208,7 +215,7 @@ class HTMLement(object):
         :raises UnicodeDecodeError: If decoding of *data* fails.
         """
         # Skip feeding data into parser if we already have what we want
-        if self._finished is True:
+        if self._finished == 1:
             return None
 
         # Make sure that we have unicode before continuing
@@ -280,7 +287,7 @@ class ParseHTML(HTMLParser):
         if attrs:
             self.attrs = attrs
             for key, value in attrs.copy().items():
-                if value is False:
+                if value == 0:
                     self._unw_attrs.append(key)
                     del attrs[key]
         else:
@@ -365,24 +372,24 @@ class ParseHTML(HTMLParser):
         if data.strip() and self.enabled:
             self._data.append(data)
 
-    def handle_entityref(self, data):
+    def handle_entityref(self, name):
         if self.enabled:
             try:
-                data = _chr(name2codepoint[data])
+                name = _chr(name2codepoint[name])
             except KeyError:
                 pass
-            self._data.append(data)
+            self._data.append(name)
 
-    def handle_charref(self, data):
+    def handle_charref(self, name):
         if self.enabled:
             try:
-                if data[0].lower() == "x":
-                    data = _chr(int(data[1:], 16))
+                if name[0].lower() == "x":
+                    name = _chr(int(name[1:], 16))
                 else:
-                    data = _chr(int(data))
+                    name = _chr(int(name))
             except ValueError:
                 pass
-            self._data.append(data)
+            self._data.append(name)
 
     def handle_comment(self, data):
         data = data.strip()
@@ -392,7 +399,7 @@ class ParseHTML(HTMLParser):
 
     def close(self):
         self._flush()
-        if self.enabled is False:
+        if self.enabled == 0:
             msg = "Unable to find requested section with tag of '{}' and attributes of {}"
             raise RuntimeError(msg.format(self.tag, self.attrs))
         elif self._root is not None:
@@ -435,7 +442,7 @@ class ParseHTML(HTMLParser):
                         # Check for wanted attrs
                         elif key in wanted_attrs:
                             c_value = wanted_attrs[key]
-                            if c_value == value or c_value is True:
+                            if c_value == value or c_value == 1:
                                 # Remove this attribute from the wanted dict of attributes
                                 # to indicate that this attribute has been found
                                 del wanted_attrs[key]

@@ -18,12 +18,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 import requests
-import cookielib
 import os
 import time
 import re
-import urllib
-import urlparse
+import six
+from six.moves.urllib import parse
+from six.moves import http_cookiejar
+from six.moves import input
 import copy
 from datetime import datetime, timedelta
 from email.utils import parsedate, formatdate
@@ -49,7 +50,7 @@ http2adapter = HTTP20Adapter()
 
 def loadcookies():
     cpath = os.path.join(__profile, const.COOKIEFILE)
-    cookie = cookielib.LWPCookieJar(filename=cpath)
+    cookie = http_cookiejar.LWPCookieJar(filename=cpath)
     try:
         if not os.path.exists(cpath):
             cookie.save()
@@ -93,9 +94,9 @@ def tokodiurl(url, domain=None, headers=None):
     if not headers:
         headers = {}
     if domain:
-        domain = urlparse.urlparse(domain).netloc
+        domain = parse.urlparse(domain).netloc
     else:
-        domain = urlparse.urlparse(url).netloc
+        domain = parse.urlparse(url).netloc
     if "|" in url:
         _, oldheaders = fromkodiurl(url)
         oldheaders.update(headers)
@@ -107,7 +108,7 @@ def tokodiurl(url, domain=None, headers=None):
     if not cookiestr == "":
         headers["Cookie"] = headers.get("cookie", headers.get("Cookie", "")) + cookiestr
     if url.startswith("http://") or url.startswith("https://"):
-        url += "|" + urllib.urlencode(headers)
+        url += "|" + parse.urlencode(headers)
     return url
 
 
@@ -115,7 +116,7 @@ def fromkodiurl(url):
     parts = url.split("|")
     url = parts[0]
     if len(parts) == 2:
-        headers = dict(urlparse.parse_qsl(parts[1]))
+        headers = dict(parse.parse_qsl(parts[1]))
     else:
         headers = None
     return url, headers
@@ -164,7 +165,7 @@ def http(url, params=None, data=None, headers=None, timeout=5, json=None, method
             text = response.content.decode(encoding)
         else:
             text = response.text
-        ret = unicode(tools.unescapehtml(text))
+        ret = six.text_type(tools.unescapehtml(text))
     return ret
 
 
@@ -193,7 +194,7 @@ def cloudflare(session, response, previous, **kwargs):
             previous = "js"
         import js2py
         body = response.text
-        parsed_url = urlparse.urlparse(response.url)
+        parsed_url = parse.urlparse(response.url)
         domain = parsed_url.netloc
         action = re.search("action=(?:\"|')(.+?)(?:\"|')", body)
         submit_url = "%s://%s%s" % (parsed_url.scheme, domain, action.group(1))
@@ -220,11 +221,11 @@ def cloudflare(session, response, previous, **kwargs):
         body = tools.unescapehtml(response.text)
         formaddr = re.search('<form.+?id="challenge-form".+?action="(.+?)"', body)
         if formaddr:
-            import recaptcha
+            from tinyxbmc import recaptcha
             r = re.search('input type="hidden" name="r" value="(.*?)"', body).group(1)
             page_url = response.url
             method = response.request.method
-            parsed_url = urlparse.urlparse(page_url)
+            parsed_url = parse.urlparse(page_url)
             domain = parsed_url.netloc
             sitekey = re.search('data-sitekey="(.*?)"', body).group(1)
             ua = response.request.headers["user-agent"]
@@ -243,9 +244,9 @@ def cloudflare(session, response, previous, **kwargs):
                 if not message:
                     token = re.findall('div class="fbc-verification-token"><textarea.+?>(.*?)<\/textarea>', html)[0]
                     if token:
-                        print 'Captcha Success: %s' % token
+                        addon.log('Captcha Success: %s' % token)
                     else:
-                        print 'Captcha Failed'
+                        addon.log('Captcha Failed')
                     break
                 else:
                     message = tools.strip(message[0], True)
@@ -254,11 +255,11 @@ def cloudflare(session, response, previous, **kwargs):
                 captcha_imgurl = 'https://www.google.com%s' % (payload.replace('&amp;', '&'))
                 message = re.sub('</?strong>', '', message)
                 if tools.isstub():
-                    print captcha_imgurl
-                    print message
-                    print iteration
-                    print page_url
-                    captcha_response = [int(x) for x in raw_input("").split()]
+                    addon.log(captcha_imgurl)
+                    addon.log(message)
+                    addon.log(iteration)
+                    addon.log(page_url)
+                    captcha_response = [int(x) for x in input("").split()]
                 else:
                     oSolver = recaptcha.cInputWindow(captcha=captcha_imgurl, msg=message, iteration=iteration, sitemsg=page_url)
                     captcha_response = oSolver.get()
@@ -338,7 +339,6 @@ class mpdurl(const.URL):
                                 self.__inputstream = "inputstream.adaptive"
                 else:
                     self.__inputstream = "inputstream.adaptive"
-        print self.__inputstream
         return self.__inputstream
 
     @property
@@ -358,7 +358,7 @@ def absurl(url, fromurl):
     if url.startswith("https://") or url.startswith("http://"):
         return url
     else:
-        up = urlparse.urlparse(fromurl)
+        up = parse.urlparse(fromurl)
         if url.startswith("//"):
             return "%s:%s" % (up.scheme, url)
         elif url.startswith("/"):

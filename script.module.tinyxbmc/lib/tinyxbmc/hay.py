@@ -31,17 +31,18 @@ except ImportError:
 from tinyxbmc import addon
 
 import sqlite3
-
+import six
 _debug = False
+
 
 def _null(data, *args, **kwargs):
     return data
 
 
 class needle():
-    def __init__(self, id=None, data=None, timestamp=None, serial=None, compress=0):
+    def __init__(self, nid=None, data=None, timestamp=None, serial=None, compress=0):
         self.compress = compress
-        self.id = id
+        self.id = nid
         self.data = data
         self.timestamp = timestamp
         if serial is None:
@@ -51,14 +52,13 @@ class needle():
         self.hash = None
 
     def __repr__(self):
-        return repr({
-                "hash": self.hash,
-                "id": self.id,
-                "data": self.data,
-                "timestamp": self.timestamp,
-                "serial": self.serial,
-                "compress": self.compress
-                })
+        return repr({"hash": self.hash,
+                     "id": self.id,
+                     "data": self.data,
+                     "timestamp": self.timestamp,
+                     "serial": self.serial,
+                     "compress": self.compress
+                     })
 
     def dohash(self, ser=None):
         if self.id:
@@ -71,7 +71,8 @@ class needle():
         try:
             serdata = zlib.decompress(serdata)
         except Exception:
-            serdata = str(serdata)
+            if six.PY2:
+                serdata = str(serdata)
 
         if self.serial.startswith("p_"):
             self.data = pickle.loads(serdata)
@@ -85,13 +86,18 @@ class needle():
             comp = zlib.compress
         else:
             comp = _null
+
         if self.serial.startswith("p_"):
             protocol = int(self.serial.split("_")[1])
-            serdata = buffer(comp(pickle.dumps(self.data, protocol)))
+            serdata = pickle.dumps(self.data, protocol)
         elif self.serial == "json":
-            serdata = sqlite3.Binary(comp(json.dumps(self.data)))
+            serdata = json.dumps(self.data)
+            if six.PY3:
+                serdata = serdata.encode()
         elif self.serial == "null":
-            serdata = sqlite3.Binary(comp(self.data))
+            serdata = self.data
+
+        serdata = sqlite3.Binary(comp(serdata))
         self.dohash(serdata)
         return serdata
 
@@ -130,8 +136,8 @@ class stack(object):
                 if os.path.exists(self.dbpath):
                     os.remove(self.dbpath)
                 self.__init__(self.path, self.serial, self.compress, self.maxrows, self.write, self.addon)
-                print "DB: DB is locked, renewed the cache: %s" % self.dbpath
-                self.__execute(*args, **kwargs)
+                addon.log("DB: DB is locked, renewed the cache: %s" % self.dbpath)
+                self.cur.execute(*args, **kwargs)
 
     def __enter__(self):
         self.ts = time.time()
@@ -141,12 +147,12 @@ class stack(object):
         self.close()
         if _debug:
             optime = (time.time() - self.ts) * 1000
-            print "DB: %s, Operation Time (ms): %s " % (self.path, optime)
+            addon.log("DB: %s, Operation Time (ms): %s " % (self.path, optime))
 
     def __del__(self):
         try:
             self.close()
-        except Exception:
+        except:
             pass
 
     def _check_db(self):
@@ -162,7 +168,7 @@ class stack(object):
 
     def _create_table(self):
         if _debug:
-            print "DB: %s, Created a new haystack" % self.path
+            addon.log("DB: %s, Created a new haystack" % self.path)
         with Mutex(self.mutex):
             self.cur.executescript("""
                             PRAGMA AUTO_VACUUM = FULL;
@@ -184,7 +190,7 @@ class stack(object):
 
     def _open_db(self, path):
         if _debug:
-            print "DB: %s, opened at %s" % (self.path, path)
+            addon.log("DB: %s, opened at %s" % (self.path, path))
         with Mutex(self.mutex):
             self.conn = sqlite3.connect(path, check_same_thread=False)
             self.cur = self.conn.cursor()
@@ -200,7 +206,7 @@ class stack(object):
             self.cur.close()
             self.conn.close()
         if _debug:
-            print "DB: %s, saved and closed" % self.path
+            addon.log("DB: %s, saved and closed" % self.path)
 
     def _select_row(self, n, since=0, do=True):
         if since > 0:
@@ -208,7 +214,7 @@ class stack(object):
         else:
             gap = 0
         self.__execute("""SELECT * FROM needles WHERE hash=? and timestamp >= ? LIMIT 1;""",
-                         (n.hash, gap))
+                       (n.hash, gap))
         with Mutex(self.mutex):
             row = self.cur.fetchone()
         if not do:
@@ -222,32 +228,31 @@ class stack(object):
             n.compress = row[5]
             return n
             if _debug:
-                print "DB: %s, Selected row: %s" % (self.path, row)
+                addon.log("DB: %s, Selected row: %s" % (self.path, row))
         else:
             return None
 
     def _insert_row(self, n, ser):
         self.__execute("""INSERT INTO needles VALUES (?, ?, ?, ?, ?, ?)""",
-                         (n.hash, n.id, ser, n.timestamp, n.serial, n.compress))
+                       (n.hash, n.id, ser, n.timestamp, n.serial, n.compress))
         if _debug:
-            print "DB: %s, Inserted new row: %s" % (self.path, n)
+            addon.log("DB: %s, Inserted new row: %s" % (self.path, n))
 
     def _update_row(self, n, ser):
-        self.__execute("""UPDATE needles SET data = ?, timestamp = ?, ser = ?,
-                         compress = ?  WHERE hash = ?;""",
-                         (ser, n.timestamp, n.serial, n.compress, n.hash))
+        self.__execute("""UPDATE needles SET data = ?, timestamp = ?, ser = ?, compress = ?  WHERE hash = ?;""",
+                       (ser, n.timestamp, n.serial, n.compress, n.hash))
         if _debug:
-            print "DB: %s, Updated Exsiting row: %s" % (self.path, n)
+            addon.log("DB: %s, Updated Exsiting row: %s" % (self.path, n))
 
     def _delete_row(self, n):
         self.__execute("""DELETE FROM needles WHERE hash = ?;""", (n.hash,))
         if _debug:
-            print "DB: %s, Deleted Exsiting row: %s" % (self.path, n)
+            addon.log("DB: %s, Deleted Exsiting row: %s" % (self.path, n))
 
     def _drop_table(self):
         self.__execute("""DROP TABLE IF EXISTS needles;""")
         if _debug:
-            print "DB: %s, Deleted Table" % self.path
+            addon.log("DB: %s, Deleted Table" % self.path)
 
     def close(self):
         if not self.isclosed:
@@ -259,11 +264,11 @@ class stack(object):
         with Mutex(self.mutex):
             return self.cur.fetchall()
 
-    def throw(self, id, data):
+    def throw(self, nid, data):
         if _debug:
-            print "DB: %s, Throwing to haystack with %s" % (self.path, id)
+            addon.log("DB: %s, Throwing to haystack with %s" % (self.path, nid))
         ts = time.time()
-        n = needle(id, data, ts, self.serial, self.compress)
+        n = needle(nid, data, ts, self.serial, self.compress)
         ser = n.ser()
         if self._select_row(n, -1, False):
             self._update_row(n, ser)
@@ -271,10 +276,10 @@ class stack(object):
             self._insert_row(n, ser)
         return n
 
-    def lose(self, id, hsh=None):
+    def lose(self, nid, hsh=None):
         if _debug:
-            print "DB: %s, Deleting haystack with %s" % (self.path, id)
-        n = needle(id, None, None)
+            addon.log("DB: %s, Deleting haystack with %s" % (self.path, nid))
+        n = needle(nid, None, None)
         if hsh:
             n.hash = hsh
         else:
@@ -282,10 +287,10 @@ class stack(object):
         self._delete_row(n)
         return n
 
-    def find(self, id=None, hsh=None, since=0):
+    def find(self, nid=None, hsh=None, since=0):
         if _debug:
-            print "DB: %s, Fetching haystack with %s" % (self.path, id)
-        n = needle(id, None, None, self.serial, self.compress)
+            addon.log("DB: %s, Fetching haystack with %s" % (self.path, nid))
+        n = needle(nid, None, None, self.serial, self.compress)
         if hsh:
             n.hash = hsh
         else:
@@ -305,7 +310,7 @@ class stack(object):
             except sqlite3.OperationalError:
                 return
         if _debug:
-            print "DB: %s, saved" % self.path
+            addon.log("DB: %s, saved" % self.path)
 
     def burn(self):
         self._drop_table()
@@ -319,6 +324,6 @@ class Mutex(object):
     def __enter__(self, *args, **kwargs):
         self.mutex.acquire()
         return self.mutex
-    
+
     def __exit__(self, *args, **kwargs):
         self.mutex.release()

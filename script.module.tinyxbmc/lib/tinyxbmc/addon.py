@@ -24,8 +24,10 @@ import xbmc
 import os
 import traceback
 import sys
-import urlparse
 import json
+
+import six
+from six.moves.urllib import parse
 
 from distutils.version import LooseVersion
 
@@ -34,11 +36,11 @@ from tinyxbmc import tools
 addon = None
 
 if len(sys.argv):
-    url = urlparse.urlparse(sys.argv[0])
+    url = parse.urlparse(sys.argv[0])
     if url.scheme.lower() in ["plugin", "script"]:
         addon = url.netloc
 if tools.isstub():
-    import stubmod
+    from tinyxbmc import stubmod
     xbmcaddon.Addon = stubmod.Addon
 
 
@@ -103,7 +105,7 @@ def depend_addon(aid, *paths):
     a = get_addon(aid)
     if a:
         bpath = a.getAddonInfo('path')
-        path = xbmc.translatePath(bpath).decode("utf-8")
+        path = tools.translatePath(bpath)
         if path not in sys.path:
             sys.path.append(path)
         axml = os.path.join(bpath, "addon.xml")
@@ -143,7 +145,7 @@ def get_commondir():
     """
     a = get_addon("script.module.tinyxbmc")
     profile = a.getAddonInfo('profile')
-    path = xbmc.translatePath(profile).decode("utf-8")
+    path = tools.translatePath(profile)
     if tools.isstub():
         path = os.path.join(addon, "profile_dir")
     if not os.path.exists(path):
@@ -160,7 +162,7 @@ class kodisetting():
     def _get_file(aid, name):
         a = get_addon(aid)
         profile = a.getAddonInfo('profile')
-        path = xbmc.translatePath(profile).decode("utf-8")
+        path = tools.translatePath(profile)
         return os.path.join(path, name)
 
     @staticmethod
@@ -187,13 +189,16 @@ class kodisetting():
         return bool(self.a.getSetting(variable) == 'true')
 
     def getstr(self, variable):
-        return str(self.a.getSetting(variable).decode(self.e))
+        if six.PY2:
+            return str(self.a.getSetting(variable).decode(self.e))
+        else:
+            return str(self.a.getSetting(variable))
 
     def getint(self, variable):
         val = self.a.getSetting(variable)
         if isinstance(val, (int, float)):
             return int(val)
-        elif isinstance(val, (str, unicode)) and val.isdigit():
+        elif isinstance(val, six.string_types) and val.isdigit():
             return int(val)
         else:
             return -1
@@ -204,7 +209,7 @@ class kodisetting():
     def set(self, key, value):
         if isinstance(value, bool):
             value = str(value).lower()
-        elif not isinstance(value, (str, unicode)):
+        elif not isinstance(value, six.string_types):
             value = str(value)
         return self.a.setSetting(key, value)
 
@@ -212,7 +217,10 @@ class kodisetting():
 def local(sid, aid=None):
     a = get_addon(aid)
     if a:
-        return a.getLocalizedString(sid).encode('utf-8')
+        if six.PY2:
+            return a.getLocalizedString(sid).encode('utf-8')
+        else:
+            return a.getLocalizedString(sid)
     else:
         return xbmc.getLocalizedString(sid)
 
@@ -230,7 +238,7 @@ class blockingloop(object):
             while not self.isclosed():
                 try:
                     self.onloop()
-                except Exception, e:
+                except Exception as e:
                     traceback.print_exc()
                     break
                 if self.__mon.waitForAbort(self.wait) or self.isclosed():
@@ -242,7 +250,7 @@ class blockingloop(object):
             while True:
                 try:
                     self.onloop()
-                except Exception, e:
+                except Exception as e:
                     traceback.print_exc()
                     break
                 if self.isclosed():
@@ -250,7 +258,7 @@ class blockingloop(object):
                     break
                 xbmc.sleep(int(self.wait * 1000))
         if e:
-            print traceback.print_exc()
+            addon.log(traceback.print_exc())
             raise(e)
 
     def init(self, *args, **kwargs):
@@ -282,3 +290,7 @@ class blockingloop(object):
 
 def builtin(*args, **kwargs):
     return xbmc.executebuiltin(*args, **kwargs)
+
+
+def log(txt, level=0):
+    xbmc.log(txt, level)

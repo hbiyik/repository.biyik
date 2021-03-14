@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon id="script.module.ghub" name="GHub" provider-name="hbiyik" version="0.0.4">
     <requires>
-		<import addon="xbmc.python" version="2.19.0"/>
+		<import addon="xbmc.python" version="2.14.0" optional="true"/>
+		<import addon="xbmc.python" version="3.0.0" optional="true"/>
 		<import addon="script.module.htmlement"/>
+		<import addon="script.module.six"/>
 	</requires>
 	<extension point="xbmc.python.module" library="lib" />
 	<extension point="xbmc.addon.metadata">

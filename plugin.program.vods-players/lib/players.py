@@ -21,7 +21,7 @@
 from tinyxbmc import addon
 
 from vods import addonplayerextension
-import urlparse
+from six.moves.urllib import parse
 
 
 class youtube(addonplayerextension):
@@ -31,13 +31,13 @@ class youtube(addonplayerextension):
     def geturls(self, link, headers=None):
         if not addon.has_addon('plugin.video.youtube'):
             raise StopIteration
-        up = urlparse.urlparse(link)
+        up = parse.urlparse(link)
         dom = up.netloc.lower()
         if dom == "youtube.com" or dom.startswith("www.youtube.com"):
             if up.path.startswith("/embed/"):
                 vid = up.path.split("/")[2]
             else:
-                vid = urlparse.parse_qs(up.query)["v"][0]
+                vid = parse.parse_qs(up.query)["v"][0]
         elif dom in ["youtu.be", "www.youtu.be"]:
             vid = up.path[1:]
         else:
@@ -52,7 +52,7 @@ class dailymotion(addonplayerextension):
     def geturls(self, link, headers=None):
         if not addon.has_addon('plugin.video.youtube'):
             yield
-        up = urlparse.urlparse(link)
+        up = parse.urlparse(link)
         dom = up.netloc.lower()
         if "dailymotion.com" in dom:
             vid = up.path.split("/")[-1]

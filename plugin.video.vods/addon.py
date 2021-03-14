@@ -33,5 +33,5 @@ from containers import index
 index.index()
 if _profile:
     pr.disable()
-    print os.path.join(addon.get_addondir(), "profile.dump")
+    print(os.path.join(addon.get_addondir(), "profile.dump"))
     pr.dump_stats(os.path.join(addon.get_addondir(), "profile.dump"))

@@ -18,6 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 import sublib.iso639
+from six import string_types
 
 
 class model(object):
@@ -94,7 +95,7 @@ class model(object):
 
     @label.setter
     def label(self, val):
-        if not isinstance(val, (str, unicode)):
+        if not isinstance(val, string_types):
             raise(TypeError(type(val)))
         self.__label = val
 
@@ -108,8 +109,8 @@ class model(object):
         if twolet:
             self.__iso = val
         if human:
-            for k, v in sublib.iso639.one.iteritems():
-                if  v == val:
+            for k, v in sublib.iso639.one.items():
+                if v == val:
                     self.__iso = k
                     break
 
@@ -166,8 +167,7 @@ class model(object):
         return int(self.__iso == iso)
 
     def __repr__(self):
-        return repr({
-                     "label": self.__label,
+        return repr({"label": self.__label,
                      "iso": self.__iso,
                      "rating": self.__rating,
                      "sync": self.__sync,

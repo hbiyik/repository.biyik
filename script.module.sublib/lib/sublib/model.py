@@ -22,13 +22,13 @@ import sublib.sub
 import sublib.item
 
 from tinyxbmc import net
+from six import PY2
 
 import json
-import urllib
 import os
 import sys
-import urlparse
 import shutil
+from six.moves.urllib import parse
 
 import xbmc
 import xbmcgui
@@ -81,24 +81,26 @@ class service(object):
             self._ua = ua
         self._subs = []
         self._paths = []
-        addon = xbmcaddon.Addon()
+        addonid = xbmcaddon.Addon()
         self._sid = xbmcaddon.Addon().getAddonInfo('id')
-        profile = addon.getAddonInfo('profile')
-        self._profile = xbmc.translatePath(profile).decode("utf-8")
+        profile = addonid.getAddonInfo('profile')
+        self._profile = xbmc.translatePath(profile)
         temp = os.path.join(profile, 'temp')
-        self.path = xbmc.translatePath(temp).decode("utf-8")
+        self.path = xbmc.translatePath(temp)
+        if PY2:
+            self._profile = self._profile.decode("utf-8")
+            self.path = self.path.decode("utf-8")
         if os.path.exists(self.path):
             shutil.rmtree(self.path)
         xbmcvfs.mkdirs(self.path)
-        params = dict(urlparse.parse_qsl(sys.argv[2][1:]))
+        params = dict(parse.parse_qsl(sys.argv[2][1:]))
         params = sublib.utils.dformat(params, json.loads)
         action = params.get("action", None)
         preflang = params.get('preferredlanguage', "")
         langs = params.get('languages', "")
         self.item = sublib.item.model(preflang, langs)
         self.item.title, self.item.show, self.item.season, self.item.episode =\
-            sublib.utils.infofromstr(
-                                     self.item.fname,
+            sublib.utils.infofromstr(self.item.fname,
                                      self.item.title,
                                      self.item.show,
                                      self.item.season,
@@ -122,26 +124,24 @@ class service(object):
             if sub.iso not in self.item.languages and len(sub.iso) == 2:
                 xbmc.log("SUBLIB: Not Preferred Language ISO %s" % repr(sub.iso), xbmc.LOGINFO)
                 continue
-            listitem = xbmcgui.ListItem(
-                        label=xbmc.convertLanguage(sub.iso, xbmc.ENGLISH_NAME),
-                        label2=sub.label,
-                        iconImage=str(sub.rating),
-                        thumbnailImage=sub.iso
-                        )
+            listitem = xbmcgui.ListItem(label=xbmc.convertLanguage(sub.iso, xbmc.ENGLISH_NAME),
+                                        label2=sub.label,
+                                        # iconImage=str(sub.rating),
+                                        # thumbnailImage=sub.iso
+                                        )
+            listitem.setArt({"icon": str(sub.rating), "thumb": sub.iso})
             listitem.setProperty("sync", '{0}'.format(sub.sync).lower())
             listitem.setProperty("hearing_imp", '{0}'.format(sub.cc).lower())
-            args = {
-                    "action": "download",
+            args = {"action": "download",
                     "args": sub.args,
                     "kwargs": sub.kwargs,
                     "languages": self._params['languages'],
                     "prefferedlanguage": self._params['preferredlanguage']
                     }
-            url = urllib.urlencode(sublib.utils.dformat(args, json.dumps))
+            url = parse.urlencode(sublib.utils.dformat(args, json.dumps))
             url = "plugin://%s/?%s" % (self._sid, url)
 
-            xbmcplugin.addDirectoryItem(
-                                        handle=int(sys.argv[1]),
+            xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),
                                         url=url,
                                         listitem=listitem,
                                         isFolder=False
@@ -150,8 +150,7 @@ class service(object):
     def _action_manualsearch(self):
         self.item.title = None
         self.item.title, self.item.show, season, episode =\
-            sublib.utils.infofromstr(
-                                     self._params["searchstring"],
+            sublib.utils.infofromstr(self._params["searchstring"],
                                      self.item.title,
                                      self.item.show,
                                      )
@@ -171,17 +170,15 @@ class service(object):
     def _action_download(self):
         self.download(*self._params["args"], **self._params["kwargs"])
         for fname in self._paths:
-            sub = sublib.utils.getsub(
-                                    fname,
-                                    self.item.show,
-                                    self.item.season,
-                                    self.item.episode
-                                    )
+            sub = sublib.utils.getsub(fname,
+                                      self.item.show,
+                                      self.item.season,
+                                      self.item.episode
+                                      )
             if not sub:
                 return
             listitem = xbmcgui.ListItem(label=sub)
-            xbmcplugin.addDirectoryItem(
-                                        handle=int(sys.argv[1]),
+            xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),
                                         url=sub,
                                         listitem=listitem,
                                         isFolder=False

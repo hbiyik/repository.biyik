@@ -27,7 +27,8 @@ from vplay import getconfig
 import ghub
 import sys
 import datetime
-import urllib
+
+from six.moves.urllib import parse
 
 
 class ydl(linkplayerextension):
@@ -46,7 +47,7 @@ class ydl(linkplayerextension):
     def getresults(self, result):
         headers = result.get("http_headers", {})
         headers["Referer"] = result.get("webpage_url", "")
-        suffix = "|" + urllib.urlencode(headers)
+        suffix = "|" + parse.urlencode(headers)
         for k in ('entries', "requested_formats"):
             if k in result:
                 # Can be a playlist or a list of videos

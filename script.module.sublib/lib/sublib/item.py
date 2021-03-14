@@ -17,10 +17,10 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
-import urllib
 import json
-import urlparse
 import os
+from six.moves.urllib import parse
+from six import PY2
 
 import xbmc
 import xbmcgui
@@ -98,11 +98,11 @@ class model():
 
         # process tvshow and titles
         otitle = sublib.utils.normstr(
-                    xbmc.getInfoLabel("VideoPlayer.OriginalTitle")).strip()
+            xbmc.getInfoLabel("VideoPlayer.OriginalTitle")).strip()
         title = sublib.utils.normstr(
-                    xbmc.getInfoLabel("VideoPlayer.Title")).strip()
+            xbmc.getInfoLabel("VideoPlayer.Title")).strip()
         stitle = sublib.utils.normstr(
-                    xbmc.getInfoLabel("VideoPlayer.TVshowtitle")).strip()
+            xbmc.getInfoLabel("VideoPlayer.TVshowtitle")).strip()
         if not stitle == "":
             self.show = True
             self.title = stitle
@@ -133,11 +133,14 @@ class model():
             pass
 
         # process languages
-        preflang = preflang.decode('utf-8')
+        if PY2:
+            preflang = preflang.decode('utf-8')
         preflang = xbmc.convertLanguage(preflang, 0)
         if not preflang == "":
             self.languages.append(preflang)
-        languages = urllib.unquote(langs).decode('utf-8')
+        languages = parse.unquote(langs)
+        if PY2:
+            languages = languages.decode('utf-8')
         languages = languages.split(",")
         for lang in languages:
             lang = xbmc.convertLanguage(lang, 0)
@@ -145,11 +148,14 @@ class model():
                 self.languages.append(lang)
 
         # process file name
-        fname = urllib.unquote(xbmc.Player().getPlayingFile().decode('utf-8'))
+        fname = xbmc.Player().getPlayingFile()
+        if PY2:
+            fname = fname.decode('utf-8')
+        fname = parse.unquote(fname)
         if "|" in fname:
             fname = fname.split("|")[0]
-        path = urlparse.urlparse(fname).path
-        path = urllib.unquote_plus(path)
+        path = parse.urlparse(fname).path
+        path = parse.unquote_plus(path)
         if path.endswith("/"):
             path = path[:-1]
         fname = os.path.split(path)[1]

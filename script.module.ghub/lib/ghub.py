@@ -18,22 +18,30 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
-import urllib2
 import time
 import json
 import os
 import zipfile
-import StringIO
 import shutil
 import sys
-
 import htmlement
-
+from six.moves.urllib import request
+from six import PY2
 import xbmc
 
 
+if PY2:
+    from StringIO import StringIO as io
+else:
+    from io import BytesIO as io
+
+
 _dom = "github.com"
-_ddir = xbmc.translatePath("special://userdata/addon_data/").decode("utf-8")
+
+if PY2:
+    _ddir = xbmc.translatePath("special://userdata/addon_data/").decode("utf-8")
+else:
+    _ddir = xbmc.translatePath("special://userdata/addon_data/")
 
 
 def _mkdir(*args):
@@ -47,7 +55,7 @@ _ddir = _mkdir(_ddir, "script.module.ghub", "src")
 
 
 def _page(u):
-    response = urllib2.urlopen(u)
+    response = request.urlopen(u)
     return response.read()
 
 
@@ -86,7 +94,7 @@ def _updatezip(u, tdir, rname):
         p = os.path.join(tdir, d)
         if os.path.isdir(p) and d.startswith(rname):
             shutil.rmtree(p)
-    zp = zipfile.ZipFile(StringIO.StringIO(_page(u)))
+    zp = zipfile.ZipFile(io(_page(u)))
     zp.extractall(tdir)
 
 
@@ -106,7 +114,7 @@ def _load(uname, rname, branch, commit, path, period):
 
     # check if we need to update
     if mem and time.time() - mem["ts"] < period * 60 * 60:
-        print "GITHUB: INFO: Using Existing, no need to check: %s Repo:%s Branch:%s Commit: %s" % (uname, rname, branch, commit)
+        print("GITHUB: INFO: Using Existing, no need to check: %s Repo:%s Branch:%s Commit: %s" % (uname, rname, branch, commit))
         return bdir
     else:
         # get latest commits
@@ -116,14 +124,14 @@ def _load(uname, rname, branch, commit, path, period):
             else:
                 ref = _getrels(uname, rname)
         except Exception:
-            print "GITHUB: WARNING: Can not get latest meta: User:%s Repo:%s Branch:%s Commit: %s" % (uname, rname, branch, commit)
+            print("GITHUB: WARNING: Can not get latest meta: User:%s Repo:%s Branch:%s Commit: %s" % (uname, rname, branch, commit))
             return
 
         # download new package, extract and update the memory file
         lcommit, zipu = ref[0]
         if not mem or not lcommit == mem["latest"]:
-            print "GITHUB: INFO: Updating to commit %s->%s for %s Repo:%s Branch:%s Commit: %s" % (lcommit, zipu,
-                                                                                                   uname, rname, branch, commit)
+            print("GITHUB: INFO: Updating to commit %s->%s for %s Repo:%s Branch:%s Commit: %s" % (lcommit, zipu,
+                                                                                                   uname, rname, branch, commit))
             _updatezip(zipu, bdir, rname)
             data = {"ts": time.time(),
                     "latest": lcommit

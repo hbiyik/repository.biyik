@@ -64,21 +64,19 @@ def getaddons(cache=True):
             }
         }
     '''
-    data = {
-        "jsonrpc": "2.0",
-        "method": "Addons.GetAddons",
-        "id": 1,
-        "params": {"properties": [
-                                  "name",
-                                  "version",
-                                  "path",
-                                  "dependencies",
-                                  "enabled",
-                                  "broken",
-                                  ],
-                   "enabled": True,
-                   }
-        }
+    data = {"jsonrpc": "2.0",
+            "method": "Addons.GetAddons",
+            "id": 1,
+            "params": {"properties": ["name",
+                                      "version",
+                                      "path",
+                                      "dependencies",
+                                      "enabled",
+                                      "broken",
+                                      ],
+                       "enabled": True,
+                       }
+            }
     addons = json.loads(xbmc.executeJSONRPC(json.dumps(data)))
     addons = addons["result"]["addons"]
     if cache:
@@ -237,12 +235,12 @@ def getobjects(directory, mod=None, cls=None, parents=None, stack=None):
             imod = imp.load_module(f, *imp.find_module(f, [directory]))
             clsd = vars(imod)
         except Exception:
-            print "Error Loading File: %s: %s" % (directory, f)
+            print("Error Loading File: %s: %s" % (directory, f))
             cache["skip"] = True
             if stack:
                 stack.throw(objid, cache)
             if _debug:
-                print traceback.format_exc()
+                print(traceback.format_exc())
             continue
         # gc.collect()
         # dont import if module is already imported,
@@ -250,7 +248,7 @@ def getobjects(directory, mod=None, cls=None, parents=None, stack=None):
         # root path points to file from either plugin rootdir
         # or plugin include dir ie. lib folder
         found = False
-        for k, icls in clsd.iteritems():
+        for k, icls in clsd.items():
             # k: class name, icls: imported class object
             if cls and not k == cls:
                 # if specific class is defined, skip other classes
@@ -267,9 +265,9 @@ def getobjects(directory, mod=None, cls=None, parents=None, stack=None):
             stack.throw(objid, cache)
 
 
-def getplugins(id, addon=None, path=None, package=None, module=None, instance=None):
-    if not isinstance(id, (tuple, list)):
-        id = (id,)
+def getplugins(pid, addon=None, path=None, package=None, module=None, instance=None):
+    if not isinstance(pid, (tuple, list)):
+        pid = (pid,)
     for adn in getaddons():
         if (addon and not adn["addonid"] == addon) or adn["broken"]:
             continue
@@ -286,7 +284,7 @@ def getplugins(id, addon=None, path=None, package=None, module=None, instance=No
                 pp = os.path.join(adn["path"], plugin["path"])
                 if pp not in sys.path:
                     sys.path.append(pp)
-            if plugin["id"] not in id:
+            if plugin["id"] not in pid:
                 continue
             ppackage = plugin["package"]
             pmodule = plugin["module"]
@@ -312,7 +310,7 @@ def getplugins(id, addon=None, path=None, package=None, module=None, instance=No
                 try:
                     m = imp.load_module(subm, *imp.find_module(subm, paths))
                 except Exception:
-                    print traceback.format_exc()
+                    print(traceback.format_exc())
                     continue
             if pinstance:
                 if not hasattr(m, pinstance):

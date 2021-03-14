@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<addon id="script.module.htmlement" name="HTMLement Module" provider-name="hbiyik" version="0.2.3">
+<addon id="script.module.htmlement" name="HTMLement Module" provider-name="hbiyik" version="1.0.0">
     <requires>
-		<import addon="xbmc.python" version="2.1.0"/>
+		<import addon="xbmc.python" version="2.14.0" optional="true"/>
+		<import addon="xbmc.python" version="3.0.0" optional="true"/>
 	</requires>
 	<extension point="xbmc.python.module" library="lib" />
 	<extension point="xbmc.addon.metadata">

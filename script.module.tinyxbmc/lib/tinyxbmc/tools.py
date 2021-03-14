@@ -25,24 +25,39 @@ import os
 import datetime
 import time
 from tinyxbmc import const
+import six
 
 from xml.dom import minidom
 
 
+def translatePath(*args, **kwargs):
+        if six.PY2:
+            return xbmc.translatePath(*args, **kwargs).decode("utf-8")
+        else:
+            return xbmc.translatePath(*args, **kwargs)
+
+
+def getSkinDir(*args, **kwargs):
+    if six.PY2:
+        return xbmc.getSkinDir(*args, **kwargs).decode("utf-8")
+    else:
+        return xbmc.getSkinDir()
+
+
 def safeiter(iterable):
-    if hasattr(iterable, "next"):
+    if hasattr(iterable, "next") or hasattr(iterable, "__next__"):
         while True:
             try:
-                yield iterable.next()
+                yield six.next(iterable)
             except StopIteration:
                 break
             except Exception:
-                print traceback.format_exc()
+                xbmc.log(traceback.format_exc())
 
 
 def dynamicret(iterable):
     for ret in iterable:
-        if isinstance(ret, (str, unicode, const.URL)):
+        if isinstance(ret, (six.string_types, const.URL)):
             yield ret, {}, {}
         elif isinstance(ret, (tuple, list)):
             lsize = len(ret)
@@ -84,18 +99,18 @@ def unescapehtml(string):
     entity_re = re.compile("&(#?)(\d{1,5}|\w{1,8});")
 
     def substitute_entity(match):
-        from htmlentitydefs import name2codepoint as n2cp
+        from six.moves.html_entities import codepoint2name as n2cp
         ent = match.group(2)
         if match.group(1) == "#":
             try:
-                return unichr(int(ent))
+                return six.unichr(int(ent))
             except Exception:
                 return ent
         else:
             cp = n2cp.get(ent)
 
             if cp:
-                return unichr(cp)
+                return six.unichr(cp)
             else:
                 return match.group()
 
@@ -107,7 +122,7 @@ def getskinview(typ="video"):
             "audio": "MyMusicNav.xml",
             "image": "MyPics.xml"
             }
-    _skindir = xbmc.translatePath('special://skin/').decode("utf-8")
+    _skindir = translatePath('special://skin/')
     res = readdom(os.path.join(_skindir, "addon.xml"))
     drc = res.getElementsByTagName("res")[0].getAttribute("folder")
     res.unlink()
@@ -144,7 +159,11 @@ def elementsrc(element, exclude=None):
 
 class File(object):
     def __init__(self, p, m="r"):
-        self.f = xbmcvfs.File(p.encode("utf-8"), m)
+        print(p)
+        if six.PY2:
+            self.f = xbmcvfs.File(p.encode("utf-8"), m)
+        else:
+            self.f = xbmcvfs.File(p, m)
 
     def __enter__(self, *args, **kwargs):
         return self
@@ -156,6 +175,9 @@ class File(object):
         self.close()
 
     def read(self, *args, **kwargs):
+        print(args)
+        print(kwargs)
+        print(self.f)
         return self.f.read(*args, **kwargs)
 
     def readBytes(self, *args, **kwargs):
@@ -176,7 +198,10 @@ class File(object):
 
 class Stat(object):
     def __init__(self, p):
-        self.s = xbmcvfs.Stat(p.encode("utf-8"))
+        if six.PY2:
+            self.s = xbmcvfs.Stat(p.encode("utf-8"))
+        else:
+            self.s = xbmcvfs.Stat(p)
 
     def st_atime(self, *args, **kwargs):
         return self.s.st_atime(*args, **kwargs)
@@ -210,7 +235,10 @@ class Stat(object):
 
 
 def mkdirs(path):
-    xbmcvfs.mkdirs(path.encode("utf-8"))
+    if six.PY2:
+        xbmcvfs.mkdirs(path.encode("utf-8"))
+    else:
+        xbmcvfs.mkdirs(path)
 
 
 def builtin(function, wait=False):
@@ -268,5 +296,5 @@ class ignoreexception(object):
 
     def __exit__(self, exc_type, exc_val, tb):
         if exc_type and not isinstance(exc_val, (GeneratorExit, StopIteration)):
-            print traceback.format_exc()
+            xbmc.log(traceback.format_exc())
             return True

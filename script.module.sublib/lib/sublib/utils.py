@@ -25,16 +25,16 @@ import xbmc
 from tinyxbmc import const
 from tinyxbmc import tools
 import re
-import urllib
 import unicodedata
 import os
+from six.moves.urllib import parse
+from six import string_types, PY2
 
 
 useragent = "KODI / XBMC Sublib Library"
 mozilla = const.USERAGENT
 
-prefixes = [
-            ["e", "s"],
+prefixes = [["e", "s"],
             ["episode", "seasons"],
             ["", ""],
             ]
@@ -60,28 +60,31 @@ for epre, spre in prefixes:
 
 
 def html_decode(s):
-    htmlCodes = (
-            ("'", '&#39;'),
-            ('"', '&quot;'),
-            ('>', '&gt;'),
-            ('<', '&lt;'),
-            ('&', '&amp;'),
-            (' ', '&nbsp;'),
-            ("'", "&apos;")
-        )
+    htmlCodes = (("'", '&#39;'),
+                 ('"', '&quot;'),
+                 ('>', '&gt;'),
+                 ('<', '&lt;'),
+                 ('&', '&amp;'),
+                 (' ', '&nbsp;'),
+                 ("'", "&apos;")
+                 )
     for code in htmlCodes:
         s = s.replace(code[1], code[0])
     return s
 
 
 def normstr(s):
-    s = unicodedata.normalize('NFKD', unicode(unicode(s, 'utf-8')))
-    return s.encode('ascii', 'ignore')
+    if PY2:
+        s = unicodedata.normalize('NFKD', unicode(unicode(s, 'utf-8')))
+        return s.encode('ascii', 'ignore')
+    else:
+        s = unicodedata.normalize('NFKD', s)
+        return s.encode('ascii', 'ignore').decode()
 
 
 def dformat(d, m):
     r = {}
-    for k, v in d.iteritems():
+    for k, v in d.items():
         try:
             r[k] = m(v)
         except Exception:
@@ -90,7 +93,7 @@ def dformat(d, m):
 
 
 def checkarchive(fname):
-    with open(fname) as f:
+    with open(fname, "rb") as f:
         sign = f.read(4)
     if sign == "Rar!":
         return "rar"
@@ -150,14 +153,18 @@ def selectfile(files, prefix="/"):
 def getlof(ar, fname, path="", lof=None):
     if not lof:
         lof = []
-    ds, fs = xbmcvfs.listdir("%s://%s%s" % (ar, urllib.quote_plus(fname),
+    ds, fs = xbmcvfs.listdir("%s://%s%s" % (ar, parse.quote_plus(fname),
                                             path))
     for d in ds:
-        dpath = path + "/" + unicode(d.decode("utf-8"))
+        if PY2:
+            d = unicode(d.decode("utf-8"))
+        dpath = path + "/" + d
         lof.append(dpath + "/")
         getlof(ar, fname, dpath, lof)
     for f in fs:
-        lof.append(path + "/" + unicode(f.decode("utf-8")))
+        if PY2:
+            f = unicode(f.decode("utf-8"))
+        lof.append(path + "/" + f)
     return lof
 
 
@@ -208,7 +215,7 @@ def getsub(fname, show, season, episode):
         arname = getar(fname, isar, show, season, episode)
         if not arname:
             return
-        uri = "%s://%s%s" % (isar, urllib.quote_plus(fname), arname)
+        uri = "%s://%s%s" % (isar, parse.quote_plus(fname), arname)
         # fix for rar file system crashes sometimes if archive:// is returned
         fname = fname + arname.replace("/", "_")
         f = xbmcvfs.File(uri)
@@ -228,7 +235,7 @@ def infofromstr(txt, title=None, show=False, season=-1, episode=-1):
         title = title.replace("  ", "")
         title = title.strip()
         return title
-    if not isinstance(txt, (str, unicode)):
+    if not isinstance(txt, string_types):
         txt = str(txt)
     regmatch = False
     matchstr = txt.lower()

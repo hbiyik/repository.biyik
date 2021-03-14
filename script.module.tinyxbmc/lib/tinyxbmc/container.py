@@ -25,24 +25,26 @@ import xbmc
 
 import json
 import importlib
-import urllib
+
 import time
 import traceback
 import sys
-import urlparse
+import six
+from six.moves.urllib import parse
 
 from tinyxbmc import hay
 from tinyxbmc import const
 from tinyxbmc import tools
 from tinyxbmc import gui
 from tinyxbmc import net
+from tinyxbmc import addon
 
 REMOTE_DBG = False
 PROFILE = False
 
 if REMOTE_DBG:
-    #pdevpath = "C:\\Users\\z0042jww\\.p2\\pool\\plugins\\org.python.pydev.core_7.2.1.201904261721\\pysrc"
-    #pdevpath = "/home/boogie/.p2/pool/plugins/org.python.pydev.core_7.2.1.201904261721/pysrc/"
+    # pdevpath = "C:\\Users\\z0042jww\\.p2\\pool\\plugins\\org.python.pydev.core_7.2.1.201904261721\\pysrc"
+    # pdevpath = "/home/boogie/.p2/pool/plugins/org.python.pydev.core_7.2.1.201904261721/pysrc/"
     pdevpath = "/home/boogie/.p2/pool/plugins/org.python.pydev.core_8.0.1.202011071328/pysrc/"
     sys.path.append(pdevpath)
     import pydevd  # @UnresolvedImport
@@ -61,7 +63,7 @@ def refresh():
 
 
 class container(object):
-    def __init__(self, useragent=None, httptimeout=None, addon=None, *iargs, **ikwargs):
+    def __init__(self, addonid=None, *iargs, **ikwargs):
         if PROFILE:
             profiler.enable()
         self.__inittime = time.time()
@@ -69,11 +71,11 @@ class container(object):
         self.player = None
         self.playertimeout = 60
         self.emptycontainer = True
-        aurl = urlparse.urlparse(self.sysaddon)
+        aurl = parse.urlparse(self.sysaddon)
         if aurl.scheme.lower() in ["plugin", "script"]:
             self.addon = aurl.netloc
-        elif addon:
-            self.addon = addon
+        elif addonid:
+            self.addon = addonid
         else:
             raise Exception("Unknown Addon name")
         try:
@@ -82,7 +84,7 @@ class container(object):
             self.syshandle = -1
         try:
             serial = sys.argv[2][1:]
-            data = json.loads(urllib.unquote_plus(serial))
+            data = json.loads(parse.unquote_plus(serial))
         except Exception:
             data = {}
         self._items = []
@@ -128,7 +130,7 @@ class container(object):
             redirects = []
             self.player = xbmcplayer(timeout=self.playertimeout)
             for u, finfo, fart in tools.dynamicret(tools.safeiter(self._method(*args, **kwargs))):
-                if not isinstance(u, (str, unicode, net.mpdurl)):
+                if not isinstance(u, (six.string_types, net.mpdurl)):
                     # not a playable url
                     continue
                 if isinstance(u, net.mpdurl) and not u.inputstream:
@@ -139,8 +141,8 @@ class container(object):
                 self.player.fallbackinfo = finfo
                 self.player.fallbackart = fart
                 self._container._isplaying = 1
-                if isinstance(u, (str, unicode)) and "plugin://" in u:
-                    # play in another addon
+                if isinstance(u, six.string_types) and "plugin://" in u:
+                    # play in another addonid
                     redirects.append(u)
                     continue
                 state = self.player.stream(u)
@@ -172,7 +174,7 @@ class container(object):
             try:
                 ret = self._method(*args, **kwargs)
             except Exception:
-                print traceback.format_exc()
+                addon.log(traceback.format_exc())
                 self._close()
                 sys.exit()
             iterable = tools.dynamicret(tools.safeiter(ret))
@@ -186,7 +188,7 @@ class container(object):
             try:
                 cnttyp = self._method(*args, **kwargs)
             except Exception:
-                print traceback.format_exc()
+                addon.log(traceback.format_exc())
                 self._close()
                 sys.exit()
             itemlen = len(self._container._items)
@@ -208,7 +210,7 @@ class container(object):
             if cnttyp in const.CT_ALL:
                 views = self.hay(const.OPTIONHAY).find("views").data
                 if cnttyp in views:
-                    spath = xbmc.getSkinDir().decode("utf-8")
+                    spath = tools.getSkinDir()
                     view = views[cnttyp].get(spath, None)
                     if view:
                         for _ in range(0, 10 * 20):
@@ -244,7 +246,7 @@ class container(object):
         refresh()
 
     def _close(self):
-        for _, hay in self._hays.iteritems():
+        for _, hay in self._hays.items():
             hay.close()
         self.onclose()
         dtime = (time.time() - self.__inittime) * 1000
@@ -260,7 +262,7 @@ class container(object):
             headers = {}
         if "user-agent" not in [x.lower() for x in headers.keys()]:
             headers["user-agent"] = self._container.useragent
-        for k, v in d.iteritems():
+        for k, v in d.items():
             try:
                 d[k] = net.tokodiurl(v, headers=headers)
             except Exception:
@@ -271,7 +273,7 @@ class container(object):
         stack = self.hay(const.OPTIONHAY)
         data = stack.find("views").data
         current = data.get(ct, {})
-        spath = xbmc.getSkinDir().decode("utf-8")
+        spath = tools.getSkinDir()
         current[spath] = tools.getskinview()
         data[ct] = current
         stack.throw("views", data)
@@ -286,7 +288,10 @@ class container(object):
         if not art:
             art = {}
         if isinstance(name, int):
-            name = xbmcaddon.Addon().getLocalizedString(name).encode('utf-8')
+            if six.PY2:
+                name = xbmcaddon.Addon().getLocalizedString(name).encode('utf-8')
+            else:
+                name = xbmcaddon.Addon().getLocalizedString(name)
         if not art.get("icon"):
             art["icon"] = "DefaultFolder.png"
         if not art.get("thumb"):
@@ -305,8 +310,8 @@ class container(object):
         self._playlist.append((url, item))
 
     def index(self, *args, **kwargs):
-        #item = self.item("Hello TinyXBMC")
-        #item.dir()
+        # item = self.item("Hello TinyXBMC")
+        # item.dir()
         pass
 
     def ondispatch(self):
@@ -362,15 +367,14 @@ class itemfactory(object):
         self._contexts = []
 
     def dourl(self, media, *args, **kwargs):
-        data = {
-              "module": self.module,
-              "container": self.container,
-              "method": self.method,
-              "args": args,
-              "kwargs": kwargs,
-              "media": media,
-              }
-        serial = urllib.quote_plus(json.dumps(data))
+        data = {"module": self.module,
+                "container": self.container,
+                "method": self.method,
+                "args": args,
+                "kwargs": kwargs,
+                "media": media,
+                }
+        serial = parse.quote_plus(json.dumps(data))
         self.url = '%s?%s' % (self._cntx.sysaddon, serial)
         return self.url
 
@@ -464,7 +468,6 @@ class xbmcplayer(xbmc.Player):
                 headers = {"User-agent": const.USERAGENT}
             elif "user-agent" not in [x.lower() for x in headers.keys()]:
                 headers["User-agent"] = const.USERAGENT
-                
             u = net.tokodiurl(u, headers=headers)
             if not li:
                 li = xbmcgui.ListItem(path=u)
@@ -486,13 +489,13 @@ class xbmcplayer(xbmc.Player):
         startt = time.time()
         for i in range(self.timeout * factor):
             p = 100 * i / (self.timeout * factor)
-            self.dlg.update(p, u)
+            self.dlg.update(int(p), u)
             xbmc.executebuiltin('Dialog.Close(12002,true)​')
             if self.alive or \
                 (not self.isPlaying() and time.time() - startt > self.ttol) or \
                     self.dlg.iscanceled():
                 break
-            xbmc.sleep(1000 / factor)
+            xbmc.sleep(int(1000 / factor))
         if not self.alive:
             self.canresolve = False
             xbmc.executebuiltin('Dialog.Close(12002,true)​')

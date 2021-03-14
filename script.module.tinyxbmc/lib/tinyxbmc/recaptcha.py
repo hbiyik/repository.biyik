@@ -69,7 +69,7 @@ class cInputWindow(xbmcgui.WindowDialog):
         self.addControl(self.okbutton)
         self.addControl(self.cancelbutton)
 
-        for i in xrange(9):
+        for i in range(9):
             row = i / 3
             col = i % 3
             x_pos = imgX + (pw * col)
@@ -82,7 +82,7 @@ class cInputWindow(xbmcgui.WindowDialog):
                                                       focusTexture=check_image2)
             self.addControl(self.chkbutton[i])
 
-        for i in xrange(9):
+        for i in range(9):
             row_start = (i / 3) * 3
             right = row_start + (i + 1) % 3
             left = row_start + (i - 1) % 3
@@ -114,7 +114,7 @@ class cInputWindow(xbmcgui.WindowDialog):
         self.doModal()
         self.close()
         if not self.cancelled:
-            return [i for i in xrange(9) if self.chkstate[i]]
+            return [i for i in range(9) if self.chkstate[i]]
 
     def onControl(self, control):
         if control == self.okbutton and any(self.chkstate):
