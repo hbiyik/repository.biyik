@@ -9,6 +9,7 @@
 	<extension point="xbmc.service" library="" />
 	<extension library="lib" point="xbmc.python.module" />
 	<extension point="xbmc.addon.metadata">
+	    <broken>cloudflare protection</broken>
 		<platform>all</platform>
 		<summary lang="en">Top documentary Films for VODS</summary>
 		<description lang="en">Top documentary Films for VODS</description>
