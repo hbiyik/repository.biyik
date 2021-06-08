@@ -482,7 +482,7 @@ v5.2.14 (2017-01-23)
 	</extension>
 </addon>
 
-<addon id="plugin.video.vods" name="VODS" provider-name="hbiyik" version="0.0.11">
+<addon id="plugin.video.vods" name="VODS" provider-name="hbiyik" version="0.0.12">
     <requires>
 		<import addon="xbmc.python" version="2.19.0"/>
 		<import addon="script.module.tinyxbmc"/>
