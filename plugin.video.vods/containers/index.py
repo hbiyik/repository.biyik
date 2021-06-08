@@ -133,7 +133,7 @@ class index(container.container):
             tinyaddon.builtin("Container.Refresh")
 
     def _cachemeta(self, arg, info, art, typ, scrape=True, percent=None):
-        if arg and not len(arg):
+        if hasattr(arg, "__len__") and not len(arg):
             print "VODS: Warning, argument is empty, nothing to cache"
             return info, art
         if typ == "movie":
