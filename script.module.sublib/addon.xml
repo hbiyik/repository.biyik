@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <addon id="script.module.sublib" name="Sublib Module" provider-name="hbiyik" version="0.0.8">
     <requires>
-	<import addon="xbmc.python" version="2.14.0" optional="true"/>
-	<import addon="xbmc.python" version="3.0.0" optional="true"/>
 	<import addon="script.module.tinyxbmc"/>
 	<import addon="script.module.six"/>
 	<import addon="vfs.rar" optional="true"/>

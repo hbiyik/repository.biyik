@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.1.0">
     <requires>
-		<import addon="xbmc.python" version="2.14.0" optional="true"/>
-		<import addon="xbmc.python" version="3.0.0" optional="true"/>
 		<import addon="script.module.cachecontrol"/>
 		<import addon="script.module.requests"/>
 		<import addon="script.module.js2py"/>
