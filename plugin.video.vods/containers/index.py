@@ -37,6 +37,7 @@ import six
 
 import traceback
 import json
+import os
 
 _prefix = "plugin.program.vods-"
 _resolvehay = "vods_resolve"
@@ -120,7 +121,10 @@ class index(container.container):
             return False
         clsmtd = getattr(clsob, mtd)
         chnmtd = getattr(base, mtd)
-        return not clsmtd.__func__ == chnmtd
+        if six.PY2:
+            return not clsmtd.__func__ == chnmtd.__func__
+        else:
+            return not clsmtd.__func__ == chnmtd
 
     def _context(self, mode=None, *args, **kwargs):
         if mode == "settings":
@@ -171,10 +175,13 @@ class index(container.container):
         return info, art
 
     def cacheresolve(self, arg, info, art):
-        hay = self.hay(_resolvehay)
-        key = json.dumps(arg)
-        hay.throw(key + "_info", info)
-        hay.throw(key + "_art", art)
+        if info or art:
+            hay = self.hay(_resolvehay)
+            key = json.dumps(arg)
+            if info:
+                hay.throw(key + "_info", info)
+            if art:
+                hay.throw(key + "_art", art)
 
     def getscrapers(self, id, addon=None, path=None, package=None, module=None,
                     instance=None, mtd=None, args=[], page=None):
@@ -193,6 +200,10 @@ class index(container.container):
             # auto config art for icon fallback
             if not hasattr(chan, "art") or chan.art == scraperextension.art:
                 icon = tinyaddon.get_addon(plg._tinyxbmc["addon"]).getAddonInfo("icon")
+                if not icon:
+                    # there seems to be a bug in Matrix for .getAddonInfo("icon"), instead use this hack
+                    icon = tinyaddon.get_addon(plg._tinyxbmc["addon"]).getAddonInfo("path")
+                    icon = os.path.join(icon, "icon.png")
                 chan.art = {"thumb": icon, "poster": icon, "icon": icon}
 
             makenameart(chan)

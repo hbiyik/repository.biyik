@@ -84,8 +84,12 @@ def getsession(seskey):
             sess.mount("https://", CacheControlAdapter(cache=__cache))
         else:
             pass
-            sess.mount("http://", CacheControlAdapter(cache=__cache, heuristic=timecache(seskey)))
-            sess.mount("https://", CacheControlAdapter(cache=__cache, heuristic=timecache(seskey)))
+            sess.mount("http://", CacheControlAdapter(cache=__cache,
+                                                      heuristic=timecache(seskey),
+                                                      cacheable_methods=("GET", "POST")))
+            sess.mount("https://", CacheControlAdapter(cache=__cache,
+                                                       heuristic=timecache(seskey),
+                                                       cacheable_methods=("GET", "POST")))
         sessions[seskey] = sess
         return sess
 
@@ -123,7 +127,7 @@ def fromkodiurl(url):
 
 
 def http(url, params=None, data=None, headers=None, timeout=5, json=None, method="GET",
-         referer=None, useragent=None, encoding=None, verify=None, stream=None, proxies=None, cache=0, text=True, http2=False):
+         referer=None, useragent=None, encoding=None, verify=None, stream=None, proxies=None, cache=10, text=True, http2=False):
     ret = None
     if url.startswith("//"):
         url = "http:%s" % url

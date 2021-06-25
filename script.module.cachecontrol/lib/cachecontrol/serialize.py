@@ -16,18 +16,18 @@ def _b64_encode_str(s):
     return _b64_encode_bytes(s.encode("utf8"))
 
 
+def _b64_encode(s):
+    if isinstance(s, text_type):
+        return _b64_encode_str(s)
+    return _b64_encode_bytes(s)
+
+
 def _b64_decode_bytes(b):
     return base64.b64decode(b.encode("ascii"))
 
 
 def _b64_decode_str(s):
     return _b64_decode_bytes(s).decode("utf8")
-
-
-def _b64_encode(s):
-    if isinstance(s, text_type):
-        return _b64_encode_str(s)
-    return _b64_encode_bytes(s)
 
 
 class Serializer(object):
@@ -111,8 +111,7 @@ class Serializer(object):
 
         # Dispatch to the actual load method for the given version
         try:
-            return getattr(self, "_loads_v{}".format(ver))(request, data)
-
+            return getattr(self, "_loads_v{0}".format(ver))(request, data)
         except AttributeError:
             # This is a version we don't have a loads function for, so we'll
             # just treat it as a miss and return None
@@ -124,8 +123,6 @@ class Serializer(object):
         """
         # Special case the '*' Vary value as it means we cannot actually
         # determine if the cached response is suitable for this request.
-        # This case is also handled in the controller code when creating
-        # a cache entry, but is left here for backwards compatibility.
         if "*" in cached.get("vary", {}):
             return
 
@@ -137,11 +134,11 @@ class Serializer(object):
 
         body_raw = cached["response"].pop("body")
 
-        headers = CaseInsensitiveDict(data=cached["response"]["headers"])
-        if headers.get("transfer-encoding", "") == "chunked":
-            headers.pop("transfer-encoding")
+        headers = CaseInsensitiveDict(data=cached['response']['headers'])
+        if headers.get('transfer-encoding', '') == 'chunked':
+            headers.pop('transfer-encoding')
 
-        cached["response"]["headers"] = headers
+        cached['response']['headers'] = headers
 
         try:
             body = io.BytesIO(body_raw)
@@ -152,9 +149,13 @@ class Serializer(object):
             # fail with:
             #
             #     TypeError: 'str' does not support the buffer interface
-            body = io.BytesIO(body_raw.encode("utf8"))
+            body = io.BytesIO(body_raw.encode('utf8'))
 
-        return HTTPResponse(body=body, preload_content=False, **cached["response"])
+        return HTTPResponse(
+            body=body,
+            preload_content=False,
+            **cached["response"]
+        )
 
     def _loads_v0(self, request, data):
         # The original legacy cache data. This doesn't contain enough
@@ -173,33 +174,23 @@ class Serializer(object):
     def _loads_v2(self, request, data):
         try:
             cached = json.loads(zlib.decompress(data).decode("utf8"))
-        except (ValueError, zlib.error):
+        except ValueError:
             return
 
         # We need to decode the items that we've base64 encoded
-        cached["response"]["body"] = _b64_decode_bytes(cached["response"]["body"])
+        cached["response"]["body"] = _b64_decode_bytes(
+            cached["response"]["body"]
+        )
         cached["response"]["headers"] = dict(
             (_b64_decode_str(k), _b64_decode_str(v))
             for k, v in cached["response"]["headers"].items()
         )
-        cached["response"]["reason"] = _b64_decode_str(cached["response"]["reason"])
+        cached["response"]["reason"] = _b64_decode_str(
+            cached["response"]["reason"],
+        )
         cached["vary"] = dict(
             (_b64_decode_str(k), _b64_decode_str(v) if v is not None else v)
             for k, v in cached["vary"].items()
         )
-
-        return self.prepare_response(request, cached)
-
-    def _loads_v3(self, request, data):
-        # Due to Python 2 encoding issues, it's impossible to know for sure
-        # exactly how to load v3 entries, thus we'll treat these as a miss so
-        # that they get rewritten out as v4 entries.
-        return
-
-    def _loads_v4(self, request, data):
-        try:
-            cached = msgpack.loads(data, raw=False)
-        except ValueError:
-            return
 
         return self.prepare_response(request, cached)

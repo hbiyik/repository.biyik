@@ -4,4 +4,3 @@ try:
     from .hay_cache import HayCache  # noqa
 except ImportError:
     pass
-

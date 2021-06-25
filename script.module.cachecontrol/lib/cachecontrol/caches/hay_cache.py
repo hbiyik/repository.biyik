@@ -11,8 +11,6 @@ class HayCache(BaseCache):
         data = self.hay.find(key).data
         if data == {}:
             data = None
-        elif PY3:
-            data = data.encode()
         return data
 
     def set(self, key, value):

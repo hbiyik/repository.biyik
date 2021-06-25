@@ -32,6 +32,8 @@ from tinyxbmc import const
 
 import xbmc
 
+global _xhay
+
 _debug = True
 _addons = None
 _xhay = None

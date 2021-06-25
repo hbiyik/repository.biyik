@@ -159,7 +159,6 @@ def elementsrc(element, exclude=None):
 
 class File(object):
     def __init__(self, p, m="r"):
-        print(p)
         if six.PY2:
             self.f = xbmcvfs.File(p.encode("utf-8"), m)
         else:
@@ -175,9 +174,6 @@ class File(object):
         self.close()
 
     def read(self, *args, **kwargs):
-        print(args)
-        print(kwargs)
-        print(self.f)
         return self.f.read(*args, **kwargs)
 
     def readBytes(self, *args, **kwargs):

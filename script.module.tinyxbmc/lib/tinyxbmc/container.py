@@ -45,7 +45,8 @@ PROFILE = False
 if REMOTE_DBG:
     # pdevpath = "C:\\Users\\z0042jww\\.p2\\pool\\plugins\\org.python.pydev.core_7.2.1.201904261721\\pysrc"
     # pdevpath = "/home/boogie/.p2/pool/plugins/org.python.pydev.core_7.2.1.201904261721/pysrc/"
-    pdevpath = "/home/boogie/.p2/pool/plugins/org.python.pydev.core_8.0.1.202011071328/pysrc/"
+    pdevpath = "/home/boogie/.p2/pool/plugins/org.python.pydev.core_8.3.0.202104101217/pysrc/"
+    # pdevpath = "/home/boogie/src/pydevd"
     sys.path.append(pdevpath)
     import pydevd  # @UnresolvedImport
     pydevd.settrace(stdoutToServer=True, stderrToServer=True, suspend=False)
@@ -321,8 +322,12 @@ class container(object):
         pass
 
     def hay(self, hayid, *args, **kwargs):
-        if id not in self._hays:
+        if hayid not in self._hays:
             kwargs["aid"] = self.addon
+            if "compress" not in kwargs:
+                kwargs["compress"] = 0
+            if "serial" not in kwargs:
+                kwargs["serial"] = "json"
             h = hay.stack(hayid, *args, **kwargs)
             self._hays[hayid] = h
         else:
@@ -331,7 +336,7 @@ class container(object):
 
     def download(self, url, params=None, data=None, headers=None, timeout=None,
                  json=None, method="GET", referer=None, useragent=None, encoding="utf-8",
-                 verify=None, stream=None, proxies=None, cache=0, text=True, http2=False):
+                 verify=None, stream=None, proxies=None, cache=10, text=True, http2=False):
 
         if not (headers and "user-agent" in [x.lower() for x in headers] or useragent):
             useragent = self._container.useragent

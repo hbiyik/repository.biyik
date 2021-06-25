@@ -30,7 +30,7 @@ import datetime
 
 from six.moves.urllib import parse
 
-
+"""
 class ydl(linkplayerextension):
     title = "Youtube DL Link Extension"
     allowed = ["youtube", "youtu.be", "dailymotion"]
@@ -83,3 +83,4 @@ class ydl(linkplayerextension):
 
             for url in self.getresults(result):
                 yield url
+"""

@@ -23,6 +23,7 @@ import json
 import os
 import time
 import zlib
+import hashlib
 from threading import Lock
 try:
     import cPickle as pickle
@@ -39,8 +40,16 @@ def _null(data, *args, **kwargs):
     return data
 
 
+def hashfunc(x):
+    if six.PY2:
+        return hash(x)
+    else:
+        # in >= py3.6, hash function is seeded per session, and changes, therefore we need fixed hash
+        return int.from_bytes(hashlib.blake2s(x.encode(), digest_size=8).digest(), "big", signed=True)
+
+
 class needle():
-    def __init__(self, nid=None, data=None, timestamp=None, serial=None, compress=0):
+    def __init__(self, nid=None, data=None, timestamp=None, serial=None, compress=1):
         self.compress = compress
         self.id = nid
         self.data = data
@@ -62,9 +71,9 @@ class needle():
 
     def dohash(self, ser=None):
         if self.id:
-            self.hash = hash(self.id)
+            self.hash = hashfunc(self.id)
         elif ser:
-            self.hash = hash(ser)
+            self.hash = hashfunc(ser)
 
     def deser(self, serdata):
         self.dohash(str(serdata))
@@ -79,7 +88,7 @@ class needle():
         elif self.serial == "json":
             self.data = json.loads(serdata)
         elif self.serial == "null":
-            self.data = str(serdata)
+            self.data = serdata
 
     def ser(self):
         if self.compress:
@@ -103,7 +112,7 @@ class needle():
 
 
 class stack(object):
-    def __init__(self, path, serial=None, compress=0, maxrows=5000, write=True, aid=None):
+    def __init__(self, path, serial=None, compress=1, maxrows=5000, write=True, aid=None):
         self.write = write
         self.mutex = Lock()
         self.compress = compress
@@ -270,8 +279,10 @@ class stack(object):
         ts = time.time()
         n = needle(nid, data, ts, self.serial, self.compress)
         ser = n.ser()
-        if self._select_row(n, -1, False):
-            self._update_row(n, ser)
+        row = self._select_row(n, -1, False)
+        if row:
+            if row[2] != ser:
+                self._update_row(n, ser)
         else:
             self._insert_row(n, ser)
         return n
