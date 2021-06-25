@@ -7,7 +7,7 @@ An implementation of a HTTP/2 connection.
 """
 import base64
 
-from enum import Enum, IntEnum
+from enum2 import Enum, IntEnum
 
 from hyperframe.exceptions import InvalidPaddingError
 from hyperframe.frame import (

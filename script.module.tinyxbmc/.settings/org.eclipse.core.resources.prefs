@@ -1,6 +1,9 @@
 eclipse.preferences.version=1
+encoding//lib/h2/connection.py=utf-8
 encoding//lib/h2/settings.py=utf-8
+encoding//lib/h2/stream.py=utf-8
 encoding//lib/hpack/hpack.py=utf-8
+encoding//lib/hyper/common/util.py=utf-8
 encoding//lib/hyper/contrib.py=utf-8
 encoding//lib/hyper/http11/connection.py=utf-8
 encoding//lib/hyperframe/flags.py=utf-8

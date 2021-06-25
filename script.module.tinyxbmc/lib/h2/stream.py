@@ -7,7 +7,7 @@ An implementation of a HTTP/2 stream.
 """
 import warnings
 
-from enum import Enum, IntEnum
+from enum2 import Enum, IntEnum
 from hpack import HeaderTuple
 from hyperframe.frame import (
     HeadersFrame, ContinuationFrame, DataFrame, WindowUpdateFrame,

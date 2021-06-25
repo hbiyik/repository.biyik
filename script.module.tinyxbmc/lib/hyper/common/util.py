@@ -5,7 +5,7 @@ hyper/common/util
 
 General utility functions for use with hyper.
 """
-from enum import Enum
+from enum2 import Enum
 
 from hyper.compat import unicode, bytes, imap
 from rfc3986 import URIReference
