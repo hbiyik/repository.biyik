@@ -28,6 +28,7 @@ import htmlement
 from six.moves.urllib import request
 from six import PY2
 import xbmc
+import traceback
 
 
 if PY2:
@@ -64,11 +65,16 @@ def _getrels(uname, rname):
     rels = page.findall(".//div[@class='Box']/div/div/div/ul")
     allrels = []
     for rel in rels:
-        links = rel.findall(".//a[@class='muted-link']")
-        commit = links[0].get("href").split("/")[-1]
-        zipu = links[1].get("href")
-        zipu = "https://" + _dom + zipu
-        allrels.append([commit, zipu])
+        commit = None
+        zipu = None
+        for a in rel.findall(".//a"):
+            href = a.get("href")
+            if href and href.endswith(".zip"):
+                zipu = "https://" + _dom + href
+            if href and "/commit/" in href:
+                commit = href.split("/")[-1]
+        if zipu and commit:
+            allrels.append([commit, zipu])
     return allrels
 
 
@@ -125,6 +131,7 @@ def _load(uname, rname, branch, commit, path, period):
                 ref = _getrels(uname, rname)
         except Exception:
             print("GITHUB: WARNING: Can not get latest meta: User:%s Repo:%s Branch:%s Commit: %s" % (uname, rname, branch, commit))
+            print(traceback.format_exc())
             return
 
         # download new package, extract and update the memory file
