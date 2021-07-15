@@ -423,7 +423,7 @@ class index(container.container):
                 # self.logplayer("VODS is initializing %s" % target)
                 try:
                     ins = pcls(self)
-                    playerins[target] = (target, ins, pcls)
+                    playerins[priority] = (target, ins, pcls)
                     makenameart(ins)
                     return target, ins
                 except Exception:
