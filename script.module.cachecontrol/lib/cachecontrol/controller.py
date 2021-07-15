@@ -60,7 +60,7 @@ class CacheController(object):
     @classmethod
     def cache_url(cls, uri, request):
         if request.body:
-            uri += request.body
+            uri += repr(request.body)
         return cls._urlnorm(uri)
 
     def parse_cache_control(self, headers):

@@ -2,7 +2,7 @@ try:
     from urllib.parse import urljoin
 except ImportError:
     from urlparse import urljoin
-
+from six import text_type as unicode
 
 try:
     import cPickle as pickle
