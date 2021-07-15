@@ -5,7 +5,7 @@ Created on 26 Mar 2020
 '''
 from tinyxbmc import gui
 
-import common
+from tribler.api import common
 
 import uuid
 import threading

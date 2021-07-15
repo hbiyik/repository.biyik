@@ -3,7 +3,7 @@ Created on 26 Mar 2020
 
 @author: boogie
 '''
-import common
+from tribler.api import common
 
 
 class download:

@@ -14,22 +14,30 @@ from tribler import defs
 
 import traceback
 import os
-import ConfigParser
+from six.moves import configparser
 
 import json
 from tribler.defs import HTTP_TIMEOUT, MIN_TRIBLER_VERSION
 
 
+API_SECTION = None
+
+
 def localconfig():
     config = None
+    section = None
     base_dir = os.getenv('APPDATA')
     if base_dir:
         base_dir = os.path.join(base_dir, ".Tribler")
     if not base_dir or not os.path.exists(base_dir):
         base_dir = os.path.expanduser("~/.Tribler")
     for version_dir in os.listdir(base_dir):
+        if config:
+            break
         version_dir_check = re.search("[0-9\.]+", version_dir)
         if version_dir_check and version_dir == version_dir_check.group(0):
+            # TO-DO: always use latest
+            # receive config path from settings
             if LooseVersion(version_dir) >= LooseVersion(MIN_TRIBLER_VERSION):
                 subdir = os.path.join(base_dir, version_dir)
                 if os.path.isdir(subdir):
@@ -37,14 +45,21 @@ def localconfig():
                         if subfile == "triblerd.conf":
                             try:
                                 conffile = os.path.join(subdir, subfile)
-                                print conffile
-                                config = ConfigParser.ConfigParser()
+                                config = configparser.ConfigParser()
                                 config.read(conffile)
+                                config.address = None
+                                for key in ("port", "http_port"):
+                                    for section in ("http_api", "api"):
+                                        try:
+                                            config.address = "http://localhost:%s" % config.get(section, key)
+                                        except (configparser.NoSectionError, configparser.NoOptionError):
+                                            # print(traceback.format_exc())
+                                            continue
+                                        print("using config from: %s" % conffile)
+                                        break
                             except Exception:
-                                print traceback.format_exc()
-    if config:
-        config.address = "http://localhost:%s" % config.get("http_api", "port")
-    return config
+                                print(traceback.format_exc())
+    return section, config
 
 
 class remoteconfig(object):
@@ -63,21 +78,20 @@ if settings.getstr("conmode").lower() == "remote":
     try:
         config = remoteconfig(settings.getstr("address"), settings.getstr("apikey"))
     except Exception:
-        print traceback.format_exc()
+        print(traceback.format_exc())
         gui.ok("Tribler", "Can not connect to daemon at %s" % settings.getstr("address"))
 else:
     try:
-        config = localconfig()
+        API_SECTION, config = localconfig()
     except Exception:
-        print traceback.format_exc()
+        print(traceback.format_exc())
         gui.ok("Tribler", "Can not find local installation")
+        config = None
 
 
 def call(method, endpoint, **data):
     url = "%s/%s" % (config.address, endpoint)
-    headers = {"X-Api-Key": config.get("http_api", "key")}
-    print url
-    print data
+    headers = {"X-Api-Key": config.get(API_SECTION, "key")}
     if method in ["GET"] or method == "PUT" and endpoint == "remote_query":
         params = data
         js = True
@@ -89,7 +103,6 @@ def call(method, endpoint, **data):
         resp = net.http(url, timeout=defs.HTTP_TIMEOUT, params=params, headers=headers, json=js, method=method)
     except ReadTimeout:
         resp = {"error": "Read timeout out in %s seconds" % HTTP_TIMEOUT}
-    # print json.dumps(resp)
     if "error" in resp:
         if isinstance(resp["error"], dict):
             title = resp["error"].get("code", "ERROR")
@@ -117,7 +130,7 @@ def format_size(num, suffix='B'):
 class event(object):
     def __init__(self, timeout):
         self.url = "%s/events" % config.address
-        self.headers = {"X-Api-Key": config.get("http_api", "key")}
+        self.headers = {"X-Api-Key": config.get(API_SECTION, "key")}
         self.timeout = timeout
         self.prepare()
 

@@ -4,7 +4,7 @@ import struct
 import os
 import stat
 
-from defs import BINARY_URL
+from tribler.defs import BINARY_URL
 
 elf_machines = {2: "sparc", 3: "x86", 8: "mips", 20: "ppc", 21: "ppc64", 22: "s390",
                 40: "arm", 42: "superh", 50: "ia64", 62: "amd64", 183: "aarch64", 243: "riscv"}

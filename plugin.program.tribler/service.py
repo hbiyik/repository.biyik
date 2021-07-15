@@ -13,15 +13,15 @@ import subprocess
 import time
 import sys
 
-pdevpath = "/home/boogie/local/eclipse/plugins/org.python.pydev.core_7.5.0.202001101138/pysrc/"
-sys.path.append(pdevpath)
-import pydevd  # @UnresolvedImport
-pydevd.settrace(stdoutToServer=True, stderrToServer=True, suspend=False)
+if False:
+    pdevpath = "/home/boogie/local/eclipse/plugins/org.python.pydev.core_7.5.0.202001101138/pysrc/"
+    sys.path.append(pdevpath)
+    import pydevd  # @UnresolvedImport
+    pydevd.settrace(stdoutToServer=True, stderrToServer=True, suspend=False)
 
 
 class Service(addon.blockingloop):
     def startriblerd(self):
-        print 111
         if not self.error:
             if self.triblerd and self.triblerd.poll() is None and self.retries <= 3:
                 return

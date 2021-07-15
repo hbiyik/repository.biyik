@@ -25,10 +25,8 @@ from tribler.defs import YES, NO, BLUE
 from tribler import api
 from tribler.ui.window import TorrentWindow
 from tribler import core
+from six import text_type as unicode
 import datetime
-
-
-print core.getbinary()
 
 
 class navi(container.container):
