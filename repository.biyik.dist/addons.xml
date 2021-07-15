@@ -18,12 +18,12 @@
   </extension>
 </addon>
 
-<addon id="plugin.program.tribler" name="Tribler" provider-name="hbiyik" version="0.0.7">
+<addon id="plugin.program.tribler" name="Tribler" provider-name="hbiyik" version="0.0.8">
   <requires>
-    <import addon="xbmc.python" version="2.1.0" />
     <import addon="script.module.tinyxbmc"/>
     <import addon="script.module.six"/>
     <import addon="script.module.kodi-six"/>
+    <import addon="script.module.pyxbmct"/>
   </requires>
   <extension point="xbmc.python.pluginsource" library="addon.py">
 		<provides>executable</provides>
@@ -209,7 +209,7 @@
   </extension>
 </addon>
 
-<addon id="script.module.cachecontrol" name="Cachecontrol Module" provider-name="hbiyik" version="3.0.0">
+<addon id="script.module.cachecontrol" name="Cachecontrol Module" provider-name="hbiyik" version="3.0.1">
     <requires>
 		<import addon="script.module.six"/>
 	</requires>
@@ -397,7 +397,7 @@
 	</extension>
 </addon>
 
-<addon id="plugin.video.vods" name="VODS" provider-name="hbiyik" version="0.1.0">
+<addon id="plugin.video.vods" name="VODS" provider-name="hbiyik" version="0.1.1">
     <requires>
 		<import addon="script.module.tinyxbmc"/>
 		<import addon="script.module.ghub"/>
