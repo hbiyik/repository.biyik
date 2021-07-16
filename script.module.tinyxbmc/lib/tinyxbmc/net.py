@@ -112,7 +112,9 @@ def tokodiurl(url, domain=None, headers=None):
     if not cookiestr == "":
         headers["Cookie"] = headers.get("cookie", headers.get("Cookie", "")) + cookiestr
     if url.startswith("http://") or url.startswith("https://"):
-        url += "|" + parse.urlencode(headers)
+        strheaders = parse.urlencode(headers)
+        if strheaders:
+            url += "|" + parse.urlencode(headers)
     return url
 
 
