@@ -131,11 +131,8 @@ class container(object):
             redirects = []
             self.player = xbmcplayer(timeout=self.playertimeout)
             for u, finfo, fart in tools.dynamicret(tools.safeiter(self._method(*args, **kwargs))):
-                if not isinstance(u, (six.string_types, net.mpdurl)):
-                    # not a playable url
-                    continue
-                if isinstance(u, net.mpdurl) and not u.inputstream:
-                    # mpdurl but inputstream not available
+                if not isinstance(u, (six.string_types, const.URL)):
+                    addon.log("Provided url %s is not playable" % repr(u))
                     continue
                 if self.player.dlg.iscanceled():
                     break
@@ -237,7 +234,14 @@ class container(object):
             opthay.throw("httptimeout", httptimeout)
 
     def resolver(self, url):
-        yield url
+        if isinstance(url, dict):
+            manifest = url.pop("manifest")
+            if manifest == net.hlsurl.manifest:
+                yield net.hlsurl(**url)
+            elif manifest == net.mpdurl.manifest:
+                yield net.mpdurl(**url)
+        else:
+            yield url
 
     def player(self, url):
         yield url
@@ -443,39 +447,34 @@ class xbmcplayer(xbmc.Player):
             fallbackinfo = {}
         if not fallbackart:
             fallbackart = {}
-        self.timeout = int(kwargs.get("timeout", 60))
         self.alive = False
         self.fallbackinfo = fallbackinfo
         self.fallbackart = fallbackart
         xbmc.Player.__init__(self)
-        self.ttol = 5
+        self.timeout = int(kwargs.get("timeout", 10))  # max time to wait after player initiated the playback but not yet played
+        self.ttol = 3  # max time to wait for player to initiate the playback
         self.dlg = xbmcgui.DialogProgress()
         self.dlg.create('Opening Media', 'Waiting for media')
         self.canresolve = True
         self.waiting = False
 
     def stream(self, url, li=None):
-        if isinstance(url, net.mpdurl):
-            u = url.kodiurl
-            if not li:
-                li = xbmcgui.ListItem(path=u)
+        if isinstance(url, const.URL):
+            u = net.tokodiurl(url.url, headers=url.headers, pushverify="false", pushua=const.USERAGENT)
+        else:
+            u = net.tokodiurl(url, pushverify="false", pushua=const.USERAGENT)
+        if not li:
+            li = xbmcgui.ListItem(path=u)
+        if isinstance(url, const.URL) and url.adaptive:
+            # utilize inputstream adaptive
             if tools.kodiversion() >= 19:
                 li.setProperty('inputstream', url.inputstream)
             else:
                 li.setProperty('inputstreamaddon', url.inputstream)
             li.setProperty('inputstream.adaptive.manifest_type', url.manifest)
-            if url.kodilurl:
+            if isinstance(url, net.mpdurl) and url.kodilurl:
                 li.setProperty('inputstream.adaptive.license_type', url.license)
                 li.setProperty('inputstream.adaptive.license_key', url.kodilurl)
-        else:
-            u, headers = net.fromkodiurl(url)
-            if headers is None:
-                headers = {"User-agent": const.USERAGENT}
-            elif "user-agent" not in [x.lower() for x in headers.keys()]:
-                headers["User-agent"] = const.USERAGENT
-            u = net.tokodiurl(u, headers=headers)
-            if not li:
-                li = xbmcgui.ListItem(path=u)
         if self.dlg.iscanceled():
             return
         if self.canresolve:
@@ -490,7 +489,7 @@ class xbmcplayer(xbmc.Player):
 
     def waitplayback(self, u=""):
         self.waiting = True
-        factor = 100
+        factor = 5
         startt = time.time()
         for i in range(self.timeout * factor):
             p = 100 * i / (self.timeout * factor)
@@ -499,15 +498,23 @@ class xbmcplayer(xbmc.Player):
             if self.alive or \
                 (not self.isPlaying() and time.time() - startt > self.ttol) or \
                     self.dlg.iscanceled():
+                if not self.alive:
+                    if time.time() - startt > self.ttol:
+                        addon.log("Can't play media because player can not initiate the playback (%i seconds): %s" % (self.ttol, u))
+                    if self.dlg.iscanceled():
+                        addon.log("Can't play media because user cancelled: %s" % u)
+                else:
+                    addon.log("Succesfully playing: %s" % u)
                 break
             xbmc.sleep(int(1000 / factor))
         if not self.alive:
+            if self.isPlaying():
+                addon.log("Can't play media because player initiate the playback, but the playback did not start in time (%i seconds): %s" % (self.timeout, u))
             self.canresolve = False
             xbmc.executebuiltin('Dialog.Close(12002,true)​')
             self.dlg.create('Opening Media', 'Waiting for media')
         else:
             xbmc.executebuiltin('Dialog.Close(all,true)​')
-            pass
         self.dlg.update(100, "")
         self.waiting = False
         return self.alive

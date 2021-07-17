@@ -94,7 +94,7 @@ def getsession(seskey):
         return sess
 
 
-def tokodiurl(url, domain=None, headers=None):
+def tokodiurl(url, domain=None, headers=None, pushverify=None, pushua=None):
     if not headers:
         headers = {}
     if domain:
@@ -109,8 +109,15 @@ def tokodiurl(url, domain=None, headers=None):
     for cookie in cookicachelist:
         if domain in cookie.domain:
             cookiestr += ";%s=%s" % (cookie.name, cookie.value)
-    if not cookiestr == "":
+    if cookiestr:
         headers["Cookie"] = headers.get("cookie", headers.get("Cookie", "")) + cookiestr
+    if headers is None:
+            headers = {"User-agent": const.USERAGENT}
+    headerkeys = [x.lower() for x in headers.keys()]
+    if pushua is not None and "user-agent" not in headerkeys:
+        headers["User-agent"] = const.USERAGENT
+    if pushverify is not None and "verifypeer" not in headerkeys:
+        headers["verifypeer"] = pushverify
     if url.startswith("http://") or url.startswith("https://"):
         strheaders = parse.urlencode(headers)
         if strheaders:
@@ -305,9 +312,29 @@ class timecache(BaseHeuristic):
         return '110 - "%s"' % msg
 
 
+class hlsurl(const.URL):
+    manifest = "hls"
+
+    def __init__(self, url, headers=None, adaptive=True):
+        self.url = url
+        self.headers = headers or {}
+        self.inputstream = "inputstream.adaptive" if addon.has_addon("inputstream.adaptive") else None
+        self.adaptive = adaptive
+        dict.__init__(self,
+                      manifest=self.manifest,
+                      url=self.url,
+                      headers=self.headers,
+                      adaptive=self.adaptive)
+
+    @property
+    def kodiurl(self):
+        return tokodiurl(self.url, headers=self.headers)
+
+
 class mpdurl(const.URL):
-    def __init__(self, url, headers=None, lurl=None, lheaders=None, lbody="R{SSM}", lresponse=""):
-        self.manifest = "mpd"
+    manifest = "mpd"
+
+    def __init__(self, url, headers=None, lurl=None, lheaders=None, lbody="R{SSM}", lresponse="", adaptive=True):
         self.license = "com.widevine.alpha"
         self.__inputstream = 0
         self.url = url
@@ -320,6 +347,16 @@ class mpdurl(const.URL):
             self.lheaders["User-Agent"] = const.USERAGENT
         self.lbody = lbody
         self.lresponse = lresponse
+        self.adaptive = adaptive
+        dict.__init__(self,
+                      manifest=self.manifest,
+                      url=self.url,
+                      headers=self.headers,
+                      lurl=self.lurl,
+                      lheaders=self.lheaders,
+                      lbody=self.lbody,
+                      lresponse=self.lresponse,
+                      adaptive=self.adaptive)
 
     def _supress(self, *args, **kwargs):
         return True

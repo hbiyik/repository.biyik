@@ -40,5 +40,5 @@ XMLPLUGINNODE = "plugin"
 XMLPLUGINATTRS = ["id", "path", "package", "module", "instance"]
 
 
-class URL:
+class URL(dict):
     pass
