@@ -31,6 +31,7 @@ from tinyxbmc import const as tinyconst
 from tinyxbmc import addon as tinyaddon
 from tinyxbmc import tools
 from tinyxbmc import net
+from tinyxbmc import const
 
 from six import string_types
 import six
@@ -460,6 +461,9 @@ class index(container.container):
                                                                                   reverse=True)])
         self.logplayer("VODS found players (%s): %s" % (len(playerins), aplayers))
         for kodilink in tools.safeiter(links):
+            if isinstance(kodilink, const.URL):
+                yield kodilink
+                continue
             if self.player.dlg.iscanceled():
                     raise StopIteration
             link, headers = net.fromkodiurl(kodilink)
