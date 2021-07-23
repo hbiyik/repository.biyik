@@ -24,8 +24,9 @@ import xbmcvfs
 import os
 import datetime
 import time
-from tinyxbmc import const
 import six
+
+from tinyxbmc import const
 
 from xml.dom import minidom
 
@@ -34,7 +35,7 @@ def translatePath(*args, **kwargs):
         if six.PY2:
             return xbmc.translatePath(*args, **kwargs).decode("utf-8")
         else:
-            return xbmc.translatePath(*args, **kwargs)
+            return xbmcvfs.translatePath(*args, **kwargs)
 
 
 def getSkinDir(*args, **kwargs):

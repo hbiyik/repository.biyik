@@ -38,6 +38,7 @@ EXTPREFIX = "plugin.program.tinyxbmc-"
 XMLROOTNODE = "tinyxbmc"
 XMLPLUGINNODE = "plugin"
 XMLPLUGINATTRS = ["id", "path", "package", "module", "instance"]
+INPUTSTREAMADDON = "inputstream.adaptive"
 
 
 class URL(dict):

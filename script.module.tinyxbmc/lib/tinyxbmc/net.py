@@ -22,6 +22,7 @@ import os
 import time
 import re
 import six
+import traceback
 from six.moves.urllib import parse
 from six.moves import http_cookiejar
 from six.moves import input
@@ -31,6 +32,7 @@ from email.utils import parsedate, formatdate
 import calendar
 
 
+import ghub
 from cachecontrol import CacheControlAdapter
 from hyper.contrib import HTTP20Adapter
 
@@ -40,6 +42,7 @@ from cachecontrol.caches import HayCache as Cache
 from tinyxbmc import addon
 from tinyxbmc import tools
 from tinyxbmc import const
+from tinyxbmc.distversion import LooseVersion
 
 __profile = addon.get_commondir()
 __cache = Cache(const.HTTPCACHEHAY)
@@ -314,17 +317,23 @@ class timecache(BaseHeuristic):
 
 class hlsurl(const.URL):
     manifest = "hls"
+    HASISA = addon.has_addon(const.INPUTSTREAMADDON)
 
     def __init__(self, url, headers=None, adaptive=True):
         self.url = url
         self.headers = headers or {}
-        self.inputstream = "inputstream.adaptive" if addon.has_addon("inputstream.adaptive") else None
         self.adaptive = adaptive
         dict.__init__(self,
                       manifest=self.manifest,
                       url=self.url,
                       headers=self.headers,
                       adaptive=self.adaptive)
+
+    @property
+    def inputstream(self):
+        if self.HASISA and self.adaptive:
+            return const.INPUTSTREAMADDON
+        return None
 
     @property
     def kodiurl(self):
@@ -333,21 +342,51 @@ class hlsurl(const.URL):
 
 class mpdurl(const.URL):
     manifest = "mpd"
+    HASISA = addon.has_addon(const.INPUTSTREAMADDON)
+    HASWV = False
+    CDMVER = None
+    if HASISA:
+        try:
+            ishelper = ghub.load("emilsvennesson", "script.module.inputstreamhelper", "master", period=24 * 7, path=["lib"])
+            fname = os.path.join(ishelper, "lib", "inputstreamhelper", "kodiutils.py")
+            with open(fname) as f:
+                src = f.read()
+            src = re.sub("script\.module\.inputstreamhelper", "script.module.tinyxbmc", src)
+            with open(fname, "w") as f:
+                f.write(src)
+            import inputstreamhelper
+            inputstreamhelper.ok_dialog = lambda *args, **kwargs: None
+            inputstreamhelper.widevine_eula = lambda *args, **kwargs: None
+            helper = inputstreamhelper.Helper(manifest)
+            HASWV = inputstreamhelper.has_widevinecdm()
+            canwv = helper._supports_widevine()
+            if not canwv:
+                addon.log("MPD: Widewine is not supported by platform")
+            if not HASWV and canwv:
+                helper.install_widevine()
+                HASWV = True
+        except Exception as e:
+            print(traceback.format_exc())
+    else:
+        addon.log("MPD: Inputstream.adaptive is not installed")
 
-    def __init__(self, url, headers=None, lurl=None, lheaders=None, lbody="R{SSM}", lresponse="", adaptive=True):
+    if HASWV:
+        from inputstreamhelper import widevinecdm_path
+        CDMVER = LooseVersion(helper._get_lib_version(widevinecdm_path()))
+        addon.log("MPD: Widewine is enabled with CDM version %s" % CDMVER)
+
+    def __init__(self, url, headers=None, lurl=None, lheaders=None, lbody="R{SSM}", lresponse="", mincdm=None):
         self.license = "com.widevine.alpha"
-        self.__inputstream = 0
+        if isinstance(mincdm, six.string_types):
+            self.mincdm = LooseVersion(mincdm)
+        else:
+            self.mincdm = None
         self.url = url
         self.lurl = lurl
         self.headers = headers or {}
         self.lheaders = lheaders or {}
-        if "user-agent" not in [x.lower() for x in self.headers]:
-            self.headers["User-Agent"] = const.USERAGENT
-        if "user-agent" not in [x.lower() for x in self.lheaders]:
-            self.lheaders["User-Agent"] = const.USERAGENT
         self.lbody = lbody
         self.lresponse = lresponse
-        self.adaptive = adaptive
         dict.__init__(self,
                       manifest=self.manifest,
                       url=self.url,
@@ -356,33 +395,27 @@ class mpdurl(const.URL):
                       lheaders=self.lheaders,
                       lbody=self.lbody,
                       lresponse=self.lresponse,
-                      adaptive=self.adaptive)
-
-    def _supress(self, *args, **kwargs):
-        return True
+                      mincdm=self.mincdm)
 
     @property
     def inputstream(self):
-        if self.__inputstream == 0:
-            self.__inputstream = None
-            if addon.has_addon("inputstream.adaptive"):
-                if self.kodilurl:
-                    if addon.has_addon("script.module.inputstreamhelper"):
-                        import inputstreamhelper
-                        inputstreamhelper.ok_dialog = self._supress
-                        inputstreamhelper.widevine_eula = self._supress
-                        helper = inputstreamhelper.Helper(self.manifest)
-                        haswv = inputstreamhelper.has_widevinecdm()
-                        if haswv:
-                            self.__inputstream = "inputstream.adaptive"
-                        elif helper._supports_widevine():
-                            import xbmc
-                            xbmc.executebuiltin('Dialog.Close(all,true)​')
-                            if helper.install_widevine():
-                                self.__inputstream = "inputstream.adaptive"
+        inputstream = None
+        if self.lurl:
+            if self.HASWV:
+                if self.mincdm:
+                    if self.mincdm <= self.CDMVER:
+                        inputstream = const.INPUTSTREAMADDON
+                    else:
+                        addon.log("MPD: Available CDM version (%s) is not >= minimum required (%s): %s" % (self.CDMVER,
+                                                                                                           self.mincdm,
+                                                                                                           self.url))
                 else:
-                    self.__inputstream = "inputstream.adaptive"
-        return self.__inputstream
+                    inputstream = const.INPUTSTREAMADDON
+            else:
+                addon.log("MPD: DASH stream requires drm but widewine is not available: %s" % (self.url))
+        elif self.HASISA:
+            inputstream = const.INPUTSTREAMADDON
+        return inputstream
 
     @property
     def kodiurl(self):
@@ -411,3 +444,14 @@ def absurl(url, fromurl):
                 return "%s://%s/%s" % (up.scheme, up.netloc, url)
             else:
                 return "%s://%s%s/%s" % (up.scheme, up.netloc, up.path, url)
+
+
+def urlfromdict(url):
+    if isinstance(url, dict):
+        manifest = url.pop("manifest")
+        if manifest == hlsurl.manifest:
+            return hlsurl(**url)
+        elif manifest == mpdurl.manifest:
+            return mpdurl(**url)
+    else:
+        return url

@@ -234,14 +234,7 @@ class container(object):
             opthay.throw("httptimeout", httptimeout)
 
     def resolver(self, url):
-        if isinstance(url, dict):
-            manifest = url.pop("manifest")
-            if manifest == net.hlsurl.manifest:
-                yield net.hlsurl(**url)
-            elif manifest == net.mpdurl.manifest:
-                yield net.mpdurl(**url)
-        else:
-            yield url
+        yield net.urlfromdict(url)
 
     def player(self, url):
         yield url
@@ -465,15 +458,16 @@ class xbmcplayer(xbmc.Player):
             u = net.tokodiurl(url, pushverify="false", pushua=const.USERAGENT)
         if not li:
             li = xbmcgui.ListItem(path=u)
-        if isinstance(url, const.URL) and url.adaptive:
+        if isinstance(url, const.URL) and url.inputstream:
             # utilize inputstream adaptive
             if tools.kodiversion() >= 19:
                 li.setProperty('inputstream', url.inputstream)
             else:
                 li.setProperty('inputstreamaddon', url.inputstream)
             li.setProperty('inputstream.adaptive.manifest_type', url.manifest)
-            if isinstance(url, net.mpdurl) and url.kodilurl:
+            if isinstance(url, net.mpdurl) and url.lurl:
                 li.setProperty('inputstream.adaptive.license_type', url.license)
+                url.lurl, url.lheaders = net.fromkodiurl(net.tokodiurl(url.lurl, headers=url.lheaders, pushua=const.USERAGENT, pushverify="false"))
                 li.setProperty('inputstream.adaptive.license_key', url.kodilurl)
         if self.dlg.iscanceled():
             return

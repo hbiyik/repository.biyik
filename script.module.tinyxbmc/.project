@@ -4,6 +4,7 @@
 	<comment></comment>
 	<projects>
 		<project>script.module.cachecontrol</project>
+		<project>script.module.ghub</project>
 		<project>script.module.js2py</project>
 	</projects>
 	<buildSpec>
