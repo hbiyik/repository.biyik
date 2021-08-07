@@ -375,6 +375,9 @@ class mpdurl(const.URL):
         CDMVER = LooseVersion(helper._get_lib_version(widevinecdm_path()))
         addon.log("MPD: Widewine is enabled with CDM version %s" % CDMVER)
 
+    if tools.isstub():
+        HASWV = True
+
     def __init__(self, url, headers=None, lurl=None, lheaders=None, lbody="R{SSM}", lresponse="", mincdm=None):
         self.license = "com.widevine.alpha"
         if isinstance(mincdm, six.string_types):

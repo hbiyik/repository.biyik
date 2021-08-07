@@ -25,6 +25,7 @@ import os
 import datetime
 import time
 import six
+import json
 
 from tinyxbmc import const
 
@@ -231,11 +232,19 @@ class Stat(object):
         return self.s.st_uid(self, *args, **kwargs)
 
 
+def exists(path):
+    return xbmcvfs.exists(path)
+
+
 def mkdirs(path):
     if six.PY2:
         xbmcvfs.mkdirs(path.encode("utf-8"))
     else:
         xbmcvfs.mkdirs(path)
+
+
+def copy(src, dst):
+    return xbmcvfs.copy(src, dst)
 
 
 def builtin(function, wait=False):
@@ -295,3 +304,8 @@ class ignoreexception(object):
         if exc_type and not isinstance(exc_val, (GeneratorExit, StopIteration)):
             xbmc.log(traceback.format_exc())
             return True
+
+
+def jsonrpc(data):
+    if data:
+        return json.loads(xbmc.executeJSONRPC(json.dumps(data)))

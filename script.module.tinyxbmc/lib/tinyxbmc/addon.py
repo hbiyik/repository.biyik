@@ -24,7 +24,6 @@ import xbmc
 import os
 import traceback
 import sys
-import json
 
 import six
 from six.moves.urllib import parse
@@ -77,7 +76,7 @@ def addon_details(aid):
                                   ],
                    }
     }
-    addons = json.loads(xbmc.executeJSONRPC(json.dumps(data)))
+    addons = tools.jsonrpc(data)
     if "error" in addons:
         return None
     return addons["result"]["addon"]
@@ -92,7 +91,7 @@ def toggle_addon(aid, enable=None):
             "params": {"addonid": aid,
                        "enabled": enable},
             "id": 1}
-    toggle = json.loads(xbmc.executeJSONRPC(json.dumps(data)))
+    toggle = tools.jsonrpc(data)
     if "error" in toggle:
         return False
     return True
@@ -156,6 +155,7 @@ def get_commondir():
 class kodisetting():
     def __init__(self, aid=None):
         self.e = "utf-8"
+        self.aid = aid
         self.a = get_addon(aid)
 
     @staticmethod
@@ -186,16 +186,16 @@ class kodisetting():
             return True
 
     def getbool(self, variable):
-        return bool(self.a.getSetting(variable) == 'true')
+        return bool(get_addon(self.aid).getSetting(variable) == 'true')
 
     def getstr(self, variable):
         if six.PY2:
-            return str(self.a.getSetting(variable).decode(self.e))
+            return str(get_addon(self.aid).getSetting(variable).decode(self.e))
         else:
-            return str(self.a.getSetting(variable))
+            return str(get_addon(self.aid).getSetting(variable))
 
     def getint(self, variable):
-        val = self.a.getSetting(variable)
+        val = get_addon(self.aid).getSetting(variable)
         if isinstance(val, (int, float)):
             return int(val)
         elif isinstance(val, six.string_types) and val.isdigit():
@@ -204,14 +204,14 @@ class kodisetting():
             return -1
 
     def getfloat(self, variable):
-        return float(self.a.getSetting(variable))
+        return float(get_addon(self.aid).getSetting(variable))
 
     def set(self, key, value):
         if isinstance(value, bool):
             value = str(value).lower()
         elif not isinstance(value, six.string_types):
             value = str(value)
-        return self.a.setSetting(key, value)
+        return get_addon(self.aid).setSetting(key, value)
 
 
 def local(sid, aid=None):
@@ -230,15 +230,16 @@ class blockingloop(object):
         self.wait = 0.1
         self.__new = LooseVersion(xbmc.__version__) >= LooseVersion("2.20.0")  # @UndefinedVariable
         self.__terminate = False
+        err = None
         self.init(*args, **kwargs)
         self.oninit()
-        e = None
         if self.__new:
             self.__mon = xbmc.Monitor()
             while not self.isclosed():
                 try:
                     self.onloop()
                 except Exception as e:
+                    err = e
                     traceback.print_exc()
                     break
                 if self.__mon.waitForAbort(self.wait) or self.isclosed():
@@ -251,15 +252,16 @@ class blockingloop(object):
                 try:
                     self.onloop()
                 except Exception as e:
+                    err = e
                     traceback.print_exc()
                     break
                 if self.isclosed():
                     self.onclose()
                     break
                 xbmc.sleep(int(self.wait * 1000))
-        if e:
-            addon.log(traceback.print_exc())
-            raise(e)
+        if err:
+            traceback.print_exc()
+            raise(err)
 
     def init(self, *args, **kwargs):
         pass
