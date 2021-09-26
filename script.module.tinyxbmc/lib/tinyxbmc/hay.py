@@ -198,15 +198,21 @@ class stack(object):
                             """)
 
     def _open_db(self, path):
+        def _tunedb():
+            self.cur.executescript("""
+                       PRAGMA JOURNAL_MODE = MEMORY;
+                       PRAGMA SYNCHRONOUS = OFF;
+                       PRAGMA LOCKING_MODE = UNLOCKED;""")
         if _debug:
             addon.log("DB: %s, opened at %s" % (self.path, path))
         with Mutex(self.mutex):
             self.conn = sqlite3.connect(path, check_same_thread=False)
             self.cur = self.conn.cursor()
-            self.cur.executescript("""
-                                   PRAGMA JOURNAL_MODE = MEMORY;
-                                   PRAGMA SYNCHRONOUS = OFF;
-                                   PRAGMA LOCKING_MODE = UNLOCKED;""")
+            try:
+                _tunedb()
+            except Exception:
+                os.remove(self.dbpath)
+                _tunedb()
 
     def _close_db(self):
         if self.write:
