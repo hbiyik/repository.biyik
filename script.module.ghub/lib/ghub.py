@@ -62,7 +62,7 @@ def _page(u):
 
 def _getrels(uname, rname):
     page = htmlement.fromstring(_page("https://%s/%s/%s/tags" % (_dom, uname, rname)))
-    rels = page.findall(".//div[@class='Box']/div/div/div/ul")
+    rels = page.findall(".//div[@class='Box']/div/div/div/.//ul")
     allrels = []
     for rel in rels:
         commit = None
