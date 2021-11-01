@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.1.7">
+<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.2.0">
     <requires>
 		<import addon="script.module.cachecontrol"/>
 		<import addon="script.module.requests"/>
@@ -7,10 +7,12 @@
 		<import addon="script.module.six"/>
 		<import addon="script.module.ghub"/>
 		<import addon="script.module.importlib" optional="true"/>
+		<import addon="service.system.docker" optional="true"/>
 		<import addon="script.module.inputstreamhelper" optional="true"/>
 		<import addon="inputstream.adaptive" optional="true"/>
 	</requires>
 	<extension point="xbmc.python.module" library="lib" />
+	<extension point="xbmc.service" library="lib/chromium.py" />
 	<extension point="xbmc.addon.metadata">
 		<platform>all</platform>
 		<summary lang="en">TinxyXBMC module</summary>
