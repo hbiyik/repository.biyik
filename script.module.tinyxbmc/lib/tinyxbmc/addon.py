@@ -22,7 +22,6 @@ import xbmcaddon
 import xbmc
 
 import os
-import traceback
 import sys
 
 import six
@@ -31,6 +30,7 @@ from six.moves.urllib import parse
 from distutils.version import LooseVersion
 
 from tinyxbmc import tools
+from tinyxbmc import collector
 
 addon = None
 
@@ -225,23 +225,34 @@ def local(sid, aid=None):
         return xbmc.getLocalizedString(sid)
 
 
+def builtin(*args, **kwargs):
+    return xbmc.executebuiltin(*args, **kwargs)
+
+
+def log(txt, level=0):
+    xbmc.log(txt, level)
+
+
 class blockingloop(object):
     def __init__(self, *args, **kwargs):
         self.wait = 0.1
+        self.dropboxtoken = None
+        self.errorname = ""
         self.__new = LooseVersion(xbmc.__version__) >= LooseVersion("2.20.0")  # @UndefinedVariable
         self.__terminate = False
-        err = None
-        self.init(*args, **kwargs)
-        self.oninit()
+        with collector.LogException(self.errorname, None):
+            self.init(*args, **kwargs)
+        with collector.LogException(self.errorname, self.dropboxtoken) as errcoll:
+            errcoll.onexception = self.onclose
+            self.oninit()
         if self.__new:
             self.__mon = xbmc.Monitor()
             while not self.isclosed():
-                try:
+                with collector.LogException(self.errorname, self.dropboxtoken) as errcoll:
+                    errcoll.onexception = self.onclose
                     self.onloop()
-                except Exception as e:
-                    err = e
-                    traceback.print_exc()
-                    break
+                    if errcoll.hasexception:
+                        break
                 if self.__mon.waitForAbort(self.wait) or self.isclosed():
                     if not self.__terminate:
                         self.onclose()
@@ -249,19 +260,15 @@ class blockingloop(object):
             del self.__mon
         else:
             while True:
-                try:
+                with collector.LogException(self.errorname, self.dropboxtoken) as errcoll:
+                    errcoll.onexception = self.onclose
                     self.onloop()
-                except Exception as e:
-                    err = e
-                    traceback.print_exc()
-                    break
+                    if errcoll.hasexception:
+                        break
                 if self.isclosed():
                     self.onclose()
                     break
                 xbmc.sleep(int(self.wait * 1000))
-        if err:
-            traceback.print_exc()
-            raise(err)
 
     def init(self, *args, **kwargs):
         pass
@@ -288,11 +295,3 @@ class blockingloop(object):
     @property
     def terminate(self):
         return self.__terminate
-
-
-def builtin(*args, **kwargs):
-    return xbmc.executebuiltin(*args, **kwargs)
-
-
-def log(txt, level=0):
-    xbmc.log(txt, level)

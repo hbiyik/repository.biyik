@@ -27,7 +27,6 @@ import json
 import importlib
 
 import time
-import traceback
 import sys
 import six
 from six.moves.urllib import parse
@@ -38,6 +37,7 @@ from tinyxbmc import tools
 from tinyxbmc import gui
 from tinyxbmc import net
 from tinyxbmc import addon
+from tinyxbmc import collector
 
 REMOTE_DBG = False
 PROFILE = False
@@ -65,164 +65,160 @@ def refresh():
 
 class container(object):
     def __init__(self, addonid=None, *iargs, **ikwargs):
-        if PROFILE:
-            profiler.enable()
-        self.__inittime = time.time()
-        self.sysaddon = sys.argv[0]
-        self.player = None
-        self.playertimeout = 60
-        self.emptycontainer = True
-        aurl = parse.urlparse(self.sysaddon)
-        if aurl.scheme.lower() in ["plugin", "script"]:
-            self.addon = aurl.netloc
-        elif addonid:
-            self.addon = addonid
-        else:
-            raise Exception("Unknown Addon name")
-        try:
-            self.syshandle = int(sys.argv[1])
-        except Exception:
-            self.syshandle = -1
-        try:
-            serial = sys.argv[2][1:]
-            data = json.loads(parse.unquote_plus(serial))
-        except Exception:
-            data = {}
-        self._items = []
-        self._playlist = []
-        self._hays = {}
-        self._container = data.get("container", self.__class__.__name__)
-        self._module = data.get("module", self.__class__.__module__)
-        self._method = data.get("method", _default_method)
-        self._media = data.get("media", None)
-        args = data.get("args", [])
-        kwargs = data.get("kwargs", {})
-        self._disp_container = self._container
-        self._disp_module = self._module
-        self._disp_method = self._method
-        self._isplaying = 0  # 0 stopped, 1: trying, 2: started
-        self.ondispatch()
-        if self._disp_module == self.__class__.__module__:
-            if self._disp_container == self.__class__.__name__:
-                self._container = self
+        self.dropboxtoken = None
+        with collector.LogException("TINYXBMC ERROR sdfg", const.DB_TOKEN, ignore=False) as errorcol:
+            if PROFILE:
+                profiler.enable()
+            self.__inittime = time.time()
+            self.sysaddon = sys.argv[0]
+            self.player = None
+            self.playertimeout = 60
+            self.emptycontainer = True
+            aurl = parse.urlparse(self.sysaddon)
+            if aurl.scheme.lower() in ["plugin", "script"]:
+                self.addon = aurl.netloc
+            elif addonid:
+                self.addon = addonid
             else:
-                self._module = sys.modules[self._disp_module]
+                raise Exception("Unknown Addon name")
+            try:
+                self.syshandle = int(sys.argv[1])
+            except Exception:
+                self.syshandle = -1
+            try:
+                serial = sys.argv[2][1:]
+                data = json.loads(parse.unquote_plus(serial))
+            except Exception:
+                data = {}
+            self._items = []
+            self._playlist = []
+            self._hays = {}
+            self._container = data.get("container", self.__class__.__name__)
+            self._module = data.get("module", self.__class__.__module__)
+            self._method = data.get("method", _default_method)
+            self._media = data.get("media", None)
+            args = data.get("args", [])
+            kwargs = data.get("kwargs", {})
+            self._disp_container = self._container
+            self._disp_module = self._module
+            self._disp_method = self._method
+            self._isplaying = 0  # 0 stopped, 1: trying, 2: started
+            self.ondispatch()
+            if self._disp_module == self.__class__.__module__:
+                if self._disp_container == self.__class__.__name__:
+                    self._container = self
+                else:
+                    self._module = sys.modules[self._disp_module]
+                    self._container = getattr(self._module, self._disp_container)()
+                    return
+            else:
+                self._module = importlib.import_module(self._disp_module)
                 self._container = getattr(self._module, self._disp_container)()
                 return
-        else:
-            self._module = importlib.import_module(self._disp_module)
-            self._container = getattr(self._module, self._disp_container)()
-            return
-        self.__itime = (time.time() - _startt) * 1000
-        xbmc.log("****** TinyXBMC is Dispatching ******")
-        xbmc.log("MODULE    : %s" % self._disp_module)
-        xbmc.log("CONTAINER : %s" % self._disp_container)
-        xbmc.log("METHOD    : %s" % self._disp_method)
-        xbmc.log("ARGUMENTS : %s" % repr(args))
-        xbmc.log("KW ARGS   : %s" % repr(kwargs))
-        xbmc.log("MEDIA     : %s" % repr(self._media))
-        xbmc.log("*************************************")
-        self._container.useragent = const.USERAGENT
-        self._container.httptimeout = const.HTTPTIMEOUT
-        self._container.autoupdate = False
-        self._container.init(*iargs, **ikwargs)
-        self._method = getattr(self._container, self._disp_method)
-        if self._container._media == "resolver":
-            redirects = []
-            self.player = xbmcplayer(timeout=self.playertimeout)
-            for u, finfo, fart in tools.dynamicret(tools.safeiter(self._method(*args, **kwargs))):
-                if not isinstance(u, (six.string_types, const.URL)):
-                    addon.log("Provided url %s is not playable" % repr(u))
-                    continue
-                if self.player.dlg.iscanceled():
-                    break
-                self.player.fallbackinfo = finfo
-                self.player.fallbackart = fart
-                self._container._isplaying = 1
-                if isinstance(u, six.string_types) and "plugin://" in u:
-                    # play in another addonid
-                    redirects.append(u)
-                    continue
-                state = self.player.stream(u)
-                if state:
-                    self._container._isplaying = 2
+            self.__itime = (time.time() - _startt) * 1000
+            dispatchdata = "MODULE    : %s\r\n" % self._disp_module
+            dispatchdata += "CONTAINER : %s\r\n" % self._disp_container
+            dispatchdata += "METHOD    : %s\r\n" % self._disp_method
+            dispatchdata += "ARGUMENTS : %s\r\n" % repr(args)
+            dispatchdata += "KW ARGS   : %s\r\n" % repr(kwargs)
+            dispatchdata += "MEDIA     : %s\r\n" % repr(self._media)
+            errorcol.msg = dispatchdata
+            xbmc.log("TinyXBMC is Dispatching")
+            xbmc.log("\r\n" + dispatchdata)
+            self._container.useragent = const.USERAGENT
+            self._container.httptimeout = const.HTTPTIMEOUT
+            self._container.autoupdate = False
+            with collector.LogException("TINYXBMC EXTENSION ERROR", None, ignore=True) as ext_errcoll:
+                ext_errcoll.token = self._container.dropboxtoken
+                self._container.init(*iargs, **ikwargs)
+            self._method = getattr(self._container, self._disp_method)
+            if self._container._media == "resolver":
+                redirects = []
+                self.player = xbmcplayer(timeout=self.playertimeout)
+                for u, finfo, fart in tools.dynamicret(tools.safeiter(self._method(*args, **kwargs))):
+                    if not isinstance(u, (six.string_types, const.URL)):
+                        addon.log("Provided url %s is not playable" % repr(u))
+                        continue
+                    if self.player.dlg.iscanceled():
+                        break
+                    self.player.fallbackinfo = finfo
+                    self.player.fallbackart = fart
+                    self._container._isplaying = 1
+                    if isinstance(u, six.string_types) and "plugin://" in u:
+                        # play in another addonid
+                        redirects.append(u)
+                        continue
+                    state = self.player.stream(u)
+                    if state:
+                        self._container._isplaying = 2
+                        self._close()
+                        return
+                    else:
+                        self._container._isplaying = 0
+                        self.player.dlg.update(100, "Skipping broken url: %s" % u)
+                if not self._container._isplaying == 2 and len(redirects):
+                    redirects = list(set(redirects))
+                    if len(redirects) == 1:
+                        u = redirects[0]
+                    else:
+                        u = gui.select("Select Addon", *redirects)
+                    if self.player.canresolve:
+                        self.player.stream("", xbmcgui.ListItem())
+                    tools.builtin(u)
+                    state = self.player.waitplayback(u)
                     self._close()
+                    self._container._isplaying = 2
                     return
-                else:
-                    self._container._isplaying = 0
-                    self.player.dlg.update(100, "Skipping broken url: %s" % u)
-            if not self._container._isplaying == 2 and len(redirects):
-                redirects = list(set(redirects))
-                if len(redirects) == 1:
-                    u = redirects[0]
-                else:
-                    u = gui.select("Select Addon", *redirects)
-                if self.player.canresolve:
-                    self.player.stream("", xbmcgui.ListItem())
-                tools.builtin(u)
-                state = self.player.waitplayback(u)
-                self._close()
-                self._container._isplaying = 2
-                return
-            if self._container._isplaying == 0:
-                self.player.dlg.close()
-        elif self._container._media == "player":
-            p = xbmc.PlayList(1)
-            p.clear()
-            try:
-                ret = self._method(*args, **kwargs)
-            except Exception:
-                addon.log(traceback.format_exc())
-                self._close()
-                sys.exit()
-            iterable = tools.dynamicret(tools.safeiter(ret))
-            for u, info, art in iterable:
-                item = xbmcgui.ListItem(path=u)
-                item.setInfo("video", info)
-                gui.setArt(item, art)
-                p.add(u, item)
-            xbmc.Player().play(p)
-        else:
-            try:
-                cnttyp = self._method(*args, **kwargs)
-            except Exception:
-                addon.log(traceback.format_exc())
-                self._close()
-                sys.exit()
-            itemlen = len(self._container._items)
-            if cnttyp in const.CT_ALL:
-                xbmcplugin.setContent(self.syshandle, cnttyp)
-            if itemlen:
-                for url, item, isfolder in self._container._items:
-                    if cnttyp in const.CT_ALL:
-                        setview = self.item("Set view default for %s" % cnttyp.upper())
-                        setview.method = "_setview"
-                        item.context(setview, False, cnttyp)
-                        item.docontext()
-                    xbmcplugin.addDirectoryItem(self.syshandle, url, item.item, isfolder, itemlen)
-            if self.emptycontainer or itemlen:
-                xbmcplugin.endOfDirectory(self.syshandle, cacheToDisc=True)
-            if self._container.autoupdate:
-                d = self.item("Auto Update", method="_update")
-                d.run(self._container.autoupdate)
-            if cnttyp in const.CT_ALL:
-                views = self.hay(const.OPTIONHAY).find("views").data
-                if cnttyp in views:
-                    spath = tools.getSkinDir()
-                    view = views[cnttyp].get(spath, None)
-                    if view:
-                        for _ in range(0, 10 * 20):
-                            if xbmc.getCondVisibility('Container.Content(%s)' % cnttyp):
-                                xbmc.executebuiltin("Container.SetSortMethod(27)")
-                                xbmc.executebuiltin('Container.SetViewMode(%d)' % view)
-                                break
-                            xbmc.sleep(100)
-        self._close()
-        if PROFILE:
-            profiler.disable()
-            profiler.dump_stats("tinyxbmcprofile.txt")
-            with open("cachegrind.out.tinyxbmc", "w") as f:
-                profiler.callgrind(f)
+                if self._container._isplaying == 0:
+                    self.player.dlg.close()
+            elif self._container._media == "player":
+                p = xbmc.PlayList(1)
+                p.clear()
+                for u, info, art in tools.dynamicret(tools.safeiter(self._method(*args, **kwargs))):
+                    item = xbmcgui.ListItem(path=u)
+                    item.setInfo("video", info)
+                    gui.setArt(item, art)
+                    p.add(u, item)
+                xbmc.Player().play(p)
+            else:
+                with collector.LogException("TINYXBMC EXTENSION ERROR", None, ignore=True) as ext_errcoll:
+                    ext_errcoll.onexception = self._close
+                    ext_errcoll.token = self._container.dropboxtoken
+                    cnttyp = self._method(*args, **kwargs)
+                itemlen = len(self._container._items)
+                if cnttyp in const.CT_ALL:
+                    xbmcplugin.setContent(self.syshandle, cnttyp)
+                if itemlen:
+                    for url, item, isfolder in self._container._items:
+                        if cnttyp in const.CT_ALL:
+                            setview = self.item("Set view default for %s" % cnttyp.upper())
+                            setview.method = "_setview"
+                            item.context(setview, False, cnttyp)
+                            item.docontext()
+                        xbmcplugin.addDirectoryItem(self.syshandle, url, item.item, isfolder, itemlen)
+                if self.emptycontainer or itemlen:
+                    xbmcplugin.endOfDirectory(self.syshandle, cacheToDisc=True)
+                if self._container.autoupdate:
+                    d = self.item("Auto Update", method="_update")
+                    d.run(self._container.autoupdate)
+                if cnttyp in const.CT_ALL:
+                    views = self.hay(const.OPTIONHAY).find("views").data
+                    if cnttyp in views:
+                        spath = tools.getSkinDir()
+                        view = views[cnttyp].get(spath, None)
+                        if view:
+                            for _ in range(0, 10 * 20):
+                                if xbmc.getCondVisibility('Container.Content(%s)' % cnttyp):
+                                    xbmc.executebuiltin("Container.SetSortMethod(27)")
+                                    xbmc.executebuiltin('Container.SetViewMode(%d)' % view)
+                                    break
+                                xbmc.sleep(100)
+            self._close()
+            if PROFILE:
+                profiler.disable()
+                profiler.dump_stats("tinyxbmcprofile.txt")
+                with open("cachegrind.out.tinyxbmc", "w") as f:
+                    profiler.callgrind(f)
 
     def option(self, useragent=None, httptimeout=None):
         opthay = self.hay(const.OPTIONHAY)
@@ -254,6 +250,7 @@ class container(object):
         xbmc.log("DISPATCH TIME  : %s ms" % dtime)
         xbmc.log("EXECUTION TIME : %s ms" % etime)
         xbmc.log("************************************")
+        sys.exit()
 
     def _art(self, d, headers=None):
         if not headers:

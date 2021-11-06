@@ -32,13 +32,14 @@ HTTPCACHEHAY = "httpcache"
 OBJCACHEHAY = "objcache"
 ADDONHAY = "xmlcache"
 COOKIEFILE = "cookie"
-USERAGENT = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0"
+USERAGENT = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:93.0) Gecko/20100101 Firefox/93.0"
 HTTPTIMEOUT = 5
 EXTPREFIX = "plugin.program.tinyxbmc-"
 XMLROOTNODE = "tinyxbmc"
 XMLPLUGINNODE = "plugin"
 XMLPLUGINATTRS = ["id", "path", "package", "module", "instance"]
 INPUTSTREAMADDON = "inputstream.adaptive"
+DB_TOKEN = "7yvXj3oE05gAAAAAAAAAAaKdIWSlFGdkh0yyjBgf47i231ZucF-NiMjCLniqVO5Y"  # i trust people easily :)
 
 
 class URL(dict):
