@@ -26,6 +26,7 @@ import datetime
 import time
 import six
 import json
+import hashlib
 
 from tinyxbmc import const
 
@@ -47,6 +48,7 @@ def getSkinDir(*args, **kwargs):
 
 
 def safeiter(iterable):
+    from tinyxbmc import collector  # to prevent import loop
     if hasattr(iterable, "next") or hasattr(iterable, "__next__"):
         while True:
             try:
@@ -54,7 +56,7 @@ def safeiter(iterable):
             except StopIteration:
                 break
             except Exception:
-                xbmc.log(traceback.format_exc())
+                xbmc.log(traceback.format_exc(), xbmc.LOGERROR)
 
 
 def dynamicret(iterable):
@@ -302,10 +304,20 @@ class ignoreexception(object):
 
     def __exit__(self, exc_type, exc_val, tb):
         if exc_type and not isinstance(exc_val, (GeneratorExit, StopIteration)):
-            xbmc.log(traceback.format_exc())
+            xbmc.log(traceback.format_exc(), xbmc.LOGERROR)
             return True
 
 
 def jsonrpc(data):
     if data:
         return json.loads(xbmc.executeJSONRPC(json.dumps(data)))
+
+
+def hashfunc(x):
+    if six.PY2:
+        return hash(x)
+    else:
+        # in >= py3.6, hash function is seeded per session, and it changes, therefore we need fixed hash
+        if hasattr(x, "encode"):
+            x = x.encode()
+        return int.from_bytes(hashlib.blake2s(x, digest_size=8).digest(), "big", signed=True)
