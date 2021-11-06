@@ -101,6 +101,7 @@ def makenameart(cls):
 
 class index(container.container):
     def init(self):
+        self.dropboxtoken = const.DB_TOKEN
         self._next = True
         self.__bg = None
         self.option(_useragent, _timeout)
