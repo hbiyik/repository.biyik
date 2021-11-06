@@ -61,9 +61,14 @@ class Tab:
                 cookies = message.get("params", {}).get("associatedCookies", [])
                 if cookies:
                     for cookie in cookies:
-                        name = cookie["cookie"].pop("name")
-                        if name == "cf_clearance":
-                            self.cookie = create_cookie(name, cookie["cookie"])
+                        if cookie["cookie"]["name"] == "cf_clearance":
+                            c = create_cookie(name=cookie["cookie"]["name"],
+                                              value=cookie["cookie"]["value"],
+                                              domain=cookie["cookie"]["domain"],
+                                              path=cookie["cookie"]["path"],
+                                              expires=cookie["cookie"]["expires"],
+                                              secure=cookie["cookie"]["secure"])
+                            self.cookie = c
             if self.cookie:
                 break
 
