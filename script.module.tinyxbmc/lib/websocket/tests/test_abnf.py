@@ -1,30 +1,36 @@
 # -*- coding: utf-8 -*-
 #
 """
-test_abnf.py
 websocket - WebSocket client library for Python
 
-Copyright 2021 engn33r
+Copyright (C) 2010 Hiroki Ohtani(liris)
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
 """
 
 import os
 import websocket as ws
 from websocket._abnf import *
 import sys
-import unittest
 sys.path[0:0] = [""]
+
+if sys.version_info[0] == 2 and sys.version_info[1] < 7:
+    import unittest2 as unittest
+else:
+    import unittest
 
 
 class ABNFTest(unittest.TestCase):
@@ -42,40 +48,19 @@ class ABNFTest(unittest.TestCase):
         self.assertEqual(a_bad.opcode, 77)
 
     def testValidate(self):
-        a_invalid_ping = ABNF(0,0,0,0, opcode=ABNF.OPCODE_PING)
-        self.assertRaises(ws._exceptions.WebSocketProtocolException, a_invalid_ping.validate, skip_utf8_validation=False)
-        a_bad_rsv_value = ABNF(0,1,0,0, opcode=ABNF.OPCODE_TEXT)
-        self.assertRaises(ws._exceptions.WebSocketProtocolException, a_bad_rsv_value.validate, skip_utf8_validation=False)
-        a_bad_opcode = ABNF(0,0,0,0, opcode=77)
-        self.assertRaises(ws._exceptions.WebSocketProtocolException, a_bad_opcode.validate, skip_utf8_validation=False)
-        a_bad_close_frame = ABNF(0,0,0,0, opcode=ABNF.OPCODE_CLOSE, data=b'\x01')
-        self.assertRaises(ws._exceptions.WebSocketProtocolException, a_bad_close_frame.validate, skip_utf8_validation=False)
-        a_bad_close_frame_2 = ABNF(0,0,0,0, opcode=ABNF.OPCODE_CLOSE, data=b'\x01\x8a\xaa\xff\xdd')
-        self.assertRaises(ws._exceptions.WebSocketProtocolException, a_bad_close_frame_2.validate, skip_utf8_validation=False)
-        a_bad_close_frame_3 = ABNF(0,0,0,0, opcode=ABNF.OPCODE_CLOSE, data=b'\x03\xe7')
-        self.assertRaises(ws._exceptions.WebSocketProtocolException, a_bad_close_frame_3.validate, skip_utf8_validation=True)
+        a = ABNF(0,0,0,0, opcode=ABNF.OPCODE_PING)
+        self.assertRaises(ws.WebSocketProtocolException, a.validate)
+        a_bad = ABNF(0,1,0,0, opcode=77)
+        self.assertRaises(ws.WebSocketProtocolException, a_bad.validate)
+        a_close = ABNF(0,1,0,0, opcode=ABNF.OPCODE_CLOSE, data="abcdefgh1234567890abcdefgh1234567890abcdefgh1234567890abcdefgh1234567890")
+        self.assertRaises(ws.WebSocketProtocolException, a_close.validate)
 
-    def testMask(self):
-        abnf_none_data = ABNF(0,0,0,0, opcode=ABNF.OPCODE_PING, mask=1, data=None)
-        bytes_val = bytes("aaaa", 'utf-8')
-        self.assertEqual(abnf_none_data._get_masked(bytes_val), bytes_val)
-        abnf_str_data = ABNF(0,0,0,0, opcode=ABNF.OPCODE_PING, mask=1, data="a")
-        self.assertEqual(abnf_str_data._get_masked(bytes_val), b'aaaa\x00')
-
-    def testFormat(self):
-        abnf_bad_rsv_bits = ABNF(2,0,0,0, opcode=ABNF.OPCODE_TEXT)
-        self.assertRaises(ValueError, abnf_bad_rsv_bits.format)
-        abnf_bad_opcode = ABNF(0,0,0,0, opcode=5)
-        self.assertRaises(ValueError, abnf_bad_opcode.format)
-        abnf_length_10 = ABNF(0,0,0,0, opcode=ABNF.OPCODE_TEXT, data="abcdefghij")
-        self.assertEqual(b'\x01', abnf_length_10.format()[0].to_bytes(1, 'big'))
-        self.assertEqual(b'\x8a', abnf_length_10.format()[1].to_bytes(1, 'big'))
-        self.assertEqual("fin=0 opcode=1 data=abcdefghij", abnf_length_10.__str__())
-        abnf_length_20 = ABNF(0,0,0,0, opcode=ABNF.OPCODE_BINARY, data="abcdefghijabcdefghij")
-        self.assertEqual(b'\x02', abnf_length_20.format()[0].to_bytes(1, 'big'))
-        self.assertEqual(b'\x94', abnf_length_20.format()[1].to_bytes(1, 'big'))
-        abnf_no_mask = ABNF(0,0,0,0, opcode=ABNF.OPCODE_TEXT, mask=0, data=b'\x01\x8a\xcc')
-        self.assertEqual(b'\x01\x03\x01\x8a\xcc', abnf_no_mask.format())
+#    This caused an error in the Python 2.7 Github Actions build
+#    Uncomment test case when Python 2 support no longer wanted
+#    def testMask(self):
+#        ab = ABNF(0,0,0,0, opcode=ABNF.OPCODE_PING)
+#        bytes_val = bytes("aaaa", 'utf-8')
+#        self.assertEqual(ab._get_masked(bytes_val), bytes_val)
 
     def testFrameBuffer(self):
         fb = frame_buffer(0, True)

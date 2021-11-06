@@ -1,29 +1,36 @@
 # -*- coding: utf-8 -*-
 #
 """
-test_url.py
 websocket - WebSocket client library for Python
 
-Copyright 2021 engn33r
+Copyright (C) 2010 Hiroki Ohtani(liris)
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
 """
 
 import sys
 import os
-import unittest
-sys.path[0:0] = [""]
+
 from websocket._url import get_proxy_info, parse_url, _is_address_in_network, _is_no_proxy_host
+
+if sys.version_info[0] == 2 and sys.version_info[1] < 7:
+    import unittest2 as unittest
+else:
+    import unittest
+sys.path[0:0] = [""]
 
 
 class UrlTest(unittest.TestCase):
@@ -89,6 +96,9 @@ class UrlTest(unittest.TestCase):
         self.assertEqual(p[3], True)
 
         self.assertRaises(ValueError, parse_url, "http://www.example.com/r")
+
+        if sys.version_info[0] == 2 and sys.version_info[1] < 7:
+            return
 
         p = parse_url("ws://[2a03:4000:123:83::3]/r")
         self.assertEqual(p[0], "2a03:4000:123:83::3")
@@ -274,10 +284,6 @@ class ProxyInfoTest(unittest.TestCase):
         os.environ["http_proxy"] = "http://a:b@localhost:3128/"
         os.environ["https_proxy"] = "http://a:b@localhost2:3128/"
         self.assertEqual(get_proxy_info("echo.websocket.org", True), ("localhost2", 3128, ("a", "b")))
-
-        os.environ["http_proxy"] = "http://john%40example.com:P%40SSWORD@localhost:3128/"
-        os.environ["https_proxy"] = "http://john%40example.com:P%40SSWORD@localhost2:3128/"
-        self.assertEqual(get_proxy_info("echo.websocket.org", True), ("localhost2", 3128, ("john@example.com", "P@SSWORD")))
 
         os.environ["http_proxy"] = "http://a:b@localhost/"
         os.environ["https_proxy"] = "http://a:b@localhost2/"

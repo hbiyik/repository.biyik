@@ -1,33 +1,55 @@
 """
-_handshake.py
 websocket - WebSocket client library for Python
 
-Copyright 2021 engn33r
+Copyright (C) 2010 Hiroki Ohtani(liris)
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
 """
 import hashlib
 import hmac
 import os
-from base64 import encodebytes as base64encode
-from http import client as HTTPStatus
+
+import six
+
 from ._cookiejar import SimpleCookieJar
 from ._exceptions import *
 from ._http import *
 from ._logging import *
 from ._socket import *
 
+if hasattr(six, 'PY3') and six.PY3:
+    from base64 import encodebytes as base64encode
+else:
+    from base64 import encodestring as base64encode
+
+if hasattr(six, 'PY3') and six.PY3:
+    if hasattr(six, 'PY34') and six.PY34:
+        from http import client as HTTPStatus
+    else:
+        from http import HTTPStatus
+else:
+    import httplib as HTTPStatus
+
 __all__ = ["handshake_response", "handshake", "SUPPORTED_REDIRECT_STATUSES"]
+
+if hasattr(hmac, "compare_digest"):
+    compare_digest = hmac.compare_digest
+else:
+    def compare_digest(s1, s2):
+        return s1 == s2
 
 # websocket supported version.
 VERSION = 13
@@ -172,12 +194,12 @@ def _validate(headers, key, subprotocols):
         return False, None
     result = result.lower()
 
-    if isinstance(result, str):
+    if isinstance(result, six.text_type):
         result = result.encode('utf-8')
 
     value = (key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode('utf-8')
     hashed = base64encode(hashlib.sha1(value).digest()).strip().lower()
-    success = hmac.compare_digest(hashed, result)
+    success = compare_digest(hashed, result)
 
     if success:
         return True, subproto
