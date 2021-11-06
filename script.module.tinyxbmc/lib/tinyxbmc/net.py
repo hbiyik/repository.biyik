@@ -19,18 +19,14 @@
 '''
 import requests
 import os
-import time
 import re
 import six
 import traceback
+import calendar
 from six.moves.urllib import parse
 from six.moves import http_cookiejar
-from six.moves import input
-import copy
 from datetime import datetime, timedelta
 from email.utils import parsedate, formatdate
-import calendar
-
 
 import ghub
 from cachecontrol import CacheControlAdapter
@@ -42,6 +38,8 @@ from cachecontrol.caches import HayCache as Cache
 from tinyxbmc import addon
 from tinyxbmc import tools
 from tinyxbmc import const
+from tinyxbmc import cloudflare
+from tinyxbmc import gui
 from tinyxbmc.distversion import LooseVersion
 
 __profile = addon.get_commondir()
@@ -165,7 +163,15 @@ def http(url, params=None, data=None, headers=None, timeout=5, json=None, method
     else:
         session = getsession(cache)
     response = session.request(method, url, **kwargs)
-    response = cloudflare(session, response, None, **kwargs)
+    if (response.status_code == 503 and "cloudflare" in response.headers.get("Server") and
+            b"jschl_vc" in response.content and b"jschl_answer" in response.content):
+        gui.notify("Cloudflare", "%s waiting" % url, sound=False)
+        tab = cloudflare.bypass(url, headers["User-Agent"])
+        if tab.cookie:
+            session.cookies.set_cookie(tab.cookie)
+            session.cookies.save(ignore_discard=True)
+            gui.notify("Cloudflare", "%s finished" % url, sound=False)
+            response = session.request(method, url, **kwargs)
     try:
         session.cookies.save(ignore_discard=True)
     except Exception:
@@ -183,118 +189,6 @@ def http(url, params=None, data=None, headers=None, timeout=5, json=None, method
             text = response.text
         ret = six.text_type(tools.unescapehtml(text))
     return ret
-
-
-def cloudflare(session, response, previous, **kwargs):
-    def __extract_js(body):
-        js = re.search(r"(var s,t,o,p,b,r,e,a,k,i,n,g,f,.+?;)", body).group(1)
-        js += re.search(r";(.+?)\s?\+\s?t\.length", body).group(1)
-        js = re.sub(r'a\.value.+', '', js)
-        return js + ";"
-
-    def __redirect_clf(redirect, previous, **kwargs):
-        redirect_url = redirect.headers.get("Location")
-        if redirect_url is None:
-            return cloudflare(redirect, previous, **kwargs)
-        elif redirect_url.startswith("/"):
-            redirect_url = "%s://%s%s" % (parsed_url.scheme, domain, redirect_url)
-        kwargs["method"] = method
-        kwargs["text"] = False
-        return http(redirect_url, **kwargs)
-
-    if (response.status_code == 503 and "cloudflare" in response.headers.get("Server") and
-            b"jschl_vc" in response.content and b"jschl_answer" in response.content):
-        if previous == "js":
-            return response
-        else:
-            previous = "js"
-        import js2py
-        body = response.text
-        parsed_url = parse.urlparse(response.url)
-        domain = parsed_url.netloc
-        action = re.search("action=(?:\"|')(.+?)(?:\"|')", body)
-        submit_url = "%s://%s%s" % (parsed_url.scheme, domain, action.group(1))
-        cfkwargs = copy.deepcopy(kwargs)
-        for key in ["headers", "data"]:
-            if not isinstance(cfkwargs[key], dict):
-                cfkwargs[key] = {}
-        cfkwargs["headers"]["Referer"] = response.url
-        cfkwargs["data"]["jschl_vc"] = re.search(r'name="jschl_vc" value="(\w+)"', body).group(1)
-        cfkwargs["data"]["pass"] = re.search(r'name="pass" value="(.+?)"', body).group(1)
-        jsanswer = str(float(js2py.eval_js(__extract_js(body))) + len(domain))
-        cfkwargs["data"]["jschl_answer"] = jsanswer
-        method = response.request.method
-        # cfkwargs["allow_redirects"] = False
-        t = 5
-        from tinyxbmc import gui
-        gui.notify("CloudFlare", "Waiting %d seconds" % t, False)
-        time.sleep(t)
-        return cloudflare(session, session.request("POST", submit_url, **cfkwargs), "js", **kwargs)
-
-    elif response.status_code == 403 and "cloudflare" in response.headers.get("Server"):
-        if previous == "cc":
-            return response
-        body = tools.unescapehtml(response.text)
-        formaddr = re.search('<form.+?id="challenge-form".+?action="(.+?)"', body)
-        if formaddr:
-            from tinyxbmc import recaptcha
-            r = re.search('input type="hidden" name="r" value="(.*?)"', body).group(1)
-            page_url = response.url
-            method = response.request.method
-            parsed_url = parse.urlparse(page_url)
-            domain = parsed_url.netloc
-            sitekey = re.search('data-sitekey="(.*?)"', body).group(1)
-            ua = response.request.headers["user-agent"]
-            headers = {'Referer': page_url, "User-agent": ua, "Accept-Language": tools.language()}
-            resp = session.request("GET", 'http://www.google.com/recaptcha/api/fallback?k=%s' % sitekey,
-                                   headers=headers)
-            html = tools.unescapehtml(resp.text)
-            token = ''
-            iteration = 0
-            while True:
-                payload = re.findall('"(/recaptcha/api2/payload[^"]+)', html)
-                iteration += 1
-                message = re.findall('<label[^>]+class="fbc-imageselect-message-text"[^>]*>(.*?)</label>', html)
-                if not message:
-                    message = re.findall('<div[^>]+class="fbc-imageselect-message-error">(.*?)</div>', html)
-                if not message:
-                    token = re.findall('div class="fbc-verification-token"><textarea.+?>(.*?)<\/textarea>', html)[0]
-                    if token:
-                        addon.log('Captcha Success: %s' % token)
-                    else:
-                        addon.log('Captcha Failed')
-                    break
-                else:
-                    message = tools.strip(message[0], True)
-                    payload = payload[0]
-                cval = re.findall('name="c"\s+value="([^"]+)', html)[0]
-                captcha_imgurl = 'https://www.google.com%s' % (payload.replace('&amp;', '&'))
-                message = re.sub('</?strong>', '', message)
-                if tools.isstub():
-                    addon.log(captcha_imgurl)
-                    addon.log(message)
-                    addon.log(iteration)
-                    addon.log(page_url)
-                    captcha_response = [int(x) for x in input("").split()]
-                else:
-                    oSolver = recaptcha.cInputWindow(captcha=captcha_imgurl, msg=message, iteration=iteration, sitemsg=page_url)
-                    captcha_response = oSolver.get()
-                if not captcha_response:
-                    break
-                postdata = {"c": str(cval), "response": []}
-                for captcha in captcha_response:
-                    postdata["response"].append(str(captcha))
-                headers = {'Referer': resp.url, "User-agent": ua}
-                resp = session.request("POST", 'http://www.google.com/recaptcha/api/fallback?k=%s' % sitekey,
-                                       headers=headers, data=postdata)
-                html = resp.text
-            if token == "":
-                return response
-            submit_url = "%s://%s%s" % (parsed_url.scheme, domain, formaddr.group(1))
-            data = {"r": r, "g-recaptcha-response": token}
-            headers = {"Referer": page_url, "User-agent": ua}
-            return cloudflare(session, session.request("POST", submit_url, data=data, headers=headers), "cc", **kwargs)
-    return response
 
 
 class timecache(BaseHeuristic):
