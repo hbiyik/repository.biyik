@@ -23,13 +23,14 @@ import json
 import os
 import time
 import zlib
-import hashlib
 from threading import Lock
+
 try:
     import cPickle as pickle
 except ImportError:
     import pickle as pickle
 from tinyxbmc import addon
+from tinyxbmc import tools
 
 import sqlite3
 import six
@@ -38,14 +39,6 @@ _debug = False
 
 def _null(data, *args, **kwargs):
     return data
-
-
-def hashfunc(x):
-    if six.PY2:
-        return hash(x)
-    else:
-        # in >= py3.6, hash function is seeded per session, and changes, therefore we need fixed hash
-        return int.from_bytes(hashlib.blake2s(x.encode(), digest_size=8).digest(), "big", signed=True)
 
 
 class needle():
@@ -71,9 +64,9 @@ class needle():
 
     def dohash(self, ser=None):
         if self.id:
-            self.hash = hashfunc(self.id)
+            self.hash = tools.hashfunc(self.id)
         elif ser:
-            self.hash = hashfunc(ser)
+            self.hash = tools.hashfunc(ser)
 
     def deser(self, serdata):
         self.dohash(str(serdata))
