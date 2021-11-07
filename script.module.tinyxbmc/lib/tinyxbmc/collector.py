@@ -6,6 +6,7 @@ Created on Nov 6, 2021
 import os
 import platform
 import requests
+import io
 from datetime import datetime
 
 import xbmc
@@ -40,20 +41,20 @@ def collect_log(name, content, token):
     log_path = tools.translatePath('special://logpath')
     kodilog = None
     for filename in ["kodi.log", "xbmc.log", "spmc.log"]:
-        fullpath = os.path.join(log_path, filename).decode('utf-8')
+        fullpath = os.path.join(log_path, filename)
         if os.path.exists(fullpath):
-            with open(fullpath) as f:
+            with io.open(fullpath, encoding="utf-8") as f:
                 kodilog = f.read()
                 break
     if kodilog:
-        log += "KODI LOG             :\r\n%s\r\n" % kodilog.decode("utf-8")
+        log += "KODI LOG             :\r\n%s\r\n" % kodilog
     headers = {'Authorization': 'Bearer %s' % token,
                'Dropbox-API-Arg': '{\"path\": \"/%s\",\"mode\": \"add\",\"autorename\": true,\"mute\": false,\"strict_conflict\": false}' % fname,
                'Content-Type': 'application/octet-stream'}
 
     msg = "Do you want to help to fix this problem by sending the kodilogs and error trace to a public space where developers can analyze in the detail?"
     if(gui.yesno("Send Error Report: %s" % name, msg)):
-        requests.post('%s/2/files/upload' % db_api_url, headers=headers, data=log.encode("ascii", "replace"))
+        requests.post('%s/2/files/upload' % db_api_url, headers=headers, data=log.encode("utf-8"))
 
 
 class LogException():
@@ -61,7 +62,7 @@ class LogException():
         self.name = name
         self.ignore = ignore
         self.token = token
-        self.hasexceptionn = False
+        self.hasexception = False
         self.msg = ""
 
     def __enter__(self):
@@ -79,7 +80,7 @@ class LogException():
                 self.msg += "TRACEBACK: \r\n%s\r\n" % tb
                 collect_log(self.name, self.msg, self.token)
             if not self.ignore:
-                raise(exc_type(exc_val))
+                raise
             else:
                 # TO-DO: backward compat?
                 xbmc.log(tb, xbmc.LOGERROR)
