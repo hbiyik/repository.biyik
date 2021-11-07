@@ -8,13 +8,13 @@ Created on Nov 1, 2021
 import platform
 import xbmc
 import struct
-import uuid
-import sys
 import random
+import hashlib
+import getmac
 import binascii
 
 from tinyxbmc import const
-from tinyxbmc import tools
+
 
 elf_machines = {2: "sparc", 3: "x86", 8: "mips", 20: "ppc", 21: "ppc64", 22: "s390",
                 40: "arm", 42: "superh", 50: "ia64", 62: "amd64", 183: "aarch64", 243: "riscv"}
@@ -78,26 +78,11 @@ def getelfabi():
 
 def getmachineid():
     mid = None
-    prefix = "m:"
-    getters = []
-    if hasattr(uuid, "_OS_GETTERS"):
-        getters = uuid._OS_GETTERS
-    elif hasattr(uuid, "_NODE_GETTERS_WIN32") and sys.platform == 'win32':
-        getters = uuid._NODE_GETTERS_WIN32
-    elif hasattr(uuid, "_NODE_GETTERS_UNIX"):
-        getters = uuid._NODE_GETTERS_UNIX
-
-    for getter in getters:
-        try:
-            mid = getter()
-        except Exception:
-            continue
-        if (mid is not None) and (0 <= mid < (1 << 48)):
-            break
-        else:
-            mid = None
-
-    if not mid:
+    mac = getmac.get_mac_address()
+    if mac:
+        prefix = "m:"
+        mid = binascii.unhexlify(getmac.get_mac_address().replace(":", ""))
+    else:
         prefix = "i:"
         from tinyxbmc import hay
         with hay.stack(const.OPTIONHAY) as stack:
@@ -106,6 +91,6 @@ def getmachineid():
                 mid = random.getrandbits(48) | (1 << 40)
                 stack.throw("installid", mid)
                 stack.snapshot()
+            mid = struct.pack("Q", mid)[:-2]
 
-    mid = binascii.hexlify(struct.pack("q", tools.hashfunc(struct.pack("Q", mid)[:-2]))).decode()
-    return prefix + mid
+    return prefix + hashlib.sha256(mid).hexdigest()
