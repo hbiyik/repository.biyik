@@ -43,9 +43,13 @@ def collect_log(name, content, token):
     for filename in ["kodi.log", "xbmc.log", "spmc.log"]:
         fullpath = os.path.join(log_path, filename)
         if os.path.exists(fullpath):
-            with io.open(fullpath, encoding="utf-8") as f:
-                kodilog = f.read()
-                break
+            for encoding in ["latin-1", "utf-8"]:
+                try:
+                    with io.open(fullpath, encoding=encoding) as f:
+                        kodilog = f.read()
+                        break
+                except Exception:
+                    continue
     if kodilog:
         log += "KODI LOG             :\r\n%s\r\n" % kodilog
     headers = {'Authorization': 'Bearer %s' % token,
