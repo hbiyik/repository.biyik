@@ -3,11 +3,9 @@
     <requires>
 		<import addon="script.module.cachecontrol"/>
 		<import addon="script.module.requests"/>
-		<import addon="script.module.js2py"/>
 		<import addon="script.module.six"/>
 		<import addon="script.module.ghub"/>
 		<import addon="script.module.importlib" optional="true"/>
-		<import addon="service.system.docker" optional="true"/>
 		<import addon="script.module.inputstreamhelper" optional="true"/>
 		<import addon="inputstream.adaptive" optional="true"/>
 	</requires>
