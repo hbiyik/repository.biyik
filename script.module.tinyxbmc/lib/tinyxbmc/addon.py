@@ -240,8 +240,7 @@ class blockingloop(object):
         self.errorname = ""
         self.__new = LooseVersion(xbmc.__version__) >= LooseVersion("2.20.0")  # @UndefinedVariable
         self.__terminate = False
-        with collector.LogException(self.errorname, None):
-            self.init(*args, **kwargs)
+        self.init(*args, **kwargs)
         with collector.LogException(self.errorname, self.dropboxtoken) as errcoll:
             errcoll.onexception = self.onclose
             self.oninit()

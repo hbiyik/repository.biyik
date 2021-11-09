@@ -12,7 +12,6 @@
 		<import addon="inputstream.adaptive" optional="true"/>
 	</requires>
 	<extension point="xbmc.python.module" library="lib" />
-	<extension point="xbmc.service" library="lib/chromium.py" />
 	<extension point="xbmc.addon.metadata">
 		<platform>all</platform>
 		<summary lang="en">TinxyXBMC module</summary>

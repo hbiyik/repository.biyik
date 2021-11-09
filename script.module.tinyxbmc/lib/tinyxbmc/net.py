@@ -38,8 +38,6 @@ from cachecontrol.caches import HayCache as Cache
 from tinyxbmc import addon
 from tinyxbmc import tools
 from tinyxbmc import const
-from tinyxbmc import cloudflare
-from tinyxbmc import gui
 from tinyxbmc.distversion import LooseVersion
 
 __profile = addon.get_commondir()
@@ -163,15 +161,6 @@ def http(url, params=None, data=None, headers=None, timeout=5, json=None, method
     else:
         session = getsession(cache)
     response = session.request(method, url, **kwargs)
-    if (response.status_code == 503 and "cloudflare" in response.headers.get("Server") and
-            b"jschl_vc" in response.content and b"jschl_answer" in response.content):
-        gui.notify("Cloudflare", "%s waiting" % url, sound=False)
-        tab = cloudflare.bypass(url, headers["User-Agent"])
-        if tab.cookie:
-            session.cookies.set_cookie(tab.cookie)
-            session.cookies.save(ignore_discard=True)
-            gui.notify("Cloudflare", "%s finished" % url, sound=False)
-            response = session.request(method, url, **kwargs)
     try:
         session.cookies.save(ignore_discard=True)
     except Exception:

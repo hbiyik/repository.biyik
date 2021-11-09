@@ -17,7 +17,8 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
-
+# we want to patch python since some standart libraries in kodi python interpreter needs mocking
+from tinyxbmc import mocks
 import xbmcaddon
 import xbmcgui
 import xbmcplugin
@@ -66,7 +67,7 @@ def refresh():
 class container(object):
     def __init__(self, addonid=None, *iargs, **ikwargs):
         self.dropboxtoken = None
-        with collector.LogException("TINYXBMC ERROR sdfg", const.DB_TOKEN, ignore=False) as errorcol:
+        with collector.LogException("TINYXBMC ERROR", const.DB_TOKEN, ignore=False) as errorcol:
             if PROFILE:
                 profiler.enable()
             self.__inittime = time.time()
@@ -181,8 +182,11 @@ class container(object):
                     p.add(u, item)
                 xbmc.Player().play(p)
             else:
+                def _onexception():
+                    self._close()
+                    sys.exit()
                 with collector.LogException("TINYXBMC EXTENSION ERROR", None, ignore=True) as ext_errcoll:
-                    ext_errcoll.onexception = self._close
+                    ext_errcoll.onexception = _onexception
                     ext_errcoll.token = self._container.dropboxtoken
                     cnttyp = self._method(*args, **kwargs)
                 itemlen = len(self._container._items)
@@ -250,7 +254,6 @@ class container(object):
         xbmc.log("DISPATCH TIME  : %s ms" % dtime)
         xbmc.log("EXECUTION TIME : %s ms" % etime)
         xbmc.log("************************************")
-        sys.exit()
 
     def _art(self, d, headers=None):
         if not headers:
