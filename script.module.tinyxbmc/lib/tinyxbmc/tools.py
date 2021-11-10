@@ -27,10 +27,16 @@ import time
 import six
 import json
 import hashlib
+import zipfile
+
 
 from tinyxbmc import const
-
 from xml.dom import minidom
+
+if six.PY2:
+    from StringIO import StringIO as IOClass
+else:
+    from io import BytesIO as IOClass
 
 
 def translatePath(*args, **kwargs):
@@ -48,7 +54,6 @@ def getSkinDir(*args, **kwargs):
 
 
 def safeiter(iterable):
-    from tinyxbmc import collector  # to prevent import loop
     if hasattr(iterable, "next") or hasattr(iterable, "__next__"):
         while True:
             try:
@@ -321,3 +326,11 @@ def hashfunc(x):
         if hasattr(x, "encode"):
             x = x.encode()
         return int.from_bytes(hashlib.blake2s(x, digest_size=8).digest(), "big", signed=True)
+
+
+def memzip(datas):
+    zip_buffer = IOClass()
+    with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
+        for fname, data in datas:
+            zip_file.writestr(fname, data)
+    return zip_buffer.getvalue()
