@@ -32,11 +32,11 @@ from tinyxbmc import addon as tinyaddon
 from tinyxbmc import tools
 from tinyxbmc import net
 from tinyxbmc import const
+from tinyxbmc import collector
 
 from six import string_types
 import six
 
-import traceback
 import json
 import os
 
@@ -52,14 +52,13 @@ _extaddonplayer = "vodsaddonplayer"
 
 def channelmethod(chanmethod):
     def wrapped(self, page, *args, **kwargs):
-        try:
+        with collector.LogException("VODS", const.DB_TOKEN, True) as errcoll:
             six.next(self.getscrapers(page=page,
                                       mtd=chanmethod.__name__,
                                       args=args,
                                       **kwargs))
-        except Exception:
-            print(traceback.format_exc())
-            return
+            if errcoll.hasexception:
+                return
         ret = chanmethod(self, *args)
         if self.chan.nextpage[0] and self._next:
             name, arg, info, art = self.chan.nextpage
@@ -132,11 +131,10 @@ class index(container.container):
         if mode == "settings":
             tinyaddon.builtin("Addon.OpenSettings(%s)" % args[0])
         elif mode == "meta":
-            try:
+            with collector.LogException("VODS", const.DB_TOKEN, True) as errcoll:
                 six.next(self.getscrapers(**kwargs))
-            except Exception:
-                print(traceback.format_exc())
-                return
+                if errcoll.hasexception:
+                    return
             self._cachemeta(*args)
             tinyaddon.builtin("Container.Refresh")
 
@@ -160,11 +158,10 @@ class index(container.container):
             cart = cachehay.find("%s%sart" % (repr(arg), typ)).data
             if cinfo == {} and cart == {} and scrape:
                 cache = getattr(self.chan, mname)
-                try:
+                with collector.LogException("VODS", const.DB_TOKEN, True) as errcoll:
                     cinfo, cart = cache(arg)
-                except Exception:
-                    print(traceback.format_exc())
-                    return info, art
+                    if errcoll.hasexception:
+                        return info, art
                 name = cinfo.get("title", info.get("title"))
                 if not name:
                     name = cinfo.get("tvshowtitle", info.get("tvshowtitle", "media"))
@@ -189,15 +186,15 @@ class index(container.container):
                     instance=None, mtd=None, args=[], page=None):
         for plg in extension.getplugins(id, addon, path, package, module, instance):
             ret = None
-            try:
+            with collector.LogException("VODS ADDON: %s" % plg._tinyxbmc["addon"], None, True) as errcoll:
+                # channel instantiate
                 chan = plg(self, page, plg._tinyxbmc["addon"])
                 self.chan = chan
+                errcoll.token = self.chan.dropboxtoken
                 if mtd:
+                    # channel method call
                     m = getattr(chan, mtd)
                     ret = m(*args)
-            except Exception:
-                print(traceback.format_exc())
-                continue
 
             # auto config art for icon fallback
             if not hasattr(chan, "art") or chan.art == scraperextension.art:
@@ -396,11 +393,10 @@ class index(container.container):
         key = json.dumps(url)
         info = self.hay(_resolvehay).find(key + "_info").data
         art = self.hay(_resolvehay).find(key + "_art").data
-        try:
+        with collector.LogException("VODS", const.DB_TOKEN, True) as errcoll:
             links = six.next(self.getscrapers(mtd="geturls", args=[url], **kwargs))
-        except Exception:
-            print(traceback.format_exc())
-            return
+            if errcoll.hasexception:
+                return
         for link in tools.safeiter(links):
             if not isinstance(link, string_types):
                 continue
@@ -422,15 +418,13 @@ class index(container.container):
             if hasinit:
                 return target, hasinit
             else:
-                # self.logplayer("VODS is initializing %s" % target)
-                try:
+                with collector.LogException("VODS PLAYER: %s" % target, pcls.dropboxtoken, True) as errcoll:
                     ins = pcls(self)
                     playerins[priority] = (target, ins, pcls)
                     makenameart(ins)
                     return target, ins
-                except Exception:
-                    print(traceback.format_exc())
-                    return target, None
+                    if errcoll.hasexception:
+                        return target, None
 
         def prepareplayers(priority, entrypoint):
             for player in extension.getplugins(entrypoint):
@@ -440,15 +434,11 @@ class index(container.container):
             return priority
 
         if not direct:
-            try:
+            with collector.LogException("VODS", const.DB_TOKEN, True):
                 links = six.next(self.getscrapers(mtd="geturls", args=[url], **kwargs))
-            except Exception:
-                print(traceback.format_exc())
         else:
-            try:
+            with collector.LogException("VODS", const.DB_TOKEN, True):
                 six.next(self.getscrapers(**kwargs))
-            except Exception:
-                print(traceback.format_exc())
             links = iter([url])
         priority = 0
         if self.chan.useaddonplayers:
@@ -461,7 +451,7 @@ class index(container.container):
         aplayers = ", ".join([playerins[x][0].replace("None", "") for x in sorted(playerins,
                                                                                   reverse=True)])
         self.logplayer("VODS found players (%s): %s" % (len(playerins), aplayers))
-        for kodilink in tools.safeiter(links):
+        for kodilink in collector.loggingsafeiter(links, "VODS ADDON %s" % self.chan._tinyxbmc["addon"], self.chan.dropboxtoken):
             if isinstance(kodilink, const.URL):
                 yield kodilink
                 continue
@@ -502,11 +492,10 @@ class index(container.container):
                         aurl = url
                     found = True
                     if url.startswith("plugin://"):
-                        try:
+                        with collector.LogException("VODS", None, True) as errcoll:
                             url = pcls.builtin % url
-                        except Exception:
-                            print(traceback.format_exc())
-                            continue
+                            if errcoll.hasexception:
+                                continue
                         isaddon = True
                     yield url, info, art
                 if found and not isaddon:

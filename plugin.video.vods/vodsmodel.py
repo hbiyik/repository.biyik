@@ -23,6 +23,7 @@ from tinyxbmc import tools
 
 
 class extension(object):
+    dropboxtoken = None
     title = "Unnamed Extension"
     info = {}
     art = {"icon": "DefaultFolder.png", "thumb": "DefaultFolder.png", "poster": "DefaultFolder.png"}
