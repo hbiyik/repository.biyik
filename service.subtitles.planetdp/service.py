@@ -22,6 +22,8 @@ import sublib
 import re
 import os
 
+from tinyxbmc.const import DB_TOKEN
+
 
 domain = "https://www.planetdp.org"
 isotoquery = {"tr": u"Türkçe",
@@ -54,6 +56,7 @@ def imagecode(url):
 
 
 class planetdp(sublib.service):
+    dropboxtoken = DB_TOKEN
 
     def search(self):
         query = {"title": self.item.imdb or self.item.title,

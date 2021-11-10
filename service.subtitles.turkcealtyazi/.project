@@ -3,6 +3,7 @@
 	<name>service.subtitles.turkcealtyazi</name>
 	<comment></comment>
 	<projects>
+		<project>script.module.chromium</project>
 		<project>script.module.htmlement</project>
 		<project>script.module.sublib</project>
 	</projects>

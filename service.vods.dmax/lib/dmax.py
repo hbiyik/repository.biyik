@@ -22,12 +22,15 @@ import re
 import vods
 import htmlement
 
+from tinyxbmc import const
+
 
 class dmaxtr(vods.showextension):
     title = u"DMAX TR"
     domain = "https://www.dmax.com.tr"
     uselinkplayers = False
     useaddonplayers = False
+    dropboxtoken = const.DB_TOKEN
 
     def iterelems(self, xpath, url=None, page=None, tree=None, cat=None):
         if not tree:

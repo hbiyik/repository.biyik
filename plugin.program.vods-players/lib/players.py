@@ -19,12 +19,14 @@
 '''
 
 from tinyxbmc import addon
+from tinyxbmc import const
 
 from vods import addonplayerextension
 from six.moves.urllib import parse
 
 
 class youtube(addonplayerextension):
+    dropboxtoken = const.DB_TOKEN
     title = "YoutubeAddon Extension"
     builtin = "PlayMedia(%s)"
 
@@ -46,6 +48,7 @@ class youtube(addonplayerextension):
 
 
 class dailymotion(addonplayerextension):
+    dropboxtoken = const.DB_TOKEN
     title = "DailymotionAddon Extension"
     builtin = "PlayMedia(%s)"
 

@@ -19,10 +19,27 @@
 '''
 import sublib
 import htmlement
-import urlparse
+from chromium import Browser
+from tinyxbmc.const import DB_TOKEN
 
 import re
 import os
+
+
+REMOTE_DBG = False
+
+if REMOTE_DBG:
+    import sys
+    pdevpath = "/home/boogie/.p2/pool/plugins/org.python.pydev.core_8.3.0.202104101217/pysrc/"
+    sys.path.append(pdevpath)
+    import pydevd  # @UnresolvedImport
+    pydevd.settrace(stdoutToServer=True, stderrToServer=True, suspend=False)
+
+
+def isvalid(page):
+    if u"Türkçe Altyazı © 2007 - 2021" in page:
+        return page
+
 
 domain = "https://turkcealtyazi.org"
 
@@ -63,14 +80,12 @@ def elementsrc(element, exclude=[]):
 
 
 class turkcealtyazi(sublib.service):
+    bropboxoken = DB_TOKEN
 
-    def checkrecaptcha(self):
-        resp = self.request(domain, method="HEAD", text=False)
-        if not resp.status_code == 200:
-            self.request(domain)
+    def oninit(self):
+        self.loadtimeout = 3
 
     def search(self):
-        self.checkrecaptcha()
         self.found = False
         self.ignoreyear = False
         if self.item.imdb:
@@ -145,13 +160,15 @@ class turkcealtyazi(sublib.service):
                     skip = True
         return skip, ispack + epmatch + packmatch
 
-    def scraperesults(self, page, tree, query=None):
+    def scraperesults(self, page, tree):
         for row in tree.findall(".//div[@class='nblock']/div/div[2]"):
             a = row.find(".//a")
             if a is None:
                 continue
             link = a.get("href")
             name = a.get("title")
+            if not name:
+                continue
             years = row.findall(".//span")
             if len(years) > 1:
                 ryear = re.search("([0-9]{4})", years[1].text)
@@ -163,20 +180,21 @@ class turkcealtyazi(sublib.service):
                 (self.item.show or
                     (self.ignoreyear or self.item.year is None or self.item.year == year)):
                 self.found = True
-                p = self.request(domain + link, referer=domain)
-                e = htmlement.fromstring(p)
-                self.scrapepage(p, e)
+                with Browser() as browser:
+                    p = browser.navigate(domain + link, referer=domain, validate=isvalid)
+                self.scrapepage(htmlement.fromstring(p))
                 break
-        if query and not self.found:
+        if not self.found:
             pages = tree.findall(".//div[@class='pagin']/a")
             for page in pages:
                 if "sonra" in page.text.lower():
                     if self.found:
                         break
-                    query = dict(urlparse.parse_qsl(urlparse.urlparse(page.get("href")).query))
-                    self.scraperesults(self.request(domain + "/find.php", query, referer=domain))
+                    with Browser():
+                        npage = browser.navigate(domain + page.get("href"), referer=domain, validate=isvalid)
+                    self.scraperesults(npage, htmlement.fromstring(npage))
 
-    def scrapepage(self, page, tree):
+    def scrapepage(self, tree):
         subs = tree.findall(".//div[@id='altyazilar']/div/div")
         for s in subs:
             desc = s.find(".//div[@class='ripdiv']")
@@ -220,27 +238,30 @@ class turkcealtyazi(sublib.service):
             self.addsub(sub)
 
     def find(self, query):
-        q = {"cat": "sub", "find": query}
-        page = self.request(domain + "/find.php", q, referer=domain)
+        with Browser() as browser:
+            browser.navigate(domain, validate=isvalid)
+            page = browser.navigate(domain + "/find.php?cat=sub&find=" + query, referer=domain)
         tree = htmlement.fromstring(page)
         title = tree.find(".//title")
         if "arama" in title.text.lower():
-            self.scraperesults(page, tree, q)
+            self.scraperesults(page, tree)
         else:
-            self.scrapepage(page, tree)
+            self.scrapepage(tree)
 
     def download(self, link):
-        page = self.request(link, referer=domain)
+        downurl = domain + "/ind"
+        with Browser() as browser:
+            page = browser.navigate(link, validate=isvalid)
+            headers = browser.getcfheaders(downurl)
+
         tree = htmlement.fromstring(page)
         idid = tree.find(".//input[@name='idid']").get("value")
         alid = tree.find(".//input[@name='altid']").get("value")
         sdid = tree.find(".//input[@name='sidid']").get("value")
-        data = {
-               "idid": idid,
-               "altid": alid,
-               "sidid": sdid
-               }
-        remfile = self.request(domain + "/ind", data=data, referer=link, method="POST", text=False)
+        data = {"idid": idid,
+                "altid": alid,
+                "sidid": sdid}
+        remfile = self.request(downurl, data=data, referer=link, method="POST", text=False, headers=headers)
         fname = remfile.headers["Content-Disposition"]
         fname = re.search('filename=(.*)', fname)
         fname = fname.group(1)
