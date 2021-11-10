@@ -22,6 +22,8 @@ import sublib.sub
 import sublib.item
 
 from tinyxbmc import net
+from tinyxbmc import const
+from tinyxbmc import collector
 from six import PY2
 
 import json
@@ -73,116 +75,122 @@ class service(object):
     '''
 
     sub = sublib.sub.model
+    dropboxtoken = None
 
     def __init__(self, ua=None):
-        if not ua:
-            self._ua = sublib.utils.useragent
-        else:
-            self._ua = ua
-        self._subs = []
-        self._paths = []
-        addonid = xbmcaddon.Addon()
-        self._sid = xbmcaddon.Addon().getAddonInfo('id')
-        profile = addonid.getAddonInfo('profile')
-        self._profile = xbmc.translatePath(profile)
-        temp = os.path.join(profile, 'temp')
-        self.path = xbmc.translatePath(temp)
-        if PY2:
-            self._profile = self._profile.decode("utf-8")
-            self.path = self.path.decode("utf-8")
-        if os.path.exists(self.path):
-            shutil.rmtree(self.path)
-        xbmcvfs.mkdirs(self.path)
-        params = dict(parse.parse_qsl(sys.argv[2][1:]))
-        params = sublib.utils.dformat(params, json.loads)
-        action = params.get("action", None)
-        preflang = params.get('preferredlanguage', "")
-        langs = params.get('languages', "")
-        self.item = sublib.item.model(preflang, langs)
-        self.item.title, self.item.show, self.item.season, self.item.episode =\
-            sublib.utils.infofromstr(self.item.fname,
-                                     self.item.title,
-                                     self.item.show,
-                                     self.item.season,
-                                     self.item.episode
-                                     )
-        self.oninit()
-        if action:
-            method = getattr(self, "_action_%s" % action.lower())
-            self._params = params
-            method()
-        xbmcplugin.endOfDirectory(int(sys.argv[1]))
+        with collector.LogException("SUBLIB: INIT", const.DB_TOKEN):
+            if not ua:
+                self._ua = sublib.utils.useragent
+            else:
+                self._ua = ua
+            self._subs = []
+            self._paths = []
+            addonid = xbmcaddon.Addon()
+            self._sid = xbmcaddon.Addon().getAddonInfo('id')
+            profile = addonid.getAddonInfo('profile')
+            self._profile = xbmc.translatePath(profile)
+            temp = os.path.join(profile, 'temp')
+            self.path = xbmc.translatePath(temp)
+            if PY2:
+                self._profile = self._profile.decode("utf-8")
+                self.path = self.path.decode("utf-8")
+            if os.path.exists(self.path):
+                shutil.rmtree(self.path)
+            xbmcvfs.mkdirs(self.path)
+            params = dict(parse.parse_qsl(sys.argv[2][1:]))
+            params = sublib.utils.dformat(params, json.loads)
+            action = params.get("action", None)
+            preflang = params.get('preferredlanguage', "")
+            langs = params.get('languages', "")
+            self.item = sublib.item.model(preflang, langs)
+            self.item.title, self.item.show, self.item.season, self.item.episode =\
+                sublib.utils.infofromstr(self.item.fname,
+                                         self.item.title,
+                                         self.item.show,
+                                         self.item.season,
+                                         self.item.episode
+                                         )
+            with collector.LogException("SUBLIB_EXT: ONINIT", self.dropboxtoken):
+                self.oninit()
+            if action:
+                method = getattr(self, "_action_%s" % action.lower())
+                self._params = params
+                method()
+            xbmcplugin.endOfDirectory(int(sys.argv[1]))
 
     def oninit(self):
         pass
 
     def _action_search(self):
-        self.search()
-        sorter = sublib.sub.sorter(self.item.languages[0])
-        self._subs.sort(key=sorter.method, reverse=True)
-        for sub in self._subs:
-            if sub.iso not in self.item.languages and len(sub.iso) == 2:
-                xbmc.log("SUBLIB: Not Preferred Language ISO %s" % repr(sub.iso), xbmc.LOGINFO)
-                continue
-            listitem = xbmcgui.ListItem(label=xbmc.convertLanguage(sub.iso, xbmc.ENGLISH_NAME),
-                                        label2=sub.label,
-                                        # iconImage=str(sub.rating),
-                                        # thumbnailImage=sub.iso
-                                        )
-            listitem.setArt({"icon": str(sub.rating), "thumb": sub.iso})
-            listitem.setProperty("sync", '{0}'.format(sub.sync).lower())
-            listitem.setProperty("hearing_imp", '{0}'.format(sub.cc).lower())
-            args = {"action": "download",
-                    "args": sub.args,
-                    "kwargs": sub.kwargs,
-                    "languages": self._params['languages'],
-                    "prefferedlanguage": self._params['preferredlanguage']
-                    }
-            url = parse.urlencode(sublib.utils.dformat(args, json.dumps))
-            url = "plugin://%s/?%s" % (self._sid, url)
-
-            xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),
-                                        url=url,
-                                        listitem=listitem,
-                                        isFolder=False
-                                        )
+        with collector.LogException("SUBLIB: ACTION_SEARCH", const.DB_TOKEN):
+            with collector.LogException("SUBLIB_EXT: SEARCH", self.dropboxtoken):
+                self.search()
+            sorter = sublib.sub.sorter(self.item.languages[0])
+            self._subs.sort(key=sorter.method, reverse=True)
+            for sub in self._subs:
+                if sub.iso not in self.item.languages and len(sub.iso) == 2:
+                    xbmc.log("SUBLIB: Not Preferred Language ISO %s" % repr(sub.iso), xbmc.LOGINFO)
+                    continue
+                listitem = xbmcgui.ListItem(label=xbmc.convertLanguage(sub.iso, xbmc.ENGLISH_NAME),
+                                            label2=sub.label,
+                                            # iconImage=str(sub.rating),
+                                            # thumbnailImage=sub.iso
+                                            )
+                listitem.setArt({"icon": str(sub.rating), "thumb": sub.iso})
+                listitem.setProperty("sync", '{0}'.format(sub.sync).lower())
+                listitem.setProperty("hearing_imp", '{0}'.format(sub.cc).lower())
+                args = {"action": "download",
+                        "args": sub.args,
+                        "kwargs": sub.kwargs,
+                        "languages": self._params['languages'],
+                        "prefferedlanguage": self._params['preferredlanguage']
+                        }
+                url = parse.urlencode(sublib.utils.dformat(args, json.dumps))
+                url = "plugin://%s/?%s" % (self._sid, url)
+                xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),
+                                            url=url,
+                                            listitem=listitem,
+                                            isFolder=False
+                                            )
 
     def _action_manualsearch(self):
-        self.item.title = None
-        self.item.title, self.item.show, season, episode =\
-            sublib.utils.infofromstr(self._params["searchstring"],
-                                     self.item.title,
-                                     self.item.show,
-                                     )
-        if season >= 0:
-            self.item.season = season
-        if episode >= 0:
-            self.item.episode = episode
-        self.item.imdb = None
-        self.item.tvdb = None
-        self.item.tmdb = None
-        self.item.trakt = None
-        self.item.slug = None
-        if self.item.show:
-            self.item.year = None
-        self._action_search()
+        with collector.LogException("SUBLIB: ACTION_MANUALSEARCH", const.DB_TOKEN):
+            self.item.title = None
+            self.item.title, self.item.show, season, episode =\
+                sublib.utils.infofromstr(self._params["searchstring"],
+                                         self.item.title,
+                                         self.item.show,
+                                         )
+            if season >= 0:
+                self.item.season = season
+            if episode >= 0:
+                self.item.episode = episode
+            self.item.imdb = None
+            self.item.tvdb = None
+            self.item.tmdb = None
+            self.item.trakt = None
+            self.item.slug = None
+            if self.item.show:
+                self.item.year = None
+            self._action_search()
 
     def _action_download(self):
-        self.download(*self._params["args"], **self._params["kwargs"])
-        for fname in self._paths:
-            sub = sublib.utils.getsub(fname,
-                                      self.item.show,
-                                      self.item.season,
-                                      self.item.episode
-                                      )
-            if not sub:
-                return
-            listitem = xbmcgui.ListItem(label=sub)
-            xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),
-                                        url=sub,
-                                        listitem=listitem,
-                                        isFolder=False
-                                        )
+        with collector.LogException("SUBLIB: ACTION_DOWNLOAD", const.DB_TOKEN):
+            self.download(*self._params["args"], **self._params["kwargs"])
+            for fname in self._paths:
+                sub = sublib.utils.getsub(fname,
+                                          self.item.show,
+                                          self.item.season,
+                                          self.item.episode
+                                          )
+                if not sub:
+                    return
+                listitem = xbmcgui.ListItem(label=sub)
+                xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),
+                                            url=sub,
+                                            listitem=listitem,
+                                            isFolder=False
+                                            )
 
     def search(self):
         '''This is the method that service has to override. Service supposed to
