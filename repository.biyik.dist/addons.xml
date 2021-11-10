@@ -91,7 +91,7 @@
   </extension>
 </addon>
 
-<addon id="service.subtitles.planetdp" name="Planetdp.org" version="0.0.11" provider-name="hbiyik">
+<addon id="service.subtitles.planetdp" name="Planetdp.org" version="0.0.12" provider-name="hbiyik">
   <requires>
     <import addon="script.module.sublib"/>
   </requires>
@@ -107,7 +107,7 @@
   </extension>
 </addon>
 
-<addon id="service.vods.dmax" name="DMAX module for VODS" provider-name="hbiyik" version="0.0.3">
+<addon id="service.vods.dmax" name="DMAX module for VODS" provider-name="hbiyik" version="0.0.4">
   <requires>
     <import addon="plugin.video.vods"/>
     <import addon="script.module.htmlement"/>
@@ -154,7 +154,7 @@
   </tinyxbmc>
 </addon>
 
-<addon id="script.module.sublib" name="Sublib Module" provider-name="hbiyik" version="0.0.8">
+<addon id="script.module.sublib" name="Sublib Module" provider-name="hbiyik" version="0.1.0">
     <requires>
 	<import addon="script.module.tinyxbmc"/>
 	<import addon="script.module.six"/>
@@ -190,15 +190,14 @@
 	</extension>
 </addon>
 
-<addon id="service.subtitles.turkcealtyazi" name="Turkcealtyazi.org" provider-name="hbiyik" version="0.0.8">
+<addon id="service.subtitles.turkcealtyazi" name="Turkcealtyazi.org" provider-name="hbiyik" version="0.1.0">
   <requires>
-    <import addon="xbmc.python" version="2.1.0"/>
-    <import addon="script.module.sublib" version="0.0.5"/>
+    <import addon="script.module.sublib"/>
     <import addon="script.module.htmlement"/>
+    <import addon="script.module.chromium"/>
   </requires>
   <extension library="addon.py" point="xbmc.subtitle.module"/>
   <extension point="xbmc.addon.metadata">
-    <broken>New Cloudflare</broken>
   	<platform>all</platform>
     <summary lang="en">Turkcealtyazi.org</summary>
     <description lang="en">Turkish / English Subtitle Service from turkcealtyazi.org</description>
@@ -330,7 +329,7 @@
   </extension>
 </addon>
 
-<addon id="plugin.program.vods-players" name="VODS Players" provider-name="hbiyik" version="0.0.9">
+<addon id="plugin.program.vods-players" name="VODS Players" provider-name="hbiyik" version="0.0.10">
   <requires>
     <import addon="plugin.video.vods" />
     <import addon="script.module.tinyxbmc" />
@@ -361,7 +360,7 @@
   </tinyxbmc>
 </addon>
 
-<addon id="script.module.chromium" name="Chromium Service" provider-name="hbiyik" version="0.0.1">
+<addon id="script.module.chromium" name="Chromium Service" provider-name="hbiyik" version="0.0.2">
     <requires>
 		<import addon="script.module.tinyxbmc"/>
 		<import addon="service.system.docker" optional="true"/>
@@ -393,7 +392,7 @@
 	</extension>
 </addon>
 
-<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.2.0">
+<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.2.1">
     <requires>
 		<import addon="script.module.cachecontrol"/>
 		<import addon="script.module.requests"/>
@@ -414,7 +413,7 @@
 	</extension>
 </addon>
 
-<addon id="plugin.video.vods" name="VODS" provider-name="hbiyik" version="0.1.3">
+<addon id="plugin.video.vods" name="VODS" provider-name="hbiyik" version="0.2.0">
     <requires>
 		<import addon="script.module.tinyxbmc"/>
 		<import addon="script.module.ghub"/>
