@@ -35,7 +35,7 @@ class dmaxtr(vods.showextension):
     def iterelems(self, xpath, url=None, page=None, tree=None, cat=None):
         if not tree:
             if not page:
-                page = self.download(url)
+                page = self.download(url, timeout=15)
             tree = htmlement.fromstring(page)
         for elem in tree.iterfind(xpath):
             if cat:

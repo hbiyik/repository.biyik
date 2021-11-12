@@ -57,8 +57,10 @@ def get_addon(aid=None):
     """
     if not aid:
         aid = addon
-    a = xbmcaddon.Addon(aid)
-    return a
+    try:
+        return xbmcaddon.Addon(aid)
+    except RuntimeError:
+        return
 
 
 def addon_details(aid):
