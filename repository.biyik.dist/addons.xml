@@ -107,7 +107,7 @@
   </extension>
 </addon>
 
-<addon id="service.vods.dmax" name="DMAX module for VODS" provider-name="hbiyik" version="0.0.4">
+<addon id="service.vods.dmax" name="DMAX module for VODS" provider-name="hbiyik" version="0.0.5">
   <requires>
     <import addon="plugin.video.vods"/>
     <import addon="script.module.htmlement"/>
@@ -392,7 +392,7 @@
 	</extension>
 </addon>
 
-<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.2.1">
+<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.2.2">
     <requires>
 		<import addon="script.module.cachecontrol"/>
 		<import addon="script.module.requests"/>
