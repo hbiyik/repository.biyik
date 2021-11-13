@@ -1,0 +1,9 @@
+2017-12-09: htmlement new versioning
+2017-12-09: move to xpaths instead regexes. this is more stable.
+2017-03-19: Merge branch 'master' into release
+2017-03-19: update logo
+2017-03-19: Merge branch 'master' into release
+2017-03-19: code clean up
+2017-03-15: download, ratings and rest
+2017-03-13: s,e extractor
+2017-03-13: first commit
