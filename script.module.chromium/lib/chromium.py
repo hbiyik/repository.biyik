@@ -5,13 +5,19 @@ Created on Oct 31, 2021
 '''
 import websocket
 import json
-import traceback
+import time
+import re
 from six.moves.urllib.request import urlopen
 from six.moves.urllib.parse import quote
 
 
+def isnotcf(page):
+    if not re.search('form class="challenge-form" id="challenge-form"', page):
+        return page
+
+
 class Browser:
-    def __init__(self, useragent=None, loadtimeout=5, maxtimeout=15, port=9222):
+    def __init__(self, useragent=None, loadtimeout=1, maxtimeout=15, port=9222):
         self.maxtimeout = maxtimeout
         self.loadtimeout = loadtimeout
         self.debug = False
@@ -36,6 +42,7 @@ class Browser:
         self.tabid = d["id"]
         self.wsurl = d["webSocketDebuggerUrl"]
         self.connect()
+        self.command("Runtime.enable")
         self.command("Network.enable")
         if self.useragent:
             self.command("Network.setUserAgentOverride", userAgent=self.useragent)
@@ -53,6 +60,7 @@ class Browser:
             print("Command (%s): %s, %s" % (self.id, method, kwargs))
         self.connect()
         self.ws.send(json.dumps({"id": self.id, "method": method, "params": kwargs}))
+        return self.id
 
     def getmessage(self):
         try:
@@ -85,39 +93,91 @@ class Browser:
                 "cookie": "; ".join(["%s=%s" % (c["name"], quote(c["value"])) for c in cookies])
                 }
 
-    def navigate(self, url, referer=None, validate=None):
-        node = None
+    def _get_elem_js(self, tag=None, name=None, eid=None, index=0):
+        js = None
+        if tag:
+            js = 'document.getElementsByTagName("%s")' % tag
+        elif name:
+            js = 'document.getElementsByName("%s")' % name
+        elif eid:
+            js = 'document.getElementsById("%s")' % eid
+        if js:
+            js += "[%s]" % index
+            return js
+
+    def elem_setattr(self, attr, value, tag=None, name=None, eid=None, index=0):
+        js = self._get_elem_js(tag, name, eid, index)
+        if js:
+            js += ".%s = %s" % (attr, value)
+            return self.evaljs(js)
+
+    def elem_call(self, method, tag=None, name=None, eid=None, index=0):
+        js = self._get_elem_js(tag, name, eid, index)
+        if js:
+            js += ".%s()" % method
+            return self.evaljs(js)
+
+    def evaljs(self, js):
+        comid = self.command("Runtime.evaluate", expression=js)
+        for m, mid, mmtd in self.itermessages():
+            if mid == comid:
+                return m
+
+    def html(self, validate=isnotcf):
+        doc_comid = 0
+        outer_comid = 0
+        node = 0
+        lock = False
         html = None
-        self.ws.settimeout(self.maxtimeout)
-        kwargs = {"url": url}
-        if referer:
-            kwargs["referer"] = referer
-        self.command("Page.navigate", **kwargs)
-        for message, msg_id, msg_method in self.itermessages():
-            if msg_id:
-                nhtml = message.get("result", {}).get("outerHTML")
-                if nhtml and not nhtml == html:
+        hasslept = not self.loadtimeout
+        startt = time.time()
+        for message, msg_id, _msg_method in self.itermessages():
+            if (time.time() - startt) > self.maxtimeout:
+                break
+            if not node and not lock:
+                node = None
+                doc_comid = self.command("DOM.getDocument")
+                lock = True
+                continue
+            if msg_id == doc_comid:
+                node = message["result"].get("root", {}).get("nodeId")
+                outer_comid = self.command("DOM.getOuterHTML", nodeId=node)
+                lock = False
+                continue
+            if outer_comid == msg_id:
+                if not message.get("error"):
+                    nhtml = message.get("result", {}).get("outerHTML")
                     if validate:
                         try:
                             isvalid = validate(nhtml)
                             if isvalid:
-                                return isvalid
+                                html = isvalid
+                            else:
+                                html = None
                         except Exception:
-                            print(traceback.format_exc())
+                            html = None
                     else:
                         html = nhtml
-                        if not self.ws.gettimeout() == self.loadtimeout:
-                            self.ws.settimeout(self.loadtimeout)
-            if msg_id in self.nodecmds:
-                self.nodecmds.remove(msg_id)
-                nodeid = message["result"].get("root", {}).get("nodeId")
-                if nodeid:
-                    node = nodeid
-                self.command("DOM.getOuterHTML", nodeId=node)
-            if msg_method == "DOM.documentUpdated":
-                self.command("DOM.getDocument")
-                self.nodecmds.append(self.id)
+                    if html:
+                        if hasslept:
+                            break
+                        else:
+                            time.sleep(self.loadtimeout)
+                            hasslept = True
+                node = None
+                doc_comid = self.command("DOM.getDocument")
+                lock = True
         return html
+
+    def navigate(self, url, referer=None, validate=isnotcf, headers=None):
+        self.ws.settimeout(self.maxtimeout)
+        kwargs = {"url": url}
+        if referer:
+            kwargs["referer"] = referer
+        if headers:
+            self.command("Network.setExtraHTTPHeaders", headers=headers)
+        self.command("Page.navigate", **kwargs)
+        return self.html(validate)
 
     def close(self):
         self.ws.close()
