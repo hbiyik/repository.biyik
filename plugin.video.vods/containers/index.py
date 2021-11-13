@@ -154,8 +154,9 @@ class index(container.container):
         if self._isimp(base, mname):
             path = ".".join([str(x) for x in self.chan._tinyxbmc.values()])
             cachehay = self.hay(path)
-            cinfo = cachehay.find("%s%sinfo" % (repr(arg), typ)).data
-            cart = cachehay.find("%s%sart" % (repr(arg), typ)).data
+            cachekey = json.dumps(arg, sort_keys=True)
+            cinfo = cachehay.find("%s%sinfo" % (cachekey, typ)).data
+            cart = cachehay.find("%s%sart" % (cachekey, typ)).data
             if cinfo == {} and cart == {} and scrape:
                 cache = getattr(self.chan, mname)
                 with collector.LogException("VODS", const.DB_TOKEN, True) as errcoll:
@@ -165,8 +166,8 @@ class index(container.container):
                 name = cinfo.get("title", info.get("title"))
                 if not name:
                     name = cinfo.get("tvshowtitle", info.get("tvshowtitle", "media"))
-                cachehay.throw("%s%sinfo" % (repr(arg), typ), cinfo)
-                cachehay.throw("%s%sart" % (repr(arg), typ), cart)
+                cachehay.throw("%s%sinfo" % (cachekey, typ), cinfo)
+                cachehay.throw("%s%sart" % (cachekey, typ), cart)
                 if not (cinfo == {} and cart == {}) and percent:
                     self.bgprg.update(int(percent), "Caching", name)
             info.update(cinfo)
@@ -176,7 +177,7 @@ class index(container.container):
     def cacheresolve(self, arg, info, art):
         if info or art:
             hay = self.hay(_resolvehay)
-            key = json.dumps(arg)
+            key = json.dumps(arg, sort_keys=True)
             if info:
                 hay.throw(key + "_info", info)
             if art:
@@ -251,7 +252,6 @@ class index(container.container):
                 info, art = self._cachemeta(arg, info, art, "movie", cache, percent)
                 if info == {}:
                     info = {"title": name}
-                self.cacheresolve(arg, info, art)
                 lname = "[%s] %s" % (self.chan.title, name)
                 li = self.item(lname, info, art, method="geturls")
                 select = self.item("Select Source", info, art, method="selecturl")
@@ -261,6 +261,7 @@ class index(container.container):
                     args = [arg, info, art, "movie"]
                     li.context(context, False, "meta", *args, **self.chan._tinyxbmc)
                 li.resolve(arg, False, **self.chan._tinyxbmc)
+                self.cacheresolve(arg, info, art)
         return tinyconst.CT_MOVIES
 
     def searchshows(self, keyw, cache=False, **kwargs):
@@ -297,7 +298,6 @@ class index(container.container):
             for i, [name, arg, info, art] in enumerate(self.chan.items):
                 percent = (i + 1) * 100 / numitems
                 info, art = self._cachemeta(arg, info, art, "episode", cache, percent)
-                self.cacheresolve(arg, info, art)
                 lname = "[%s] %s" % (self.chan.title, name)
                 li = self.item(lname, info, art, method="geturls")
                 select = self.item("Select Source", info, art, method="selecturl")
@@ -307,6 +307,7 @@ class index(container.container):
                     li.context(context, False, "meta", *args, **self.chan._tinyxbmc)
                 li.context(select, True, arg, **self.chan._tinyxbmc)
                 li.resolve(arg, False, **self.chan._tinyxbmc)
+                self.cacheresolve(arg, info, art)
         return tinyconst.CT_EPISODES
 
     @channelmethod
@@ -335,11 +336,11 @@ class index(container.container):
         for i, [name, movie, info, art] in enumerate(self.chan.items):
             percent = (i + 1) * 100 / numitems
             info, art = self._cachemeta(movie, info, art, "movie", True, percent)
-            self.cacheresolve(movie, info, art)
             li = self.item(name, info, art, method="geturls")
             select = self.item("Select Source", info, art, method="selecturl")
             li.context(select, True, movie, **self.chan._tinyxbmc)
             li.resolve(movie, False, **self.chan._tinyxbmc)
+            self.cacheresolve(movie, info, art)
         return tinyconst.CT_MOVIES
 
     @channelmethod
@@ -390,7 +391,7 @@ class index(container.container):
         return tinyconst.CT_EPISODES
 
     def selecturl(self, url, **kwargs):
-        key = json.dumps(url)
+        key = json.dumps(url, sort_keys=True)
         info = self.hay(_resolvehay).find(key + "_info").data
         art = self.hay(_resolvehay).find(key + "_art").data
         with collector.LogException("VODS", const.DB_TOKEN, True) as errcoll:
