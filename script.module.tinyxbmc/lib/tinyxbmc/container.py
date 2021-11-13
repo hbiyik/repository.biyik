@@ -333,14 +333,14 @@ class container(object):
 
     def download(self, url, params=None, data=None, headers=None, timeout=None,
                  json=None, method="GET", referer=None, useragent=None, encoding="utf-8",
-                 verify=None, stream=None, proxies=None, cache=10, text=True, http2=False):
+                 verify=None, stream=None, proxies=None, cache=10, text=True):
 
         if not (headers and "user-agent" in [x.lower() for x in headers] or useragent):
             useragent = self._container.useragent
         if not timeout:
             timeout = self._container.httptimeout
         ret = net.http(url, params, data, headers, timeout, json, method, referer,
-                       useragent, encoding, verify, stream, proxies, cache, text, http2)
+                       useragent, encoding, verify, stream, proxies, cache, text)
         return ret
 
 
