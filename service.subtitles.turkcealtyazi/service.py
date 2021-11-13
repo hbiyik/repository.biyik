@@ -21,6 +21,7 @@ import sublib
 import htmlement
 from chromium import Browser
 from tinyxbmc.const import DB_TOKEN
+from six import string_types
 
 import re
 import os
@@ -225,7 +226,7 @@ class turkcealtyazi(sublib.service):
             qual = s.find(".//div[@class='fl']/span")
             if qual is not None:
                 qual = qual.get("class")
-                if isinstance(qual, (str, unicode)):
+                if isinstance(qual, string_types):
                     qual = qual.replace("kal", "")
                     if qual.isdigit():
                         qualrate = qual
