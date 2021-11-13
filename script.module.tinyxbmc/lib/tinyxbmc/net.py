@@ -30,7 +30,6 @@ from email.utils import parsedate, formatdate
 
 import ghub
 from cachecontrol import CacheControlAdapter
-from hyper.contrib import HTTP20Adapter
 
 from cachecontrol.heuristics import BaseHeuristic
 from cachecontrol.caches import HayCache as Cache
@@ -44,7 +43,6 @@ __profile = addon.get_commondir()
 __cache = Cache(const.HTTPCACHEHAY)
 
 sessions = {}
-http2adapter = HTTP20Adapter()
 
 
 def loadcookies():
@@ -73,10 +71,7 @@ def getsession(seskey):
     else:
         sess = requests.Session()
         sess.cookies = cookicache
-        if seskey == "http2":
-            sess.mount("http://", http2adapter)
-            sess.mount("https://", http2adapter)
-        elif seskey is None:
+        if seskey is None:
             seskey = -1
         elif seskey == 0:
             sess.mount("http://", CacheControlAdapter(cache=__cache))
@@ -135,7 +130,7 @@ def fromkodiurl(url):
 
 
 def http(url, params=None, data=None, headers=None, timeout=5, json=None, method="GET",
-         referer=None, useragent=None, encoding=None, verify=None, stream=None, proxies=None, cache=10, text=True, http2=False):
+         referer=None, useragent=None, encoding=None, verify=None, stream=None, proxies=None, cache=10, text=True):
     ret = None
     if url.startswith("//"):
         url = "http:%s" % url
@@ -156,10 +151,7 @@ def http(url, params=None, data=None, headers=None, timeout=5, json=None, method
               "stream": stream,
               "proxies": proxies
               }
-    if http2:
-        session = getsession("http2")
-    else:
-        session = getsession(cache)
+    session = getsession(cache)
     response = session.request(method, url, **kwargs)
     try:
         session.cookies.save(ignore_discard=True)
