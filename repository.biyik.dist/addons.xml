@@ -190,7 +190,7 @@
 	</extension>
 </addon>
 
-<addon id="service.subtitles.turkcealtyazi" name="Turkcealtyazi.org" provider-name="hbiyik" version="0.1.1">
+<addon id="service.subtitles.turkcealtyazi" name="Turkcealtyazi.org" provider-name="hbiyik" version="0.1.2">
   <requires>
     <import addon="script.module.sublib"/>
     <import addon="script.module.htmlement"/>
@@ -360,7 +360,7 @@
   </tinyxbmc>
 </addon>
 
-<addon id="script.module.chromium" name="Chromium Service" provider-name="hbiyik" version="0.0.3">
+<addon id="script.module.chromium" name="Chromium Service" provider-name="hbiyik" version="0.0.4">
     <requires>
 		<import addon="script.module.tinyxbmc"/>
 		<import addon="service.system.docker" optional="true"/>
@@ -392,7 +392,7 @@
 	</extension>
 </addon>
 
-<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.2.3">
+<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.2.4">
     <requires>
 		<import addon="script.module.cachecontrol"/>
 		<import addon="script.module.requests"/>
