@@ -4,10 +4,27 @@ import time
 import select
 import pty
 import re
+import json
+import shutil
 from tinyxbmc import abi
 from tinyxbmc import addon
 from tinyxbmc import gui
 from tinyxbmc import const
+
+
+addondir = addon.get_addondir("script.module.chromium")
+datadir = os.path.join(addondir, "data")
+downdir = os.path.join(addondir, "downloads")
+for d in [datadir, downdir, os.path.join(datadir, "Default")]:
+    if not os.path.exists(d):
+        os.makedirs(d)
+prefs = {"download": {"default_directory": "/addondir/downloads",
+                      "prompt_for_download": False,
+                      "directory_upgrade": True},
+         "safebrowsing": {"enabled": True}}
+
+with open(os.path.join(datadir, "Default", "Preferences"), "wb") as f:
+    f.write(json.dumps(prefs).encode())
 
 
 class ChromiumService(addon.blockingloop):
@@ -110,8 +127,10 @@ class ChromiumService(addon.blockingloop):
     def spawn(self):
         self.executecmd("docker rm chromium")
         self.log("Chromium Container Starting")
-        self.process = subprocess.Popen(["docker", "run", "--name=chromium", "--network=host", self.image,
-                                         "xvfb-chromium", "--disable-gpu", "--no-sandbox", "--remote-debugging-port=%d --disable-dev-shm-usage" % self.port], stdout=subprocess.PIPE)
+        self.process = subprocess.Popen(["docker", "run", "-v", "%s:/addondir" % addondir, "--user", "%s:%s" % (os.getuid(), os.getgid()),
+                                         "--name=chromium", "--network=host", self.image,
+                                         "xvfb-chromium", "--disable-gpu", "--no-sandbox", "--remote-debugging-port=%d" % self.port,
+                                         "--disable-dev-shm-usage", "--user-data-dir=/addondir/data"], stdout=subprocess.PIPE)
         self.log("Chromium Container Started")
 
     def onclose(self):
@@ -120,6 +139,7 @@ class ChromiumService(addon.blockingloop):
             self.executecmd("docker stop chromium")
             self.log("Chromium Container Stopped")
             self.process.kill()
+            shutil.rmtree(downdir, True)
 
 
 if __name__ == "__main__":

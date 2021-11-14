@@ -7,8 +7,10 @@ import websocket
 import json
 import time
 import re
+import os
 from six.moves.urllib.request import urlopen
 from six.moves.urllib.parse import quote
+from tinyxbmc import addon
 
 
 def isnotcf(page):
@@ -17,7 +19,7 @@ def isnotcf(page):
 
 
 class Browser:
-    def __init__(self, useragent=None, loadtimeout=1, maxtimeout=15, port=9222):
+    def __init__(self, useragent=None, loadtimeout=1, maxtimeout=30, port=9222):
         self.maxtimeout = maxtimeout
         self.loadtimeout = loadtimeout
         self.debug = False
@@ -42,6 +44,7 @@ class Browser:
         self.tabid = d["id"]
         self.wsurl = d["webSocketDebuggerUrl"]
         self.connect()
+        self.command("Page.enable")
         self.command("Runtime.enable")
         self.command("Network.enable")
         if self.useragent:
@@ -178,6 +181,23 @@ class Browser:
             self.command("Network.setExtraHTTPHeaders", headers=headers)
         self.command("Page.navigate", **kwargs)
         return self.html(validate)
+
+    def getdownloads(self):
+        path = os.path.join(addon.get_addondir("script.module.chromium"), "downloads")
+        return [os.path.join(path, x) for x in os.listdir(path)]
+
+    def iterdownload(self):
+        for m, _mid, mmtd in self.itermessages():
+            if mmtd == "Page.downloadProgress":
+                state = m.get("params", {}).get("state")
+                if state == "inProgress":
+                    if m["params"]["totalBytes"] == 0:
+                        yield 0
+                    else:
+                        yield m["params"]["receivedBytes"] / m["params"]["totalBytes"]
+                elif state == "completed":
+                    yield 1
+                    break
 
     def close(self):
         self.ws.close()
