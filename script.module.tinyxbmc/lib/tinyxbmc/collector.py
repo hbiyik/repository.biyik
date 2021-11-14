@@ -101,7 +101,6 @@ class LogException():
             self.onexception()
             tb = "".join(traceback.format_exception(exc_type, exc_val, exc_tb))
             if self.token:
-                self.msg += "STACK    : \r\n%s\r\n" % "".join(traceback.format_stack())
                 self.msg += "TRACEBACK: \r\n%s\r\n" % tb
                 collect_log(self.name, self.msg, self.token)
             if not self.ignore:
@@ -123,6 +122,4 @@ def loggingsafeiter(iterable, name="", token=None):
                 msg = "TRACEBACK: \r\n%s\r\n" % traceback.format_exc()
                 xbmc.log(msg, xbmc.LOGERROR)
                 if token:
-                    msg += "STACK    : \r\n%s\r\n" % "".join(traceback.format_stack())
                     collect_log(name, msg, token)
-
