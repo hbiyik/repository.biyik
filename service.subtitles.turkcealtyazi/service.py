@@ -19,6 +19,7 @@
 '''
 import sublib
 import htmlement
+import shutil
 from chromium import Browser
 from tinyxbmc.const import DB_TOKEN
 from six import string_types
@@ -250,23 +251,11 @@ class turkcealtyazi(sublib.service):
             self.scrapepage(tree)
 
     def download(self, link):
-        downurl = domain + "/ind"
         with Browser() as browser:
-            page = browser.navigate(link, validate=isvalid)
-            headers = browser.getcfheaders(downurl)
-
-        tree = htmlement.fromstring(page)
-        idid = tree.find(".//input[@name='idid']").get("value")
-        alid = tree.find(".//input[@name='altid']").get("value")
-        sdid = tree.find(".//input[@name='sidid']").get("value")
-        data = {"idid": idid,
-                "altid": alid,
-                "sidid": sdid}
-        remfile = self.request(downurl, data=data, referer=link, method="POST", text=False, headers=headers)
-        fname = remfile.headers["Content-Disposition"]
-        fname = re.search('filename=(.*)', fname)
-        fname = fname.group(1)
-        fname = os.path.join(self.path, fname)
-        with open(fname, "wb") as f:
-            f.write(remfile.content)
-        self.addfile(fname)
+            browser.navigate(link, validate=isvalid)
+            browser.elem_call("submit", tag="form", index=3)
+            list(browser.iterdownload())
+            subtitle = browser.getdownloads()[0]
+            shutil.move(subtitle, self.path)
+            fname = os.path.join(self.path, os.path.basename(subtitle))
+            self.addfile(fname)
