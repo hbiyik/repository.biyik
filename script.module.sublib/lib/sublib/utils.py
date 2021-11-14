@@ -94,7 +94,7 @@ def dformat(d, m):
 
 def checkarchive(fname):
     with open(fname, "rb") as f:
-        sign = f.read(4)
+        sign = f.read(4).decode()
     if sign == "Rar!":
         return "rar"
     elif sign == "\x50\x4B\x03\x04":
@@ -219,8 +219,8 @@ def getsub(fname, show, season, episode):
         # fix for rar file system crashes sometimes if archive:// is returned
         fname = fname + arname.replace("/", "_")
         f = xbmcvfs.File(uri)
-        with open(fname, "w") as out:
-            out.write(f.read())
+        with open(fname, "wb") as out:
+            out.write(f.readBytes())
         f.close()
         return fname
     else:
