@@ -100,9 +100,16 @@ class ChromiumService(addon.blockingloop):
             self.target = abi.getelfabi()[0][0]
             self.image = "boogiepy/chromium-xvfb-%s" % self.target
             self.log("Current image is %s" % self.image)
-            process = subprocess.Popen(["docker", "--version"], stdout=subprocess.PIPE)
-            process.wait()
-            if process.returncode == 0:
+            try:
+                process = subprocess.Popen(["docker", "--version"], stdout=subprocess.PIPE)
+                process.wait()
+            except OSError:
+                process = None
+            if process is None or process.returncode != 0:
+                gui.notify("Chromium", "Docker is not installed or broken. Please install docker to your system")
+                self.close()
+                return
+            else:
                 self.log("Docker installation is found")
                 self.checkimages()
                 if addon.has_addon("service.system.docker") and not self.hasdaemon:
