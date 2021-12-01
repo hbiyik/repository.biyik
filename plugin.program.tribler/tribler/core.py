@@ -1,74 +1,35 @@
-import platform
-import xbmc
-import struct
 import os
 import stat
+import subprocess
 
-from tribler.defs import BINARY_URL
+from tinyxbmc import abi
+from tinyxbmc import addon
+from tinyxbmc import net
+from tinyxbmc import gui
 
-elf_machines = {2: "sparc", 3: "x86", 8: "mips", 20: "ppc", 21: "ppc64", 22: "s390",
-                40: "arm", 42: "superh", 50: "ia64", 62: "amd64", 183: "aarch64", 243: "riscv"}
-
-
-def detect_os():
-    system = platform.system().lower()
-    if "windows" in system or xbmc.getCondVisibility('system.platform.windows'):
-        return "windows"
-    if "linux" in system or xbmc.getCondVisibility('system.platform.linux'):
-        if xbmc.getCondVisibility('system.platform.android'):
-            return "android"
-        return "linux"
+from tribler import defs
 
 
-def getelfabi():
-    def readbyte(offset, decoder="B", size=1):
-        f.seek(offset)
-        return struct.unpack(decoder, f.read(size))[0]
-    mflags_d = {}
-    with open("/proc/self/exe") as f:
-        is64 = readbyte(0x4) == 2
-        oseabi = readbyte(0x7)
-        eabiver = readbyte(0x8)
-        machine = elf_machines.get(readbyte(0x12, "H", 2))
-        if is64:
-            f.seek(0x30)
-        else:
-            f.seek(0x24)
-        mflags = f.read(4)
-    if machine in ["arm", "arm64"]:
-        first, mid, abi = struct.unpack("HBB", mflags)
-        mflags_d["ABI"] = abi
-        mflags_d["HRD"] = first >> 10 & 1
-        mflags_d["SFT"] = first >> 9 & 1
-    toolchains = []
-    if machine == "x86":
-        toolchains.append("i386")
-    elif machine == "amd64":
-        if is64:
-            toolchains.append("amd64")
-            toolchains.append("i386")
-        else:
-            toolchains.append("i386")
-    elif machine in ["arm", "aarch64"]:
-        if is64:
-            toolchains.append("aarch64")
-        elif mflags_d["HARD"]:
-            toolchains.append("armhf")
-            toolchains.append("armel")
-        else:
-            toolchains.append("armel")
-    return toolchains, machine, is64, mflags
+BINARY_URL = "https://raw.githubusercontent.com/hbiyik/repository.biyik/master/%s/bin" % defs.ADDONID
+PROFILE_DIR = addon.get_addondir(defs.ADDONID)
+STATE_DIR = os.path.join(PROFILE_DIR, "tribler_state")
+MEI_DIR = os.path.join(PROFILE_DIR, "tribler_freeze")
+BIN_DIR = os.path.join(PROFILE_DIR, "tribler_binary")
+
+for d in [MEI_DIR, STATE_DIR, BIN_DIR]:
+    os.makedirs(d, exist_ok=True)
 
 
-def getbinary():
+def getbinaryurls():
     error = None
-    os = detect_os()
+    os = abi.detect_os()
+    # TO-DO: windows .exe extension
     if os == "linux":
-        toolchains, machine, is64, mflags = getelfabi()
+        toolchains, machine, is64, mflags = abi.getelfabi()
         if toolchains:
-            return [("%s-%s" % (os, x), "%s/triblerd-%s-%s/triblerd" % (BINARY_URL,
-                                                                        os,
-                                                                        x)) for x in toolchains], error
+            return [("%s-%s" % (os, x), "%s/%s-%s/triblerd" % (BINARY_URL,
+                                                               os,
+                                                               x)) for x in toolchains], error
         else:
             return [], "Can't detect abi for os linux, machine: %s, 64bit: %s, flags: %s" % (machine,
                                                                                              is64,
@@ -77,9 +38,65 @@ def getbinary():
         return [], "%s os is not supported" % os
 
 
-def chmod_plus_x(path):
-    os.chmod(path, os.stat(path).st_mode | ((stat.S_IXUSR |
-                                             stat.S_IXGRP |
-                                             stat.S_IXOTH
-                                             ) & ~ os.umask(os.umask(0))
-                                            ))
+def update():
+    for binaryurl, error in getbinaryurls():
+        if error:
+            # there is an error, we can't use
+            gui.error("TRIBLER", error)
+            return None
+        fname = os.path.basename(binaryurl)
+        localbin = os.path.join(BIN_DIR, fname)
+        localurl = os.path.join(BIN_DIR, "%s.url" % fname)
+        if os.path.exists(localurl):
+            with open(localurl) as f:
+                localurladdr = f.read().decode()
+            if localurladdr != binaryurl:
+                # we have detected another toolchain is active, dont try this one
+                continue
+            # we know the existing toolchain from now on
+            elif os.path.exists(localbin):
+                # we are in the right toolchain lets check if there is an update or not
+                resp = net.http(binaryurl, method="HEAD")
+                if int(resp.headers['content-length']) != os.path.getsize(localbin):
+                    # filesizes dont match, we need an update
+                    downloadbinary(binaryurl, localbin)
+                    return True
+            else:
+                # we have detected toolchain but binary is not available, may be someone deleted it.
+                downloadbinary(binaryurl, localbin)
+                return True
+            break
+        else:
+            # we have to determine the toolchain by testing
+            # toolchain can give several alternatives, we can use first one that works
+            downloadbinary(binaryurl, localbin)
+            try:
+                process = subprocess.Popen([fname, "--help"])
+                process.wait()
+                success = process.returncode == 0
+            except Exception:
+                success = False
+            if success:
+                with open(localurl, "w") as f:
+                    f.write(binaryurl)
+                return True
+        return False
+
+
+def downloadbinary(url, fpath):
+    with net.http(url, stream=True, text=False) as resp:
+        # TO-DO: handle exceptions
+        progress = gui.bgprogress("Tribler")
+        with open(fpath, "wb") as f:  # TO-DO: windows?
+            total = int(resp.headers['content-length'])
+            since = 0
+            for content in resp.iter_content():
+                since += len(content)
+                progress.update(100 * since / total, "Downloading")
+                f.write(content)
+        progress.close()
+        # TO-DO: linux only
+        os.chmod(fpath, os.stat(fpath).st_mode | ((stat.S_IXUSR |
+                                                   stat.S_IXGRP |
+                                                   stat.S_IXOTH
+                                                   ) & ~ os.umask(os.umask(0))))
