@@ -98,7 +98,6 @@ class LogException():
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type and not exc_type == SystemExit:
             self.hasexceptionn = exc_type
-            self.onexception()
             tb = "".join(traceback.format_exception(exc_type, exc_val, exc_tb))
             if self.token:
                 self.msg += "TRACEBACK: \r\n%s\r\n" % tb
@@ -108,7 +107,9 @@ class LogException():
             else:
                 # TO-DO: backward compat?
                 xbmc.log(tb, xbmc.LOGERROR)
+                self.onexception()
                 return True
+            self.onexception()
 
 
 def loggingsafeiter(iterable, name="", token=None):

@@ -137,6 +137,9 @@ class container(object):
                 redirects = []
                 self.player = xbmcplayer(timeout=self.playertimeout)
                 for u, finfo, fart in tools.dynamicret(tools.safeiter(self._method(*args, **kwargs))):
+                    imdbid = finfo.get("imdbnumber", finfo.get("code", None))
+                    if imdbid:
+                        xbmcgui.Window(10000).setProperty('script.trakt.ids', json.dumps({u'imdb': imdbid}))
                     if not isinstance(u, (six.string_types, const.URL)):
                         addon.log("Provided url %s is not playable" % repr(u))
                         continue
@@ -255,7 +258,8 @@ class container(object):
         xbmc.log("EXECUTION TIME : %s ms" % etime)
         xbmc.log("************************************")
 
-    def _art(self, d, headers=None):
+    def _art(self, art, headers=None):
+        d = art.copy()
         if not headers:
             headers = {}
         if "user-agent" not in [x.lower() for x in headers.keys()]:
@@ -376,7 +380,7 @@ class itemfactory(object):
                 "kwargs": kwargs,
                 "media": media,
                 }
-        serial = parse.quote_plus(json.dumps(data))
+        serial = parse.quote_plus(json.dumps(data, sort_keys=True))
         self.url = '%s?%s' % (self._cntx.sysaddon, serial)
         return self.url
 
