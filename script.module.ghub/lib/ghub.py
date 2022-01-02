@@ -25,6 +25,7 @@ import zipfile
 import shutil
 import sys
 import htmlement
+import xbmcgui
 from six.moves.urllib import request
 from six import PY2
 import xbmc
@@ -55,9 +56,27 @@ def _mkdir(*args):
 _ddir = _mkdir(_ddir, "script.module.ghub", "src")
 
 
-def _page(u):
+def _page(u, progress=None):
     response = request.urlopen(u)
-    return response.read()
+    if progress:
+        output = b""
+        dialog = xbmcgui.DialogProgressBG()
+        dialog.create(progress)
+        i = 0
+        while True:
+            if i == 100:
+                i = 0
+            o = response.read(102400)
+            if o == b"":
+                break
+            else:
+                output += o
+            i += 1
+            dialog.update(i, "Updating", progress)
+        dialog.close()
+        return output
+    else:
+        return response.read()
 
 
 def _getrels(uname, rname):
@@ -100,7 +119,7 @@ def _updatezip(u, tdir, rname):
         p = os.path.join(tdir, d)
         if os.path.isdir(p) and d.startswith(rname):
             shutil.rmtree(p)
-    zp = zipfile.ZipFile(io(_page(u)))
+    zp = zipfile.ZipFile(io(_page(u, rname)))
     zp.extractall(tdir)
 
 
