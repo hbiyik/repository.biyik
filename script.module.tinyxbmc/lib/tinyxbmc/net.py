@@ -25,6 +25,7 @@ import traceback
 import calendar
 from six.moves.urllib import parse
 from six.moves import http_cookiejar
+from six.moves.html_parser import HTMLParser
 from datetime import datetime, timedelta
 from email.utils import parsedate, formatdate
 
@@ -43,6 +44,7 @@ __profile = addon.get_commondir()
 __cache = Cache(const.HTTPCACHEHAY)
 
 sessions = {}
+hparser = HTMLParser()
 
 
 def loadcookies():
@@ -168,7 +170,7 @@ def http(url, params=None, data=None, headers=None, timeout=30, json=None, metho
             text = response.content.decode(encoding)
         else:
             text = response.text
-        ret = six.text_type(tools.unescapehtml(text))
+        ret = six.text_type(hparser.unescape(text))
     return ret
 
 
