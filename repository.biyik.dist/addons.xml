@@ -223,7 +223,7 @@
 	</extension>
 </addon>
 
-<addon id="script.module.ghub" name="GHub" provider-name="hbiyik" version="0.0.7">
+<addon id="script.module.ghub" name="GHub" provider-name="hbiyik" version="0.0.8">
     <requires>
 		<import addon="script.module.htmlement"/>
 		<import addon="script.module.six"/>
@@ -329,7 +329,7 @@
   </extension>
 </addon>
 
-<addon id="plugin.program.vods-players" name="VODS Players" provider-name="hbiyik" version="0.0.10">
+<addon id="plugin.program.vods-players" name="VODS Players" provider-name="hbiyik" version="0.0.11">
   <requires>
     <import addon="plugin.video.vods" />
     <import addon="script.module.tinyxbmc" />
