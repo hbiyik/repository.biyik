@@ -402,9 +402,9 @@ class index(container.container):
             if errcoll.hasexception:
                 return
         for link in tools.safeiter(links):
-            if not isinstance(link, string_types):
+            if not isinstance(link, (string_types, const.URL)):
                 continue
-            item = self.item(link, info, art, method="geturls")
+            item = self.item(str(link), info, art, method="geturls")
             self.cacheresolve(link, info, art)
             item.resolve(link, True, **kwargs)
 
@@ -456,6 +456,7 @@ class index(container.container):
                                                                                   reverse=True)])
         self.logplayer("VODS found players (%s): %s" % (len(playerins), aplayers))
         for kodilink in collector.loggingsafeiter(links, "VODS ADDON %s" % self.chan._tinyxbmc["addon"], self.chan.dropboxtoken):
+            kodilink = net.urlfromdict(kodilink)
             if isinstance(kodilink, const.URL):
                 yield kodilink
                 continue
