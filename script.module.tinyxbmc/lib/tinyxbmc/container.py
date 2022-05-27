@@ -40,7 +40,7 @@ from tinyxbmc import net
 from tinyxbmc import addon
 from tinyxbmc import collector
 
-REMOTE_DBG = True
+REMOTE_DBG = False
 PROFILE = False
 
 if REMOTE_DBG:
