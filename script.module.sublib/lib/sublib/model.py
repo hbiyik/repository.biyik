@@ -88,7 +88,10 @@ class service(object):
             addonid = xbmcaddon.Addon()
             self._sid = xbmcaddon.Addon().getAddonInfo('id')
             profile = addonid.getAddonInfo('profile')
-            self._profile = xbmc.translatePath(profile)
+            if PY2:
+                self._profile = xbmc.translatePath(profile)
+            else:
+                self._profile = xbmcvfs.translatePath(profile)
             temp = os.path.join(profile, 'temp')
             self.path = xbmc.translatePath(temp)
             if PY2:
