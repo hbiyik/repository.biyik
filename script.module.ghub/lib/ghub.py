@@ -29,6 +29,7 @@ import xbmcgui
 from six.moves.urllib import request
 from six import PY2
 import xbmc
+import xbmcvfs
 import traceback
 
 
@@ -43,7 +44,7 @@ _dom = "github.com"
 if PY2:
     _ddir = xbmc.translatePath("special://userdata/addon_data/").decode("utf-8")
 else:
-    _ddir = xbmc.translatePath("special://userdata/addon_data/")
+    _ddir = xbmcvfs.translatePath("special://userdata/addon_data/")
 
 
 def _mkdir(*args):
