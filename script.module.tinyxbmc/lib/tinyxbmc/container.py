@@ -40,13 +40,13 @@ from tinyxbmc import net
 from tinyxbmc import addon
 from tinyxbmc import collector
 
-REMOTE_DBG = False
+REMOTE_DBG = True
 PROFILE = False
 
 if REMOTE_DBG:
     # pdevpath = "C:\\Users\\z0042jww\\.p2\\pool\\plugins\\org.python.pydev.core_7.2.1.201904261721\\pysrc"
     # pdevpath = "/home/boogie/.p2/pool/plugins/org.python.pydev.core_7.2.1.201904261721/pysrc/"
-    pdevpath = "/home/boogie/.p2/pool/plugins/org.python.pydev.core_8.3.0.202104101217/pysrc/"
+    pdevpath = "/home/boogie/.p2/pool/plugins/org.python.pydev.core_9.3.0.202203051235/pysrc/"
     # pdevpath = "/home/boogie/src/pydevd"
     sys.path.append(pdevpath)
     import pydevd  # @UnresolvedImport
