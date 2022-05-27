@@ -1,76 +1,62 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addons>
-<addon id="script.module.js2py" name="js2py" version="3.0.0" provider-name="hbiyik">
-  <requires>
-    <import addon="script.module.six"/>
-    <import addon="script.module.pyjsparser"/>
-    <import addon="script.module.tzlocal"/>
-  </requires>
-  <extension point="xbmc.python.module" library="lib" />
-  <extension point="xbmc.addon.metadata">
-    <summary>Pure Python JavaScript Translator/Interpreter</summary>
-    <description>Packed for Kodi from https://github.com/PiotrDabkowski/Js2Py</description>
-    <platform>all</platform>
-    <language></language>
-    <license>MIT</license>
-	<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
-	<website>https://github.com/hbiyik/repository.biyik</website>
-  </extension>
+<addon id="script.module.abi" name="Abi Module" provider-name="hbiyik" version="0.0.1">
+    <requires>
+		<import addon="xbmc.python" version="2.1.0"/>
+	</requires>
+	<extension point="xbmc.python.module" library="lib" />
+	<extension point="xbmc.addon.metadata">
+		<platform>all</platform>
+		<summary lang="en">Python ABI tools for loading precompiled packages</summary>
+		<summary lang="tr">Derlenmiş kod yüklemek için Python ABI araçları</summary>
+		<description lang="en">ABI Module</description>
+		<license>GNU General Public License, v2</license>
+		<forum>https://github.com/hbiyik/script.module.abi/issues</forum>
+		<website>https://github.com/hbiyik/script.module.abi</website>
+		<email>huseyinbiyik@hotmail.com</email>
+	</extension>
 </addon>
 
-<addon id="plugin.program.tribler" name="Tribler" provider-name="hbiyik" version="0.0.8">
+<addon id="service.vods.motorsportstv" name="Motorsports.tv module for VODS" provider-name="hbiyik" version="0.0.10">
   <requires>
-    <import addon="script.module.tinyxbmc"/>
-    <import addon="script.module.six"/>
-    <import addon="script.module.kodi-six"/>
-    <import addon="script.module.pyxbmct"/>
+    <import addon="xbmc.python" version="2.1.0" />
+    <import addon="plugin.video.vods" />
+    <import addon="script.module.htmlement" />
   </requires>
-  <extension point="xbmc.python.pluginsource" library="addon.py">
-		<provides>executable</provides>
-  </extension>
-  <extension point="xbmc.service" library="service.py" />
-  <extension point="xbmc.addon.metadata">
-    <platform>all</platform>
-    <summary lang="en">Tribler, the longest running project of the internet</summary>
-  </extension>
+  <extension point="xbmc.service" library="" />
   <extension library="lib" point="xbmc.python.module" />
   <extension point="xbmc.addon.metadata">
+        <broken>Site Updated</broken>
 		<platform>all</platform>
-		<summary lang="en">Tribler</summary>
-		<description lang="en">Tribler</description>
+		<summary lang="en">Motorsports.tv for VODS</summary>
+		<description lang="en">Motorsports.tv for VODS</description>
 		<license>GNU General Public License, v2</license>
 		<language/>
 		<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
 		<source/>
 		<website>https://github.com/hbiyik/repository.biyik</website>
   </extension>
+  <tinyxbmc>
+  	<plugin path="lib" id="vodsshow" module="motorsports" instance="motorsports"/>
+  </tinyxbmc>
 </addon>
 
-    <addon id="repository.biyik" name="Biyik Kodi Repo" version="0.0.3" provider-name="H.Biyik">
-        <requires>
-        </requires>
-        <extension point="xbmc.addon.repository" name="Biyik Kodi Repo">
-            <info compressed="false">https://raw.githubusercontent.com/hbiyik/repository.biyik/master/repository.biyik.dist/addons.xml</info>
-            <checksum>https://raw.githubusercontent.com/hbiyik/repository.biyik/master/repository.biyik.dist/addons.xml.md5</checksum>
-            <datadir zip="true">https://raw.githubusercontent.com/hbiyik/repository.biyik/master/repository.biyik.dist/</datadir>
-            <hashes>false</hashes>
-        </extension>
-        <extension point="xbmc.addon.metadata">
-            <summary>This is the personal repo published by me for me, in the name of science</summary>
-            <description>This is the personal repo published by me for me, in the name of science</description>
-            <platform>all</platform>
-    </extension>
-</addon>
-
-<addon id="script.module.htmlement" name="HTMLement Module" provider-name="hbiyik" version="3.0.0">
+<addon id="plugin.video.vods" name="VODS" provider-name="hbiyik" version="0.2.3">
     <requires>
+		<import addon="script.module.tinyxbmc"/>
+		<import addon="script.module.ghub"/>
+		<import addon="script.module.chardet"/>
+		<import addon="script.module.six"/>
 	</requires>
-	<extension point="xbmc.python.module" library="lib" />
+	<extension library="addon.py" point="xbmc.python.pluginsource">
+		<provides>video</provides>
+	</extension>
 	<extension point="xbmc.addon.metadata">
 		<platform>all</platform>
-		<summary lang="en">HTMLement module</summary>
-		<description lang="en">HTMLement</description>
+		<summary lang="en">VIDEO ON DEMAND framework</summary>
+		<description lang="en">VIDEO ON DEMAND framework</description>
 		<license>GNU General Public License, v2</license>
+		<language/>
 		<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
 		<website>https://github.com/hbiyik/repository.biyik</website>
 	</extension>
@@ -91,153 +77,68 @@
   </extension>
 </addon>
 
-<addon id="service.subtitles.planetdp" name="Planetdp.org" version="0.0.12" provider-name="hbiyik">
+<addon id="script.module.pyjsparser" name="pyjsparser" version="3.0.0" provider-name="hbiyik">
   <requires>
-    <import addon="script.module.sublib"/>
+
   </requires>
-  <extension point="xbmc.subtitle.module" library="addon.py" />
+  <extension point="xbmc.python.module" library="lib" />
   <extension point="xbmc.addon.metadata">
-  	<platform>all</platform>
-    <summary lang="en">Planetdp.org</summary>
-    <description lang="en">Turkish / English Subtitle Service from planetdp.org</description>
-    <description lang="tr">planetdp.org ile Türkçe / İngilizce altyazı servisi</description>
-    <license>GNU General Public License, v2</license>
+    <summary>Pure Python JavaScript Translator/Interpreter</summary>
+    <description>Packed for Kodi from https://github.com/PiotrDabkowski/pyjsparser</description>
+    <platform>all</platform>
+    <language></language>
+    <license>MIT</license>
 	<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
 	<website>https://github.com/hbiyik/repository.biyik</website>
   </extension>
 </addon>
 
-<addon id="service.vods.dmax" name="DMAX module for VODS" provider-name="hbiyik" version="0.0.5">
-  <requires>
-    <import addon="plugin.video.vods"/>
-    <import addon="script.module.htmlement"/>
-  </requires>
-  <extension point="xbmc.service" library="" />
-  <extension library="lib" point="xbmc.python.module" />
-  <extension point="xbmc.addon.metadata">
-		<platform>all</platform>
-		<summary lang="en">DMAX for VODS</summary>
-		<description lang="en">DMAX for VODS</description>
-		<license>GNU General Public License, v2</license>
-		<language/>
-		<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
-		<source/>
-		<website>https://github.com/hbiyik/repository.biyik</website>
-  </extension>
-  <tinyxbmc>
-  	<plugin path="lib" id="vodsshow" module="dmax" instance="dmaxtr"/>
-  </tinyxbmc>
-</addon>
-
-<addon id="service.vods.tdf" name="VODS Top Documentary Films" version="0.0.4" provider-name="hbiyik">
-	<requires>
-		<import addon="xbmc.python" version="2.19.0"/>
-		<import addon="plugin.video.vods"/>
-		<import addon="script.module.htmlement"/>
-		<import addon="plugin.program.vods-players"/>
-	</requires>
-	<extension point="xbmc.service" library="" />
-	<extension library="lib" point="xbmc.python.module" />
-	<extension point="xbmc.addon.metadata">
-	    <broken>cloudflare protection</broken>
-		<platform>all</platform>
-		<summary lang="en">Top documentary Films for VODS</summary>
-		<description lang="en">Top documentary Films for VODS</description>
-		<license>GNU General Public License, v2</license>
-		<language/>
-		<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
-		<source/>
-		<website>https://github.com/hbiyik/repository.biyik</website>
-	</extension>
-  <tinyxbmc>
-  	<plugin path="lib" id="vodsmovie" module="tdf" instance="tdf"/>
-  </tinyxbmc>
-</addon>
-
-<addon id="script.module.sublib" name="Sublib Module" provider-name="hbiyik" version="0.1.1">
+<addon id="script.module.htmlement" name="HTMLement Module" provider-name="hbiyik" version="3.0.0">
     <requires>
-	<import addon="script.module.tinyxbmc"/>
-	<import addon="script.module.six"/>
-	<import addon="vfs.rar" optional="true"/>
-	<import addon="vfs.libarchive" optional="true"/>
-	</requires>
-	<extension library="lib" point="xbmc.python.module"/>
-	<extension point="xbmc.addon.metadata">
-		<platform>all</platform>
-		<summary lang="en">Subtitle Library to create subtitle addons easy and fast</summary>
-		<summary lang="tr">Altyazı eklentisi geliştirmek için sublib kütüphanesi</summary>
-		<description lang="en">Sublib Module</description>
-		<license>GNU General Public License, v2</license>
-		<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
-		<website>https://github.com/hbiyik/repository.biyik</website>
-	</extension>
-</addon>
-
-<addon id="script.module.abi" name="Abi Module" provider-name="hbiyik" version="0.0.1">
-    <requires>
-		<import addon="xbmc.python" version="2.1.0"/>
 	</requires>
 	<extension point="xbmc.python.module" library="lib" />
 	<extension point="xbmc.addon.metadata">
 		<platform>all</platform>
-		<summary lang="en">Python ABI tools for loading precompiled packages</summary>
-		<summary lang="tr">Derlenmiş kod yüklemek için Python ABI araçları</summary>
-		<description lang="en">ABI Module</description>
+		<summary lang="en">HTMLement module</summary>
+		<description lang="en">HTMLement</description>
 		<license>GNU General Public License, v2</license>
-		<forum>https://github.com/hbiyik/script.module.abi/issues</forum>
-		<website>https://github.com/hbiyik/script.module.abi</website>
-		<email>huseyinbiyik@hotmail.com</email>
+		<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
+		<website>https://github.com/hbiyik/repository.biyik</website>
 	</extension>
 </addon>
 
-<addon id="service.subtitles.turkcealtyazi" name="Turkcealtyazi.org" provider-name="hbiyik" version="0.1.2">
+    <addon id="repository.biyik" name="Biyik Kodi Repo" version="0.0.3" provider-name="H.Biyik">
+        <requires>
+        </requires>
+        <extension point="xbmc.addon.repository" name="Biyik Kodi Repo">
+            <info compressed="false">https://raw.githubusercontent.com/hbiyik/repository.biyik/master/repository.biyik.dist/addons.xml</info>
+            <checksum>https://raw.githubusercontent.com/hbiyik/repository.biyik/master/repository.biyik.dist/addons.xml.md5</checksum>
+            <datadir zip="true">https://raw.githubusercontent.com/hbiyik/repository.biyik/master/repository.biyik.dist/</datadir>
+            <hashes>false</hashes>
+        </extension>
+        <extension point="xbmc.addon.metadata">
+            <summary>This is the personal repo published by me for me, in the name of science</summary>
+            <description>This is the personal repo published by me for me, in the name of science</description>
+            <platform>all</platform>
+    </extension>
+</addon>
+
+<addon id="script.module.js2py" name="js2py" version="3.0.0" provider-name="hbiyik">
   <requires>
-    <import addon="script.module.sublib"/>
-    <import addon="script.module.htmlement"/>
-    <import addon="script.module.chromium"/>
+    <import addon="script.module.six"/>
+    <import addon="script.module.pyjsparser"/>
+    <import addon="script.module.tzlocal"/>
   </requires>
-  <extension library="addon.py" point="xbmc.subtitle.module"/>
+  <extension point="xbmc.python.module" library="lib" />
   <extension point="xbmc.addon.metadata">
-  	<platform>all</platform>
-    <summary lang="en">Turkcealtyazi.org</summary>
-    <description lang="en">Turkish / English Subtitle Service from turkcealtyazi.org</description>
-    <description lang="tr">Turkcealtyazi.org altyazı servisi</description>
-    <license>GNU General Public License, v2</license>
+    <summary>Pure Python JavaScript Translator/Interpreter</summary>
+    <description>Packed for Kodi from https://github.com/PiotrDabkowski/Js2Py</description>
+    <platform>all</platform>
+    <language></language>
+    <license>MIT</license>
 	<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
 	<website>https://github.com/hbiyik/repository.biyik</website>
   </extension>
-</addon>
-
-<addon id="script.module.cachecontrol" name="Cachecontrol Module" provider-name="hbiyik" version="3.0.1">
-    <requires>
-		<import addon="script.module.six"/>
-	</requires>
-	<extension point="xbmc.python.module" library="lib" />
-	<extension point="xbmc.addon.metadata">
-		<platform>all</platform>
-		<summary lang="en">CacheControl module</summary>
-		<description lang="en">CacheControl</description>
-		<license>GNU General Public License, v2</license>
-		<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
-		<website>https://github.com/hbiyik/repository.biyik</website>
-	</extension>
-</addon>
-
-<addon id="script.module.ghub" name="GHub" provider-name="hbiyik" version="0.0.8">
-    <requires>
-		<import addon="script.module.htmlement"/>
-		<import addon="script.module.six"/>
-	</requires>
-	<extension point="xbmc.python.module" library="lib" />
-	<extension point="xbmc.addon.metadata">
-		<platform>all</platform>
-		<summary lang="en">Automatically import module from github</summary>
-		<description lang="en">Automatically import module from github</description>
-		<license>GNU General Public License, v2</license>
-		<language/>
-		<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
-		<website>https://github.com/hbiyik/repository.biyik</website>
-	</extension>
 </addon>
 
 <addon id="plugin.program.anon" name="ANON" provider-name="hbiyik" version="0.0.6">
@@ -266,6 +167,84 @@
   </extension>
 </addon>
 
+<addon id="script.module.ghub" name="GHub" provider-name="hbiyik" version="0.0.9">
+    <requires>
+		<import addon="script.module.htmlement"/>
+		<import addon="script.module.six"/>
+	</requires>
+	<extension point="xbmc.python.module" library="lib" />
+	<extension point="xbmc.addon.metadata">
+		<platform>all</platform>
+		<summary lang="en">Automatically import module from github</summary>
+		<description lang="en">Automatically import module from github</description>
+		<license>GNU General Public License, v2</license>
+		<language/>
+		<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
+		<website>https://github.com/hbiyik/repository.biyik</website>
+	</extension>
+</addon>
+
+<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.2.7">
+    <requires>
+		<import addon="script.module.cachecontrol"/>
+		<import addon="script.module.requests"/>
+		<import addon="script.module.six"/>
+		<import addon="script.module.ghub"/>
+		<import addon="script.module.importlib" optional="true"/>
+		<import addon="script.module.inputstreamhelper" optional="true"/>
+		<import addon="inputstream.adaptive" optional="true"/>
+	</requires>
+	<extension point="xbmc.python.module" library="lib" />
+	<extension point="xbmc.addon.metadata">
+		<platform>all</platform>
+		<summary lang="en">TinxyXBMC module</summary>
+		<description lang="en">TinyXBMC</description>
+		<license>GNU General Public License, v2</license>
+		<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
+		<website>https://github.com/hbiyik/repository.biyik</website>
+	</extension>
+</addon>
+
+<addon id="script.module.lockfile" name="Lockfile Module" provider-name="hbiyik" version="3.0.0">
+    <requires>
+
+	</requires>
+	<extension point="xbmc.python.module" library="lib" />
+	<extension point="xbmc.addon.metadata">
+		<platform>all</platform>
+		<summary lang="en">Lockfile module</summary>
+		<description lang="en">Lockfile</description>
+		<license>GNU General Public License, v2</license>
+		<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
+		<website>https://github.com/hbiyik/repository.biyik</website>
+	</extension>
+</addon>
+
+<addon id="service.vods.tdf" name="VODS Top Documentary Films" version="0.0.4" provider-name="hbiyik">
+	<requires>
+		<import addon="xbmc.python" version="2.19.0"/>
+		<import addon="plugin.video.vods"/>
+		<import addon="script.module.htmlement"/>
+		<import addon="plugin.program.vods-players"/>
+	</requires>
+	<extension point="xbmc.service" library="" />
+	<extension library="lib" point="xbmc.python.module" />
+	<extension point="xbmc.addon.metadata">
+	    <broken>cloudflare protection</broken>
+		<platform>all</platform>
+		<summary lang="en">Top documentary Films for VODS</summary>
+		<description lang="en">Top documentary Films for VODS</description>
+		<license>GNU General Public License, v2</license>
+		<language/>
+		<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
+		<source/>
+		<website>https://github.com/hbiyik/repository.biyik</website>
+	</extension>
+  <tinyxbmc>
+  	<plugin path="lib" id="vodsmovie" module="tdf" instance="tdf"/>
+  </tinyxbmc>
+</addon>
+
 <addon id="service.vods.cnnturk" name="CNNTurk module for VODS" provider-name="hbiyik" version="0.0.5">
   <requires>
     <import addon="xbmc.python" version="2.1.0" />
@@ -289,19 +268,17 @@
   </tinyxbmc>
 </addon>
 
-<addon id="service.vods.motorsportstv" name="Motorsports.tv module for VODS" provider-name="hbiyik" version="0.0.10">
+<addon id="service.vods.dmax" name="DMAX module for VODS" provider-name="hbiyik" version="0.0.5">
   <requires>
-    <import addon="xbmc.python" version="2.1.0" />
-    <import addon="plugin.video.vods" />
-    <import addon="script.module.htmlement" />
+    <import addon="plugin.video.vods"/>
+    <import addon="script.module.htmlement"/>
   </requires>
   <extension point="xbmc.service" library="" />
   <extension library="lib" point="xbmc.python.module" />
   <extension point="xbmc.addon.metadata">
-        <broken>Site Updated</broken>
 		<platform>all</platform>
-		<summary lang="en">Motorsports.tv for VODS</summary>
-		<description lang="en">Motorsports.tv for VODS</description>
+		<summary lang="en">DMAX for VODS</summary>
+		<description lang="en">DMAX for VODS</description>
 		<license>GNU General Public License, v2</license>
 		<language/>
 		<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
@@ -309,24 +286,8 @@
 		<website>https://github.com/hbiyik/repository.biyik</website>
   </extension>
   <tinyxbmc>
-  	<plugin path="lib" id="vodsshow" module="motorsports" instance="motorsports"/>
+  	<plugin path="lib" id="vodsshow" module="dmax" instance="dmaxtr"/>
   </tinyxbmc>
-</addon>
-
-<addon id="script.module.pyjsparser" name="pyjsparser" version="3.0.0" provider-name="hbiyik">
-  <requires>
-
-  </requires>
-  <extension point="xbmc.python.module" library="lib" />
-  <extension point="xbmc.addon.metadata">
-    <summary>Pure Python JavaScript Translator/Interpreter</summary>
-    <description>Packed for Kodi from https://github.com/PiotrDabkowski/pyjsparser</description>
-    <platform>all</platform>
-    <language></language>
-    <license>MIT</license>
-	<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
-	<website>https://github.com/hbiyik/repository.biyik</website>
-  </extension>
 </addon>
 
 <addon id="plugin.program.vods-players" name="VODS Players" provider-name="hbiyik" version="0.0.11">
@@ -360,6 +321,71 @@
   </tinyxbmc>
 </addon>
 
+<addon id="script.module.sublib" name="Sublib Module" provider-name="hbiyik" version="0.1.2">
+    <requires>
+	<import addon="script.module.tinyxbmc"/>
+	<import addon="script.module.six"/>
+	<import addon="vfs.rar" optional="true"/>
+	<import addon="vfs.libarchive" optional="true"/>
+	</requires>
+	<extension library="lib" point="xbmc.python.module"/>
+	<extension point="xbmc.addon.metadata">
+		<platform>all</platform>
+		<summary lang="en">Subtitle Library to create subtitle addons easy and fast</summary>
+		<summary lang="tr">Altyazı eklentisi geliştirmek için sublib kütüphanesi</summary>
+		<description lang="en">Sublib Module</description>
+		<license>GNU General Public License, v2</license>
+		<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
+		<website>https://github.com/hbiyik/repository.biyik</website>
+	</extension>
+</addon>
+
+<addon id="service.subtitles.turkcealtyazi" name="Turkcealtyazi.org" provider-name="hbiyik" version="0.1.2">
+  <requires>
+    <import addon="script.module.sublib"/>
+    <import addon="script.module.htmlement"/>
+    <import addon="script.module.chromium"/>
+  </requires>
+  <extension library="addon.py" point="xbmc.subtitle.module"/>
+  <extension point="xbmc.addon.metadata">
+  	<platform>all</platform>
+    <summary lang="en">Turkcealtyazi.org</summary>
+    <description lang="en">Turkish / English Subtitle Service from turkcealtyazi.org</description>
+    <description lang="tr">Turkcealtyazi.org altyazı servisi</description>
+    <license>GNU General Public License, v2</license>
+	<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
+	<website>https://github.com/hbiyik/repository.biyik</website>
+  </extension>
+</addon>
+
+<addon id="plugin.program.tribler" name="Tribler" provider-name="hbiyik" version="0.0.8">
+  <requires>
+    <import addon="script.module.tinyxbmc"/>
+    <import addon="script.module.six"/>
+    <import addon="script.module.kodi-six"/>
+    <import addon="script.module.pyxbmct"/>
+  </requires>
+  <extension point="xbmc.python.pluginsource" library="addon.py">
+		<provides>executable</provides>
+  </extension>
+  <extension point="xbmc.service" library="service.py" />
+  <extension point="xbmc.addon.metadata">
+    <platform>all</platform>
+    <summary lang="en">Tribler, the longest running project of the internet</summary>
+  </extension>
+  <extension library="lib" point="xbmc.python.module" />
+  <extension point="xbmc.addon.metadata">
+		<platform>all</platform>
+		<summary lang="en">Tribler</summary>
+		<description lang="en">Tribler</description>
+		<license>GNU General Public License, v2</license>
+		<language/>
+		<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
+		<source/>
+		<website>https://github.com/hbiyik/repository.biyik</website>
+  </extension>
+</addon>
+
 <addon id="script.module.chromium" name="Chromium Service" provider-name="hbiyik" version="0.0.5">
     <requires>
 		<import addon="script.module.tinyxbmc"/>
@@ -377,58 +403,32 @@
 	</extension>
 </addon>
 
-<addon id="script.module.lockfile" name="Lockfile Module" provider-name="hbiyik" version="3.0.0">
-    <requires>
+<addon id="service.subtitles.planetdp" name="Planetdp.org" version="0.0.12" provider-name="hbiyik">
+  <requires>
+    <import addon="script.module.sublib"/>
+  </requires>
+  <extension point="xbmc.subtitle.module" library="addon.py" />
+  <extension point="xbmc.addon.metadata">
+  	<platform>all</platform>
+    <summary lang="en">Planetdp.org</summary>
+    <description lang="en">Turkish / English Subtitle Service from planetdp.org</description>
+    <description lang="tr">planetdp.org ile Türkçe / İngilizce altyazı servisi</description>
+    <license>GNU General Public License, v2</license>
+	<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
+	<website>https://github.com/hbiyik/repository.biyik</website>
+  </extension>
+</addon>
 
+<addon id="script.module.cachecontrol" name="Cachecontrol Module" provider-name="hbiyik" version="3.0.1">
+    <requires>
+		<import addon="script.module.six"/>
 	</requires>
 	<extension point="xbmc.python.module" library="lib" />
 	<extension point="xbmc.addon.metadata">
 		<platform>all</platform>
-		<summary lang="en">Lockfile module</summary>
-		<description lang="en">Lockfile</description>
+		<summary lang="en">CacheControl module</summary>
+		<description lang="en">CacheControl</description>
 		<license>GNU General Public License, v2</license>
-		<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
-		<website>https://github.com/hbiyik/repository.biyik</website>
-	</extension>
-</addon>
-
-<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.2.6">
-    <requires>
-		<import addon="script.module.cachecontrol"/>
-		<import addon="script.module.requests"/>
-		<import addon="script.module.six"/>
-		<import addon="script.module.ghub"/>
-		<import addon="script.module.importlib" optional="true"/>
-		<import addon="script.module.inputstreamhelper" optional="true"/>
-		<import addon="inputstream.adaptive" optional="true"/>
-	</requires>
-	<extension point="xbmc.python.module" library="lib" />
-	<extension point="xbmc.addon.metadata">
-		<platform>all</platform>
-		<summary lang="en">TinxyXBMC module</summary>
-		<description lang="en">TinyXBMC</description>
-		<license>GNU General Public License, v2</license>
-		<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
-		<website>https://github.com/hbiyik/repository.biyik</website>
-	</extension>
-</addon>
-
-<addon id="plugin.video.vods" name="VODS" provider-name="hbiyik" version="0.2.3">
-    <requires>
-		<import addon="script.module.tinyxbmc"/>
-		<import addon="script.module.ghub"/>
-		<import addon="script.module.chardet"/>
-		<import addon="script.module.six"/>
-	</requires>
-	<extension library="addon.py" point="xbmc.python.pluginsource">
-		<provides>video</provides>
-	</extension>
-	<extension point="xbmc.addon.metadata">
-		<platform>all</platform>
-		<summary lang="en">VIDEO ON DEMAND framework</summary>
-		<description lang="en">VIDEO ON DEMAND framework</description>
-		<license>GNU General Public License, v2</license>
-		<language/>
 		<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
 		<website>https://github.com/hbiyik/repository.biyik</website>
 	</extension>
