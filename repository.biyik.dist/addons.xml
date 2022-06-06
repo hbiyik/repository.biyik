@@ -107,14 +107,16 @@
 	</extension>
 </addon>
 
-    <addon id="repository.biyik" name="Biyik Kodi Repo" version="0.0.3" provider-name="H.Biyik">
+    <addon id="repository.biyik" name="Biyik Kodi Repo" version="0.0.5" provider-name="H.Biyik">
         <requires>
         </requires>
         <extension point="xbmc.addon.repository" name="Biyik Kodi Repo">
+        <dir>
             <info compressed="false">https://raw.githubusercontent.com/hbiyik/repository.biyik/master/repository.biyik.dist/addons.xml</info>
             <checksum>https://raw.githubusercontent.com/hbiyik/repository.biyik/master/repository.biyik.dist/addons.xml.md5</checksum>
             <datadir zip="true">https://raw.githubusercontent.com/hbiyik/repository.biyik/master/repository.biyik.dist/</datadir>
             <hashes>false</hashes>
+        </dir>
         </extension>
         <extension point="xbmc.addon.metadata">
             <summary>This is the personal repo published by me for me, in the name of science</summary>

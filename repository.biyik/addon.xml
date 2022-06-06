@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-    <addon id="repository.biyik" name="Biyik Kodi Repo" version="0.0.4" provider-name="H.Biyik">
+    <addon id="repository.biyik" name="Biyik Kodi Repo" version="0.0.5" provider-name="H.Biyik">
         <requires>
         </requires>
         <extension point="xbmc.addon.repository" name="Biyik Kodi Repo">
