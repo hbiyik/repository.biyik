@@ -33,14 +33,17 @@ from tinyxbmc import tools
 from tinyxbmc import collector
 
 addon = None
+ISSTUB = tools.isstub()
 
 if len(sys.argv):
     url = parse.urlparse(sys.argv[0])
     if url.scheme.lower() in ["plugin", "script"]:
         addon = url.netloc
-if tools.isstub():
+if ISSTUB:
     from tinyxbmc import stubmod
+    from xml.dom import minidom
     xbmcaddon.Addon = stubmod.Addon
+    xbmc.log = stubmod.xbmclog
 
 
 def has_addon(aid):
@@ -147,7 +150,7 @@ def get_commondir():
     a = get_addon("script.module.tinyxbmc")
     profile = a.getAddonInfo('profile')
     path = tools.translatePath(profile)
-    if tools.isstub():
+    if ISSTUB:
         path = os.path.join(addon, "profile_dir")
     if not os.path.exists(path):
         os.makedirs(path)
@@ -166,6 +169,14 @@ class kodisetting():
         profile = a.getAddonInfo('profile')
         path = tools.translatePath(profile)
         return os.path.join(path, name)
+
+    def _get_val(self, variable):
+        if ISSTUB:
+            xfile = minidom.parse(os.path.join(stubmod.rootpath, self.aid, "resources", "settings.xml"))
+            for elem in xfile.getElementsByTagName("setting"):
+                if elem.attributes["id"].value == variable and elem.hasAttribute("default"):
+                    return elem.attributes["default"].value
+        return get_addon(self.aid).getSetting(variable)
 
     @staticmethod
     def ischanged(aid):
@@ -188,16 +199,16 @@ class kodisetting():
             return True
 
     def getbool(self, variable):
-        return bool(get_addon(self.aid).getSetting(variable) == 'true')
+        return bool(self._get_val(variable) == 'true')
 
     def getstr(self, variable):
         if six.PY2:
-            return str(get_addon(self.aid).getSetting(variable).decode(self.e))
+            return str(self._get_val(variable).decode(self.e))
         else:
-            return str(get_addon(self.aid).getSetting(variable))
+            return str(self._get_val(variable))
 
     def getint(self, variable):
-        val = get_addon(self.aid).getSetting(variable)
+        val = self._get_val(variable)
         if isinstance(val, (int, float)):
             return int(val)
         elif isinstance(val, six.string_types) and val.isdigit():
@@ -206,7 +217,7 @@ class kodisetting():
             return -1
 
     def getfloat(self, variable):
-        return float(get_addon(self.aid).getSetting(variable))
+        return float(self._get_val(variable))
 
     def set(self, key, value):
         if isinstance(value, bool):

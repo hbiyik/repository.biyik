@@ -12,6 +12,10 @@ from six.moves.urllib import parse
 rootpath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..")
 
 
+def xbmclog(msg, *args, **kwargs):
+    print(msg)
+
+
 class Addon(xbmcaddon.Addon):
     def __init__(self, nid=None):
         if nid is None:

@@ -111,7 +111,7 @@ def tokodiurl(url, domain=None, headers=None, pushverify=None, pushua=None):
     if cookiestr:
         headers["Cookie"] = headers.get("cookie", headers.get("Cookie", "")) + cookiestr
     if headers is None:
-            headers = {"User-agent": const.USERAGENT}
+        headers = {"User-agent": const.USERAGENT}
     headerkeys = [x.lower() for x in headers.keys()]
     if pushua is not None and "user-agent" not in headerkeys:
         headers["User-agent"] = const.USERAGENT
