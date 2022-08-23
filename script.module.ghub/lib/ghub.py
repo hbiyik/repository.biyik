@@ -32,11 +32,14 @@ import xbmc
 import xbmcvfs
 import traceback
 
-
 if PY2:
     from StringIO import StringIO as io
 else:
     from io import BytesIO as io
+
+if hasattr(xbmc, "__kodistubs__") and xbmc.__kodistubs__:
+    # for testing
+    from tinyxbmc import stubmod
 
 
 _dom = "github.com"

@@ -60,8 +60,9 @@ def safeiter(iterable):
                 yield six.next(iterable)
             except StopIteration:
                 break
-            except Exception:
-                xbmc.log(traceback.format_exc(), xbmc.LOGERROR)
+            except Exception as e:
+                if "StopIteration" not in repr(e):
+                    xbmc.log(traceback.format_exc(), xbmc.LOGERROR)
 
 
 def dynamicret(iterable):
@@ -288,10 +289,6 @@ class tz_utc(datetime.tzinfo):
 
     def utcoffset(self, dt):
         return datetime.timedelta(0, self.__timezone * 60 * 60)
-
-
-def isstub():
-    return hasattr(xbmc, "__kodistubs__") and xbmc.__kodistubs__
 
 
 def language(_format=None, region=False):

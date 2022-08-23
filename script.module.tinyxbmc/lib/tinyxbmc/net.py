@@ -25,11 +25,6 @@ import traceback
 import calendar
 from six.moves.urllib import parse
 from six.moves import http_cookiejar
-if six.PY3:
-    import html
-else:
-    from six.moves import html_parser    
-    html = html_parser.HTMLParser()
 from datetime import datetime, timedelta
 from email.utils import parsedate, formatdate
 
@@ -43,6 +38,13 @@ from tinyxbmc import addon
 from tinyxbmc import tools
 from tinyxbmc import const
 from tinyxbmc.distversion import LooseVersion
+from tinyxbmc.stubmod import isstub
+
+if six.PY3:
+    import html
+else:
+    from six.moves import html_parser
+    html = html_parser.HTMLParser()
 
 __profile = addon.get_commondir()
 __cache = Cache(const.HTTPCACHEHAY)
@@ -255,7 +257,7 @@ class mpdurl(const.URL):
         CDMVER = LooseVersion(helper._get_lib_version(widevinecdm_path()))
         addon.log("MPD: Widewine is enabled with CDM version %s" % CDMVER)
 
-    if tools.isstub():
+    if isstub():
         HASWV = True
 
     def __init__(self, url, headers=None, lurl=None, lheaders=None, lbody="R{SSM}", lresponse="", mincdm=None):

@@ -32,18 +32,13 @@ from distutils.version import LooseVersion
 from tinyxbmc import tools
 from tinyxbmc import collector
 
+
 addon = None
-ISSTUB = tools.isstub()
 
 if len(sys.argv):
     url = parse.urlparse(sys.argv[0])
     if url.scheme.lower() in ["plugin", "script"]:
         addon = url.netloc
-if ISSTUB:
-    from tinyxbmc import stubmod
-    from xml.dom import minidom
-    xbmcaddon.Addon = stubmod.Addon
-    xbmc.log = stubmod.xbmclog
 
 
 def has_addon(aid):
@@ -147,11 +142,7 @@ def get_commondir():
     """
     Returns the common data dir for tinyxbmc
     """
-    a = get_addon("script.module.tinyxbmc")
-    profile = a.getAddonInfo('profile')
-    path = tools.translatePath(profile)
-    if ISSTUB:
-        path = os.path.join(addon, "profile_dir")
+    path = tools.translatePath("special://userdata/addon_data/script.module.tinyxbmc")
     if not os.path.exists(path):
         os.makedirs(path)
     return path
@@ -171,11 +162,6 @@ class kodisetting():
         return os.path.join(path, name)
 
     def _get_val(self, variable):
-        if ISSTUB:
-            xfile = minidom.parse(os.path.join(stubmod.rootpath, self.aid, "resources", "settings.xml"))
-            for elem in xfile.getElementsByTagName("setting"):
-                if elem.attributes["id"].value == variable and elem.hasAttribute("default"):
-                    return elem.attributes["default"].value
         return get_addon(self.aid).getSetting(variable)
 
     @staticmethod
@@ -243,6 +229,8 @@ def builtin(*args, **kwargs):
 
 
 def log(txt, level=0):
+    if addon:
+        txt = "%s : %s" % (addon, txt)
     xbmc.log(txt, level)
 
 
