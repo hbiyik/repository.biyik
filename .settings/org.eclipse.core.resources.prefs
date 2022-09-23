@@ -8,6 +8,7 @@ encoding//script.module.sublib/lib/sublib/model.py=utf-8
 encoding//script.module.tinyxbmc/lib/tinyxbmc/abi.py=utf-8
 encoding//script.module.tinyxbmc/lib/tinyxbmc/addon.py=utf-8
 encoding//script.module.tinyxbmc/lib/tinyxbmc/container.py=utf-8
+encoding//script.module.tinyxbmc/lib/tinyxbmc/extension.py=utf-8
 encoding//script.module.tinyxbmc/lib/tinyxbmc/gui.py=utf-8
 encoding//script.module.tinyxbmc/lib/tinyxbmc/net.py=utf-8
 encoding//script.module.tinyxbmc/lib/tinyxbmc/tools.py=utf-8
