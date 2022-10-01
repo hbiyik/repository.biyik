@@ -17,6 +17,8 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
+import xbmc
+
 CT_FILES = "files"
 CT_SONGS = "songs"
 CT_ARTISTS = "artists"
@@ -38,9 +40,20 @@ EXTPREFIX = "plugin.program.tinyxbmc-"
 XMLROOTNODE = "tinyxbmc"
 XMLPLUGINNODE = "plugin"
 XMLPLUGINATTRS = ["id", "path", "package", "module", "instance"]
-INPUTSTREAMADDON = "inputstream.adaptive"
+INPUTSTREAMADAPTIVE = "inputstream.adaptive"
+INPUTSTREAFFMPEGDIRECT = "inputstream.ffmpegdirect"
 DB_TOKEN = "7yvXj3oE05gAAAAAAAAAAaKdIWSlFGdkh0yyjBgf47i231ZucF-NiMjCLniqVO5Y"  # i trust people easily :)
 
 
 class URL(dict):
-    pass
+    inpurtstream = None
+    manifest = None
+
+    def props(self):
+        props = {}
+        if int(xbmc.getInfoLabel('System.BuildVersion')[:2]) >= 19:
+            props['inputstream'] = self.inputstream
+        else:
+            props['inputstreamaddon'] = self.inputstream
+        props['inputstream.adaptive.manifest_type'] = self.manifest
+        return props

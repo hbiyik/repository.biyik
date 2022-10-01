@@ -464,15 +464,9 @@ class xbmcplayer(xbmc.Player):
             li = xbmcgui.ListItem(path=u)
         if isinstance(url, const.URL) and url.inputstream:
             # utilize inputstream adaptive
-            if tools.kodiversion() >= 19:
-                li.setProperty('inputstream', url.inputstream)
-            else:
-                li.setProperty('inputstreamaddon', url.inputstream)
-            li.setProperty('inputstream.adaptive.manifest_type', url.manifest)
-            if isinstance(url, net.mpdurl) and url.lurl:
-                li.setProperty('inputstream.adaptive.license_type', url.license)
-                url.lurl, url.lheaders = net.fromkodiurl(net.tokodiurl(url.lurl, headers=url.lheaders, pushua=const.USERAGENT, pushverify="false"))
-                li.setProperty('inputstream.adaptive.license_key', url.kodilurl)
+            for pkey, pval in url.props().items():
+                li.setProperty(pkey, pval)
+                print("%s = %s" % (pkey, pval))
         if self.dlg.iscanceled():
             return
         if self.canresolve:

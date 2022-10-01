@@ -199,7 +199,8 @@ class timecache(BaseHeuristic):
 
 class hlsurl(const.URL):
     manifest = "hls"
-    HASISA = addon.has_addon(const.INPUTSTREAMADDON)
+    HASISA = addon.has_addon(const.INPUTSTREAMADAPTIVE)
+    HASFFDR = addon.has_addon(const.INPUTSTREAFFMPEGDIRECT)
 
     def __init__(self, url, headers=None, adaptive=True):
         self.url = url
@@ -214,17 +215,25 @@ class hlsurl(const.URL):
     @property
     def inputstream(self):
         if self.HASISA and self.adaptive:
-            return const.INPUTSTREAMADDON
+            return const.INPUTSTREAMADAPTIVE
+        elif self.HASFFDR:
+            return const.INPUTSTREAFFMPEGDIRECT
         return None
 
     @property
     def kodiurl(self):
         return tokodiurl(self.url, headers=self.headers)
 
+    def props(self):
+        props = const.URL.props(self)
+        if self.HASFFDR and not self.adaptive:
+            props["inputstream.ffmpegdirect.is_realtime_stream"] = "false"
+        return props
+
 
 class mpdurl(const.URL):
     manifest = "mpd"
-    HASISA = addon.has_addon(const.INPUTSTREAMADDON)
+    HASISA = addon.has_addon(const.INPUTSTREAMADAPTIVE)
     HASWV = False
     CDMVER = None
     if HASISA:
@@ -289,17 +298,17 @@ class mpdurl(const.URL):
             if self.HASWV:
                 if self.mincdm:
                     if self.mincdm <= self.CDMVER:
-                        inputstream = const.INPUTSTREAMADDON
+                        inputstream = const.INPUTSTREAMADAPTIVE
                     else:
                         addon.log("MPD: Available CDM version (%s) is not >= minimum required (%s): %s" % (self.CDMVER,
                                                                                                            self.mincdm,
                                                                                                            self.url))
                 else:
-                    inputstream = const.INPUTSTREAMADDON
+                    inputstream = const.INPUTSTREAMADAPTIVE
             else:
                 addon.log("MPD: DASH stream requires drm but widewine is not available: %s" % (self.url))
         elif self.HASISA:
-            inputstream = const.INPUTSTREAMADDON
+            inputstream = const.INPUTSTREAMADAPTIVE
         return inputstream
 
     @property
@@ -313,6 +322,14 @@ class mpdurl(const.URL):
             if "|" not in lurl:
                 return lurl + "|"
             return "%s|%s|%s" % (lurl, self.lbody, self.lresponse)
+
+    def props(self):
+        props = const.URL.props(self)
+        if self.lurl:
+            props['inputstream.adaptive.license_type'] = self.license
+            self.lurl, self.lheaders = fromkodiurl(tokodiurl(self.lurl, headers=self.lheaders, pushua=const.USERAGENT, pushverify="false"))
+        props['inputstream.adaptive.license_key'] = self.kodilurl
+        return props
 
 
 def absurl(url, fromurl):
