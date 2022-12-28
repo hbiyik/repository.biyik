@@ -46,14 +46,16 @@ DB_TOKEN = "7yvXj3oE05gAAAAAAAAAAaKdIWSlFGdkh0yyjBgf47i231ZucF-NiMjCLniqVO5Y"  #
 
 
 class URL(dict):
-    inpurtstream = None
+    inputstream = None
     manifest = None
 
     def props(self):
         props = {}
-        if int(xbmc.getInfoLabel('System.BuildVersion')[:2]) >= 19:
-            props['inputstream'] = self.inputstream
-        else:
-            props['inputstreamaddon'] = self.inputstream
-        props['inputstream.adaptive.manifest_type'] = self.manifest
+        if self.inputstream:
+            if int(xbmc.getInfoLabel('System.BuildVersion')[:2]) >= 19:
+                props['inputstream'] = self.inputstream
+            else:
+                props['inputstreamaddon'] = self.inputstream
+        if self.manifest:
+            props['inputstream.adaptive.manifest_type'] = self.manifest
         return props

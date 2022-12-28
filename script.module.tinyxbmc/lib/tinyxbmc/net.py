@@ -46,6 +46,12 @@ else:
     from six.moves import html_parser
     html = html_parser.HTMLParser()
 
+if addon.has_addon("plugin.program.aceengine"):
+    addon.depend_addon("plugin.program.aceengine")
+    import aceengine
+else:
+    aceengine = None
+
 __profile = addon.get_commondir()
 __cache = Cache(const.HTTPCACHEHAY)
 
@@ -222,13 +228,24 @@ class hlsurl(const.URL):
 
     @property
     def kodiurl(self):
-        return tokodiurl(self.url, headers=self.headers)
+        return tokodiurl(self.url, headers=self.headers, pushverify="false", pushua=const.USERAGENT)
 
     def props(self):
         props = const.URL.props(self)
-        if self.HASFFDR and not self.adaptive:
-            props["inputstream.ffmpegdirect.is_realtime_stream"] = "false"
         return props
+
+
+class acestreamurl(const.URL):
+    manifest = "acestream"
+
+    def __init__(self, url):
+        self.url = url
+        dict.__init__(self, manifest=self.manifest, url=self.url)
+
+    @property
+    def kodiurl(self):
+        if aceengine:
+            return aceengine.aceurl(self.url)
 
 
 class mpdurl(const.URL):
@@ -313,7 +330,7 @@ class mpdurl(const.URL):
 
     @property
     def kodiurl(self):
-        return tokodiurl(self.url, headers=self.headers)
+        return tokodiurl(self.url, headers=self.headers, pushverify="false", pushua=const.USERAGENT)
 
     @property
     def kodilurl(self):
@@ -355,5 +372,7 @@ def urlfromdict(url):
             return hlsurl(**url)
         elif manifest == mpdurl.manifest:
             return mpdurl(**url)
+        elif manifest == acestreamurl.manifest:
+            return acestreamurl(**url)
     else:
         return url

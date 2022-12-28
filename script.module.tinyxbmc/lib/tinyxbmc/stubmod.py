@@ -19,6 +19,9 @@ if isstub():
     import tempfile
     import inspect
     import xbmcaddon
+    import aceengine
+
+    aceengine.apiurl = lambda: "http://127.0.0.1:6878"
     rootpath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..")
 
     def xbmclog(msg, *args, **kwargs):

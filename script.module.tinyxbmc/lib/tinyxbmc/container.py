@@ -457,16 +457,17 @@ class xbmcplayer(xbmc.Player):
 
     def stream(self, url, li=None):
         if isinstance(url, const.URL):
-            u = net.tokodiurl(url.url, headers=url.headers, pushverify="false", pushua=const.USERAGENT)
+            u = url.kodiurl
         else:
             u = net.tokodiurl(url, pushverify="false", pushua=const.USERAGENT)
+        if not u:
+            return False
         if not li:
             li = xbmcgui.ListItem(path=u)
         if isinstance(url, const.URL) and url.inputstream:
             # utilize inputstream adaptive
             for pkey, pval in url.props().items():
                 li.setProperty(pkey, pval)
-                print("%s = %s" % (pkey, pval))
         if self.dlg.iscanceled():
             return
         if self.canresolve:

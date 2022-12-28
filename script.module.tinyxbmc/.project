@@ -3,6 +3,7 @@
 	<name>script.module.tinyxbmc</name>
 	<comment></comment>
 	<projects>
+		<project>plugin.program.aceengine</project>
 		<project>script.module.cachecontrol</project>
 		<project>script.module.ghub</project>
 		<project>script.module.js2py</project>
