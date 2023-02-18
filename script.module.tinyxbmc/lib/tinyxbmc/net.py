@@ -19,26 +19,20 @@
 '''
 import requests
 import os
-import re
 import six
-import traceback
 import calendar
 from six.moves.urllib import parse
 from six.moves import http_cookiejar
 from datetime import datetime, timedelta
 from email.utils import parsedate, formatdate
 
-import ghub
 from cachecontrol import CacheControlAdapter
 
 from cachecontrol.heuristics import BaseHeuristic
 from cachecontrol.caches import HayCache as Cache
 
 from tinyxbmc import addon
-from tinyxbmc import tools
 from tinyxbmc import const
-from tinyxbmc.distversion import LooseVersion
-from tinyxbmc.stubmod import isstub
 
 if six.PY3:
     import html
@@ -203,152 +197,6 @@ class timecache(BaseHeuristic):
         return '110 - "%s"' % msg
 
 
-class hlsurl(const.URL):
-    manifest = "hls"
-    HASISA = addon.has_addon(const.INPUTSTREAMADAPTIVE)
-    HASFFDR = addon.has_addon(const.INPUTSTREAFFMPEGDIRECT)
-
-    def __init__(self, url, headers=None, adaptive=True):
-        self.url = url
-        self.headers = headers or {}
-        self.adaptive = adaptive
-        dict.__init__(self,
-                      manifest=self.manifest,
-                      url=self.url,
-                      headers=self.headers,
-                      adaptive=self.adaptive)
-
-    @property
-    def inputstream(self):
-        if self.HASISA and self.adaptive:
-            return const.INPUTSTREAMADAPTIVE
-        elif self.HASFFDR:
-            return const.INPUTSTREAFFMPEGDIRECT
-        return None
-
-    @property
-    def kodiurl(self):
-        return tokodiurl(self.url, headers=self.headers, pushverify="false", pushua=const.USERAGENT)
-
-    def props(self):
-        props = const.URL.props(self)
-        return props
-
-
-class acestreamurl(const.URL):
-    manifest = "acestream"
-
-    def __init__(self, url):
-        self.url = url
-        dict.__init__(self, manifest=self.manifest, url=self.url)
-
-    @property
-    def kodiurl(self):
-        if aceengine:
-            return aceengine.aceurl(self.url)
-
-
-class mpdurl(const.URL):
-    manifest = "mpd"
-    HASISA = addon.has_addon(const.INPUTSTREAMADAPTIVE)
-    HASWV = False
-    CDMVER = None
-    if HASISA:
-        try:
-            ishelper = ghub.load("emilsvennesson", "script.module.inputstreamhelper", "master", period=24 * 7, path=["lib"])
-            fname = os.path.join(ishelper, "lib", "inputstreamhelper", "kodiutils.py")
-            with open(fname) as f:
-                src = f.read()
-            src = re.sub("script\.module\.inputstreamhelper", "script.module.tinyxbmc", src)
-            with open(fname, "w") as f:
-                f.write(src)
-            import inputstreamhelper
-            inputstreamhelper.ok_dialog = lambda *args, **kwargs: None
-            inputstreamhelper.widevine_eula = lambda *args, **kwargs: None
-            helper = inputstreamhelper.Helper(manifest)
-            HASWV = inputstreamhelper.has_widevinecdm()
-            canwv = helper._supports_widevine()
-            if not canwv:
-                addon.log("MPD: Widewine is not supported by platform")
-            if not HASWV and canwv:
-                helper.install_widevine()
-                HASWV = True
-        except Exception as e:
-            print(traceback.format_exc())
-    else:
-        addon.log("MPD: Inputstream.adaptive is not installed")
-
-    if HASWV:
-        from inputstreamhelper import widevinecdm_path
-        CDMVER = LooseVersion(helper._get_lib_version(widevinecdm_path()))
-        addon.log("MPD: Widewine is enabled with CDM version %s" % CDMVER)
-
-    if isstub():
-        HASWV = True
-
-    def __init__(self, url, headers=None, lurl=None, lheaders=None, lbody="R{SSM}", lresponse="", mincdm=None):
-        self.license = "com.widevine.alpha"
-        if isinstance(mincdm, six.string_types):
-            self.mincdm = LooseVersion(mincdm)
-        else:
-            self.mincdm = None
-        self.url = url
-        self.lurl = lurl
-        self.headers = headers or {}
-        self.lheaders = lheaders or {}
-        self.lbody = lbody
-        self.lresponse = lresponse
-        dict.__init__(self,
-                      manifest=self.manifest,
-                      url=self.url,
-                      headers=self.headers,
-                      lurl=self.lurl,
-                      lheaders=self.lheaders,
-                      lbody=self.lbody,
-                      lresponse=self.lresponse,
-                      mincdm=self.mincdm)
-
-    @property
-    def inputstream(self):
-        inputstream = None
-        if self.lurl:
-            if self.HASWV:
-                if self.mincdm:
-                    if self.mincdm <= self.CDMVER:
-                        inputstream = const.INPUTSTREAMADAPTIVE
-                    else:
-                        addon.log("MPD: Available CDM version (%s) is not >= minimum required (%s): %s" % (self.CDMVER,
-                                                                                                           self.mincdm,
-                                                                                                           self.url))
-                else:
-                    inputstream = const.INPUTSTREAMADAPTIVE
-            else:
-                addon.log("MPD: DASH stream requires drm but widewine is not available: %s" % (self.url))
-        elif self.HASISA:
-            inputstream = const.INPUTSTREAMADAPTIVE
-        return inputstream
-
-    @property
-    def kodiurl(self):
-        return tokodiurl(self.url, headers=self.headers, pushverify="false", pushua=const.USERAGENT)
-
-    @property
-    def kodilurl(self):
-        if self.lurl:
-            lurl = tokodiurl(self.lurl, headers=self.lheaders)
-            if "|" not in lurl:
-                return lurl + "|"
-            return "%s|%s|%s" % (lurl, self.lbody, self.lresponse)
-
-    def props(self):
-        props = const.URL.props(self)
-        if self.lurl:
-            props['inputstream.adaptive.license_type'] = self.license
-            self.lurl, self.lheaders = fromkodiurl(tokodiurl(self.lurl, headers=self.lheaders, pushua=const.USERAGENT, pushverify="false"))
-        props['inputstream.adaptive.license_key'] = self.kodilurl
-        return props
-
-
 def absurl(url, fromurl):
     if url.startswith("https://") or url.startswith("http://"):
         return url
@@ -363,16 +211,3 @@ def absurl(url, fromurl):
                 return "%s://%s/%s" % (up.scheme, up.netloc, url)
             else:
                 return "%s://%s%s/%s" % (up.scheme, up.netloc, up.path, url)
-
-
-def urlfromdict(url):
-    if isinstance(url, dict):
-        manifest = url.pop("manifest")
-        if manifest == hlsurl.manifest:
-            return hlsurl(**url)
-        elif manifest == mpdurl.manifest:
-            return mpdurl(**url)
-        elif manifest == acestreamurl.manifest:
-            return acestreamurl(**url)
-    else:
-        return url

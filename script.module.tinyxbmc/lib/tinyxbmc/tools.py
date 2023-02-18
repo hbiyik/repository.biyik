@@ -29,8 +29,6 @@ import json
 import hashlib
 import zipfile
 
-
-from tinyxbmc import const
 from xml.dom import minidom
 
 if six.PY2:
@@ -67,18 +65,20 @@ def safeiter(iterable):
 
 def dynamicret(iterable):
     for ret in iterable:
-        if isinstance(ret, (six.string_types, const.URL)):
-            yield ret, {}, {}
-        elif isinstance(ret, (tuple, list)):
+        url = None
+        info = {}
+        art = {}
+        if isinstance(ret, (tuple, list)):
             lsize = len(ret)
-            if lsize == 1:
-                yield ret[0], {}, {}
-            if lsize == 2:
-                yield ret[0], ret[1], {}
-            if lsize == 3:
-                yield ret
+            if lsize > 0:
+                url = ret[0]
+            if lsize > 1:
+                info = ret[1]
+            if lsize > 2:
+                art = ret[2]
         else:
-            yield None, None, None
+            url = ret
+        yield url, info, art
 
 
 def strip(txt, tags=False):

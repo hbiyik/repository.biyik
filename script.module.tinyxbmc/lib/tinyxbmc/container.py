@@ -39,6 +39,7 @@ from tinyxbmc import gui
 from tinyxbmc import net
 from tinyxbmc import addon
 from tinyxbmc import collector
+from tinyxbmc import mediaurl
 
 REMOTE_DBG = False
 PROFILE = False
@@ -140,7 +141,7 @@ class container(object):
                     imdbid = finfo.get("imdbnumber", finfo.get("code", None))
                     if imdbid:
                         xbmcgui.Window(10000).setProperty('script.trakt.ids', json.dumps({u'imdb': imdbid}))
-                    if not isinstance(u, (six.string_types, const.URL)):
+                    if not isinstance(u, (six.string_types, mediaurl.url)):
                         addon.log("Provided url %s is not playable" % repr(u))
                         continue
                     if self.player.dlg.iscanceled():
@@ -237,7 +238,7 @@ class container(object):
             opthay.throw("httptimeout", httptimeout)
 
     def resolver(self, url):
-        yield net.urlfromdict(url)
+        yield mediaurl.urlfromdict(url)
 
     def player(self, url):
         yield url
@@ -456,7 +457,7 @@ class xbmcplayer(xbmc.Player):
         self.waiting = False
 
     def stream(self, url, li=None):
-        if isinstance(url, const.URL):
+        if isinstance(url, mediaurl.url):
             u = url.kodiurl
         else:
             u = net.tokodiurl(url, pushverify="false", pushua=const.USERAGENT)
@@ -464,7 +465,7 @@ class xbmcplayer(xbmc.Player):
             return False
         if not li:
             li = xbmcgui.ListItem(path=u)
-        if isinstance(url, const.URL) and url.inputstream:
+        if isinstance(url, mediaurl.url) and url.inputstream:
             # utilize inputstream adaptive
             for pkey, pval in url.props().items():
                 li.setProperty(pkey, pval)

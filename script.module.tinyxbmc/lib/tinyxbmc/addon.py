@@ -23,15 +23,13 @@ import xbmc
 
 import os
 import sys
-
 import six
-from six.moves.urllib import parse
 
+from six.moves.urllib import parse
 from distutils.version import LooseVersion
 
 from tinyxbmc import tools
 from tinyxbmc import collector
-
 
 addon = None
 
