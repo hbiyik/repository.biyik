@@ -33,6 +33,7 @@ from tinyxbmc import tools
 from tinyxbmc import net
 from tinyxbmc import const
 from tinyxbmc import collector
+from tinyxbmc import mediaurl
 
 from six import string_types
 import six
@@ -402,7 +403,7 @@ class index(container.container):
             if errcoll.hasexception:
                 return
         for link in tools.safeiter(links):
-            if not isinstance(link, (string_types, const.URL)):
+            if not isinstance(link, (string_types, mediaurl.url)):
                 continue
             item = self.item(str(link), info, art, method="geturls")
             self.cacheresolve(link, info, art)
@@ -456,8 +457,8 @@ class index(container.container):
                                                                                   reverse=True)])
         self.logplayer("VODS found players (%s): %s" % (len(playerins), aplayers))
         for kodilink in collector.loggingsafeiter(links, "VODS ADDON %s" % self.chan._tinyxbmc["addon"], self.chan.dropboxtoken):
-            kodilink = net.urlfromdict(kodilink)
-            if isinstance(kodilink, const.URL):
+            kodilink = mediaurl.urlfromdict(kodilink)
+            if isinstance(kodilink, mediaurl.url):
                 yield kodilink
                 continue
             if self.player.dlg.iscanceled():
