@@ -18,6 +18,7 @@ downdir = os.path.join(addondir, "downloads")
 for d in [datadir, downdir, os.path.join(datadir, "Default")]:
     if not os.path.exists(d):
         os.makedirs(d)
+
 prefs = {"download": {"default_directory": "/addondir/downloads",
                       "prompt_for_download": False,
                       "directory_upgrade": True},
@@ -134,10 +135,12 @@ class ChromiumService(addon.blockingloop):
     def spawn(self):
         self.executecmd("docker rm chromium")
         self.log("Chromium Container Starting")
-        self.process = subprocess.Popen(["docker", "run", "-v", "%s:/addondir" % addondir, "--user", "%s:%s" % (os.getuid(), os.getgid()),
-                                         "--name=chromium", "--network=host", self.image,
-                                         "xvfb-chromium", "--disable-gpu", "--no-sandbox", "--remote-debugging-port=%d" % self.port,
-                                         "--disable-dev-shm-usage", "--user-data-dir=/addondir/data"], stdout=subprocess.PIPE)
+        args = ["docker", "run", "-v", "%s:/addondir" % addondir, "--user", "%s:%s" % (os.getuid(), os.getgid()),
+                "--name=chromium", "--network=host", self.image,
+                "xvfb-chromium", "--disable-gpu", "--no-sandbox", "--remote-debugging-port=%d" % self.port,
+                "--disable-dev-shm-usage", "--user-data-dir=/addondir/data"]
+        self.log(" ".join(args))
+        self.process = subprocess.Popen(args, stdout=subprocess.PIPE)
         self.log("Chromium Container Started")
 
     def onclose(self):

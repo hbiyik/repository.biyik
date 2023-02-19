@@ -12,9 +12,10 @@ from six.moves.urllib.request import urlopen
 from six.moves.urllib.parse import quote
 from tinyxbmc import addon
 
+latestchromium = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
 
 def isnotcf(page):
-    if not re.search('form class="challenge-form" id="challenge-form"', page):
+    if not re.search('form id="challenge-form"', page):
         return page
 
 
@@ -23,6 +24,8 @@ class Browser:
         self.maxtimeout = maxtimeout
         self.loadtimeout = loadtimeout
         self.debug = False
+        if not useragent:
+            useragent = latestchromium 
         self.useragent = useragent
         self.id = 1000
         self.port = port
@@ -70,7 +73,7 @@ class Browser:
             self.connect()
             data = self.ws.recv()
             if self.debug:
-                print(data[:100])
+                print(data[:200])
             return json.loads(data)
         except websocket.WebSocketTimeoutException:
             pass
