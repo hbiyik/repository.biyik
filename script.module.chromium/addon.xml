@@ -7,7 +7,7 @@
     <extension point="xbmc.service" library="service.py" />
 	<extension point="xbmc.python.module" library="lib" />
 	<extension point="xbmc.addon.metadata">
-		<platform>linux</platform>
+		<platform>linux windows</platform>
 		<summary lang="en">TinxyXBMC module</summary>
 		<description lang="en">TinyXBMC</description>
 		<license>GNU General Public License, v2</license>

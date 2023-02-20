@@ -2,7 +2,6 @@ import subprocess
 import os
 import time
 import select
-import pty
 import re
 import json
 import shutil
@@ -17,6 +16,12 @@ datadir = os.path.join(addondir, "data")
 downdir = os.path.join(addondir, "downloads")
 winbinaries = ["C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
                "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"]
+
+_OS = abi.detect_os()
+
+if _OS == "linux":
+    import pty
+
 
 for d in [datadir, downdir, os.path.join(datadir, "Default")]:
     if not os.path.exists(d):
@@ -100,7 +105,7 @@ class ChromiumService(addon.blockingloop):
 
     def oninit(self):
         canspawn = False
-        if abi.detect_os() == "linux":
+        if _OS == "linux":
             self.log("Current system is Linux")
             self.target = abi.getelfabi()[0][0]
             self.image = "boogiepy/chromium-xvfb-%s" % self.target
@@ -133,7 +138,7 @@ class ChromiumService(addon.blockingloop):
                 gui.warn("Chromium", "Docker does not have chromium image")
             if self.hasdocker and self.hasimage:
                 canspawn= True
-        elif abi.detect_os() == "windows":
+        elif _OS == "windows":
             for winbinary in winbinaries:
                 if os.path.exists(winbinary):
                     self.image = winbinary
@@ -146,14 +151,14 @@ class ChromiumService(addon.blockingloop):
 
     def spawn(self):
         procargs = None
-        if abi.detect_os() == "linux":
+        if _OS == "linux":
             self.executecmd("docker rm chromium")
             self.log("Chromium Container Starting")
             procargs = ["docker", "run", "-v", "%s:/addondir" % addondir, "--user", "%s:%s" % (os.getuid(), os.getgid()),
                         "--name=chromium", "--network=host", self.image,
                         "xvfb-chromium", "--disable-gpu", "--no-sandbox", "--remote-debugging-port=%d" % self.port,
                         "--disable-dev-shm-usage", "--user-data-dir=/addondir/data"]
-        elif abi.detect_os() == "windows":
+        elif _OS == "windows":
             procargs = [self.image, "--remote-debugging-port=%d" % self.port, "--disable-dev-shm-usage", "--user-data-dir=%s" % addondir]
         
         if procargs:
