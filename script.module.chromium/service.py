@@ -15,6 +15,9 @@ from tinyxbmc import const
 addondir = addon.get_addondir("script.module.chromium")
 datadir = os.path.join(addondir, "data")
 downdir = os.path.join(addondir, "downloads")
+winbinaries = ["C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+               "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"]
+
 for d in [datadir, downdir, os.path.join(datadir, "Default")]:
     if not os.path.exists(d):
         os.makedirs(d)
@@ -34,7 +37,7 @@ class ChromiumService(addon.blockingloop):
         self.dropboxtoken = const.DB_TOKEN
         self.process = None
         self.port = port
-        self.hasdaemon = False
+        self.hasdocker = False
         self.hasimage = False
         self.iscomptible = False
         self.target = None
@@ -45,19 +48,19 @@ class ChromiumService(addon.blockingloop):
 
     def checkimages(self):
         process = subprocess.Popen(["docker", "images"], stdout=subprocess.PIPE)
-        self.hasdaemon = True
+        self.hasdocker = True
         self.hasimage = False
         for line in process.stdout:
             line = line.decode()
-            if not self.hasdaemon and re.search("unix\:///var/run/docker\.sock", line):
-                self.hasdaemon = False
+            if not self.hasdocker and re.search("unix\:///var/run/docker\.sock", line):
+                self.hasdocker = False
                 self.log("Detected faulty docker daemon")
             if not self.hasimage and re.search(self.image, line):
                 self.hasimage = True
                 self.log("Found ddocker image: %s" % self.image)
         process.wait()
         if not process.returncode == 0:
-            self.hasdaemon = False
+            self.hasdocker = False
 
     def pullimage(self):
         master, slave = pty.openpty()
@@ -96,6 +99,7 @@ class ChromiumService(addon.blockingloop):
         return process.returncode
 
     def oninit(self):
+        canspawn = False
         if abi.detect_os() == "linux":
             self.log("Current system is Linux")
             self.target = abi.getelfabi()[0][0]
@@ -113,7 +117,7 @@ class ChromiumService(addon.blockingloop):
             else:
                 self.log("Docker installation is found")
                 self.checkimages()
-                if addon.has_addon("service.system.docker") and not self.hasdaemon:
+                if addon.has_addon("service.system.docker") and not self.hasdocker:
                     self.log("Enabling Libreelec Docker Service")
                     self.executecmd("systemctl enable /storage/.kodi/addons/service.system.docker/system.d/service.system.docker.service")
                     self.executecmd("systemctl start service.system.docker.service")
@@ -123,32 +127,47 @@ class ChromiumService(addon.blockingloop):
                     self.log("Pulling image %s" % self.image)
                     self.pullimage()
                     self.checkimages()
-        if not self.hasdaemon:
-            gui.warn("Chromium", "Docker Daemon is not working")
-        if not self.hasimage:
-            gui.warn("Chromium", "Docker does not have chromium image")
-        if self.hasdaemon and self.hasimage:
+            if not self.hasdocker:
+                gui.warn("Chromium", "Docker Daemon is not working")
+            if not self.hasimage:
+                gui.warn("Chromium", "Docker does not have chromium image")
+            if self.hasdocker and self.hasimage:
+                canspawn= True
+        elif abi.detect_os() == "windows":
+            for winbinary in winbinaries:
+                if os.path.exists(winbinary):
+                    self.image = winbinary
+                    canspawn = True
+                    break
+        if canspawn:
             self.spawn()
         else:
             self.close()
 
     def spawn(self):
-        self.executecmd("docker rm chromium")
-        self.log("Chromium Container Starting")
-        args = ["docker", "run", "-v", "%s:/addondir" % addondir, "--user", "%s:%s" % (os.getuid(), os.getgid()),
-                "--name=chromium", "--network=host", self.image,
-                "xvfb-chromium", "--disable-gpu", "--no-sandbox", "--remote-debugging-port=%d" % self.port,
-                "--disable-dev-shm-usage", "--user-data-dir=/addondir/data"]
-        self.log(" ".join(args))
-        self.process = subprocess.Popen(args, stdout=subprocess.PIPE)
-        self.log("Chromium Container Started")
+        procargs = None
+        if abi.detect_os() == "linux":
+            self.executecmd("docker rm chromium")
+            self.log("Chromium Container Starting")
+            procargs = ["docker", "run", "-v", "%s:/addondir" % addondir, "--user", "%s:%s" % (os.getuid(), os.getgid()),
+                        "--name=chromium", "--network=host", self.image,
+                        "xvfb-chromium", "--disable-gpu", "--no-sandbox", "--remote-debugging-port=%d" % self.port,
+                        "--disable-dev-shm-usage", "--user-data-dir=/addondir/data"]
+        elif abi.detect_os() == "windows":
+            procargs = [self.image, "--remote-debugging-port=%d" % self.port, "--disable-dev-shm-usage", "--user-data-dir=%s" % addondir]
+        
+        if procargs:
+            self.log(" ".join(procargs))
+            self.process = subprocess.Popen(procargs, stdout=subprocess.PIPE)
+            self.log("Chromium Service Spawned")
 
     def onclose(self):
         if self.process:
-            self.log("Chromium Container Stopping")
-            self.executecmd("docker stop chromium")
-            self.log("Chromium Container Stopped")
+            self.log("Chromium Service Stopping")
+            if self.hasdocker:
+                self.executecmd("docker stop chromium")
             self.process.kill()
+            self.log("Chromium Service Stopped")
             shutil.rmtree(downdir, True)
 
 
