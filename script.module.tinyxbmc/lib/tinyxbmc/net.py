@@ -136,7 +136,7 @@ def fromkodiurl(url):
     return url, headers
 
 
-def http(url, params=None, data=None, headers=None, timeout=30, json=None, method="GET",
+def http(url, params=None, data=None, headers=None, timeout=5, json=None, method="GET",
          referer=None, useragent=None, encoding=None, verify=None, stream=None, proxies=None, cache=10, text=True):
     ret = None
     if url.startswith("//"):
