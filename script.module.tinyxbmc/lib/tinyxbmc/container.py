@@ -32,6 +32,19 @@ import sys
 import six
 from six.moves.urllib import parse
 
+REMOTE_DBG = False
+PROFILE = False
+
+if REMOTE_DBG:
+    pdevpath = "/home/boogie/.p2/pool/plugins/org.python.pydev.core_9.3.0.202203051235/pysrc/"
+    sys.path.append(pdevpath)
+    import pydevd  # @UnresolvedImport
+    pydevd.settrace(stdoutToServer=True, stderrToServer=True, suspend=False)
+
+if PROFILE:
+    import pprofile
+    profiler = pprofile.Profile()
+
 from tinyxbmc import hay
 from tinyxbmc import const
 from tinyxbmc import tools
@@ -40,22 +53,6 @@ from tinyxbmc import net
 from tinyxbmc import addon
 from tinyxbmc import collector
 from tinyxbmc import mediaurl
-
-REMOTE_DBG = False
-PROFILE = False
-
-if REMOTE_DBG:
-    # pdevpath = "C:\\Users\\z0042jww\\.p2\\pool\\plugins\\org.python.pydev.core_7.2.1.201904261721\\pysrc"
-    # pdevpath = "/home/boogie/.p2/pool/plugins/org.python.pydev.core_7.2.1.201904261721/pysrc/"
-    pdevpath = "/home/boogie/.p2/pool/plugins/org.python.pydev.core_9.3.0.202203051235/pysrc/"
-    # pdevpath = "/home/boogie/src/pydevd"
-    sys.path.append(pdevpath)
-    import pydevd  # @UnresolvedImport
-    pydevd.settrace(stdoutToServer=True, stderrToServer=True, suspend=False)
-
-if PROFILE:
-    import pprofile
-    profiler = pprofile.Profile()
 
 _startt = time.time()
 _default_method = "index"
