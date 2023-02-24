@@ -36,8 +36,8 @@ def installwidevine():
         with open(fname, "w") as f:
             f.write(src)
         import inputstreamhelper
-        inputstreamhelper.ok_dialog = lambda *args, **kwargs: None
-        inputstreamhelper.widevine_eula = lambda *args, **kwargs: None
+        inputstreamhelper.ok_dialog = lambda *args, **kwargs: True
+        inputstreamhelper.widevine_eula = lambda *args, **kwargs: True
         helper = inputstreamhelper.Helper("mpd")
         HASWV = inputstreamhelper.has_widevinecdm()
         canwv = helper._supports_widevine()
@@ -172,13 +172,17 @@ class mpdurl(url):
 
 
 class acestreamurl(url):
-    def __init__(self, url):
-        super(acestreamurl, self).__init__(const.MANIFEST_ACE, False, True, True, url=url)
+    def __init__(self, url, adaptive=False, ffmpegdirect=True, noinputstream=True):
+        super(acestreamurl, self).__init__(const.MANIFEST_ACE, adaptive, ffmpegdirect, noinputstream, url=url)
+        if aceengine:
+            self.aceurl = aceengine.acestream(self.url)
+        else:
+            self.aceurl = None
 
     @property
     def kodiurl(self):
         if aceengine:
-            return aceengine.aceurl(self.url)
+            return self.aceurl.httpurl
 
 
 def urlfromdict(url):
