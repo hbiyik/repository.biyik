@@ -164,6 +164,7 @@ class kodisetting():
 
     @staticmethod
     def ischanged(aid):
+        # TO-DO: fix me for >=20
         f = kodisetting._get_file(aid, "settings.xml")
         if os.path.exists(f):
             cur_s = str(os.path.getsize(f))
@@ -183,32 +184,52 @@ class kodisetting():
             return True
 
     def getbool(self, variable):
-        return bool(self._get_val(variable) == 'true')
+        if tools.kodiversion() >= 21:
+            return get_addon(self.aid).getSettings().getBool(variable)
+        else:
+            return bool(self._get_val(variable) == 'true')
 
     def getstr(self, variable):
-        if six.PY2:
-            return str(self._get_val(variable).decode(self.e))
+        if tools.kodiversion() >= 21:
+            return get_addon(self.aid).getSettings().getString(variable)
         else:
             return str(self._get_val(variable))
 
     def getint(self, variable):
-        val = self._get_val(variable)
-        if isinstance(val, (int, float)):
-            return int(val)
-        elif isinstance(val, six.string_types) and val.isdigit():
-            return int(val)
+        if tools.kodiversion() >= 21:
+            return get_addon(self.aid).getSettings().getInt(variable)
         else:
-            return -1
+            val = self._get_val(variable)
+            if isinstance(val, (int, float)):
+                return int(val)
+            elif isinstance(val, six.string_types) and val.isdigit():
+                return int(val)
+            else:
+                return -1
 
     def getfloat(self, variable):
-        return float(self._get_val(variable))
-
+        if tools.kodiversion() >= 21:
+            return get_addon(self.aid).getSettings().getNumber(variable)
+        else:
+            return float(self._get_val(variable))
+    
     def set(self, key, value):
-        if isinstance(value, bool):
-            value = str(value).lower()
-        elif not isinstance(value, six.string_types):
-            value = str(value)
-        return get_addon(self.aid).setSetting(key, value)
+        if tools.kodiversion() >= 21:
+            settings = get_addon(self.aid).getSettings()
+            if isinstance(value, bool):
+                return settings.setBool(key, value)
+            elif isinstance(value, int):
+                return settings.setInt(key, value)
+            elif isinstance(value, float):
+                return settings.setNumber(key, value)
+            elif isinstance(value, six.string_types):
+                return settings.setString(key, value)
+        else:
+            if isinstance(value, bool):
+                value = str(value).lower()
+            elif not isinstance(value, six.string_types):
+                value = str(value)
+            return get_addon(self.aid).setSetting(key, value)
 
 
 def local(sid, aid=None):
