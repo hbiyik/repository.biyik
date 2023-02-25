@@ -159,7 +159,8 @@ class ChromiumService(addon.blockingloop):
                         "xvfb-chromium", "--disable-gpu", "--no-sandbox", "--remote-debugging-port=%d" % self.port,
                         "--disable-dev-shm-usage", "--user-data-dir=/addondir/data"]
         elif _OS == "windows":
-            procargs = [self.image, "--remote-debugging-port=%d" % self.port, "--disable-dev-shm-usage", "--user-data-dir=%s" % addondir]
+            procargs = [self.image, "--remote-debugging-port=%d" % self.port, "--disable-dev-shm-usage",
+                        "--user-data-dir=%s" % addondir, "--headless"]
         
         if procargs:
             self.log(" ".join(procargs))
