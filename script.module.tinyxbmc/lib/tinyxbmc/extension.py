@@ -79,8 +79,10 @@ def getaddons(cache=True):
                        "enabled": True,
                        }
             }
-    addons = json.loads(xbmc.executeJSONRPC(json.dumps(data)))
-    addons = addons["result"]["addons"]
+    
+    addons = {}
+    for addon in json.loads(xbmc.executeJSONRPC(json.dumps(data)))["result"]["addons"]:
+        addons[addon["addonid"]] = addon
     if cache:
         _addons = addons
     return addons
@@ -149,15 +151,11 @@ def addonattrs(addon, depends=None, exclude=None):
         [[paths of the __addon], [paths of its dependencies]]
 
     '''
-    found = False
     if not exclude:
         exclude = []
     addons = getaddons()
-    for adn in addons:
-        if addon == adn["addonid"]:
-            found = True
-            break
-    if not found or adn["addonid"] in exclude:
+    adn = addons.get(addon)
+    if adn is None or adn["addonid"] in exclude:
         return [], [], []
     exclude.append(adn["addonid"])
     axml = os.path.join(adn["path"], "addon.xml")
@@ -270,7 +268,7 @@ def getobjects(directory, mod=None, cls=None, parents=None, stack=None):
 def getplugins(pid, addon=None, path=None, package=None, module=None, instance=None):
     if not isinstance(pid, (tuple, list)):
         pid = (pid,)
-    for adn in getaddons():
+    for addonid, adn in getaddons().items():
         if (addon and not adn["addonid"] == addon) or adn["broken"]:
             continue
         slibs, dlibs, plugins = addonattrs(adn["addonid"])
