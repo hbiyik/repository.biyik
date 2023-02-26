@@ -1,5 +1,0 @@
-<?xml version="1.0" ?><settings>
-	<category id="Common" label="Common">
-		<setting default="Rating" id="sort" label="Sort" type="select" values="Recent|Rating|Votes|Shares|Comments"/>
-	</category>
-</settings>
