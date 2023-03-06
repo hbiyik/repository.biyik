@@ -108,6 +108,8 @@ class ChromiumService(addon.blockingloop):
         if _OS == "linux":
             self.log("Current system is Linux")
             self.target = abi.getelfabi()[0][0]
+            if self.target == "aarch64":
+                self.target = "arm64"
             self.image = "boogiepy/chromium-xvfb-%s" % self.target
             self.log("Current image is %s" % self.image)
             try:
