@@ -108,18 +108,18 @@ def depend_addon(aid, *paths):
         axml = os.path.join(bpath, "addon.xml")
         if os.path.exists(axml):
             dxml = tools.readdom(axml)
-        exts = dxml.getElementsByTagName("extension")
-        if len(paths):
-            ex_path = os.path.join(bpath, *paths)
-            if ex_path not in sys.path:
-                sys.path.append(ex_path)
-        for ext in exts:
-            if ext.getAttribute("point") == "xbmc.python.module":
-                lib = ext.getAttribute("library")
-                if lib:
-                    ldir = os.path.join(bpath, lib)
-                    if ldir not in sys.path:
-                        sys.path.append(ldir)
+            exts = dxml.getElementsByTagName("extension")
+            if len(paths):
+                ex_path = os.path.join(bpath, *paths)
+                if ex_path not in sys.path:
+                    sys.path.append(ex_path)
+            for ext in exts:
+                if ext.getAttribute("point") == "xbmc.python.module":
+                    lib = ext.getAttribute("library")
+                    if lib:
+                        ldir = os.path.join(bpath, lib)
+                        if ldir not in sys.path:
+                            sys.path.append(ldir)
 
 
 def get_addondir(aid=None):

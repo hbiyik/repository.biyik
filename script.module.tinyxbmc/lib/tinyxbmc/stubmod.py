@@ -19,9 +19,8 @@ if isstub():
     import tempfile
     import inspect
     import xbmcaddon
-    import aceengine
-
-    aceengine.apiurl = lambda: "http://127.0.0.1:6878"
+    from tinyxbmc import tools
+    
     rootpath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..")
 
     def xbmclog(msg, *args, **kwargs):
@@ -96,7 +95,19 @@ if isstub():
                 if len(parsed.path):
                     path_return = os.path.join(path_return, *os.path.split(parsed.path[1:]))
         return os.path.join(path_return, "")
-
+    
+    def executeJSONRPC(*args, **kwargs):
+        return '{"result": {"addon": {}}}'
+    
+   
+    tools.kodiversion = lambda: 19
+    xbmc.executeJSONRPC = executeJSONRPC
     xbmcaddon.Addon = Addon
     xbmc.log = xbmclog
     xbmcvfs.translatePath = translatePath
+
+    from tinyxbmc import mediaurl
+    mediaurl.url.HASFFDR = False
+    mediaurl.url.HASISA = False
+    import aceengine
+    aceengine.acestream.apiurl = lambda: "http://127.0.0.1:6878"
