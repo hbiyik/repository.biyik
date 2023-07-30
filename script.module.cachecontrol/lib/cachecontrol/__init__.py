@@ -10,6 +10,13 @@ __author__ = "Eric Larson"
 __email__ = "eric@ionrock.org"
 __version__ = "0.13.1"
 
+import tempfile
+import xbmcvfs
+import os
+tempfile.tempdir = xbmcvfs.translatePath("special://profile/addon_data/script.module.cachecontrol")
+if not os.path.exists(tempfile.tempdir):
+    os.makedirs(tempfile.tempdir) 
+
 from cachecontrol.adapter import CacheControlAdapter
 from cachecontrol.controller import CacheController
 from cachecontrol.wrapper import CacheControl
