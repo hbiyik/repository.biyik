@@ -212,23 +212,45 @@ class index(container.container):
 
             makenameart(chan)
             yield ret
+            
+    def cacheextentions(self, refresh=False):
+        extentions = []
+        for _ in self.getscrapers([_extmovie, _extshow]):
+            if isinstance(self.chan, movieextension):
+                method = "getmovies"
+                args = []
+            elif isinstance(self.chan, showextension):
+                method = "getshows"
+                args = [None]
+            else:
+                continue
+            extentions.append([self.chan.title,
+                               self.chan.info,
+                               self.chan.art,
+                               method,
+                               args,
+                               self.chan._tinyxbmc])
+        hay = self.hay(_resolvehay)
+        hay.throw("index", extentions)
+        if refresh:
+            container.refresh()
 
     def index(self, *args, **kwargs):
         d = self.item("Search", method="search")
         d.dir()
-        for _ in self.getscrapers([_extmovie, _extshow]):
-            d = self.item(self.chan.title, self.chan.info, self.chan.art)
-            if isinstance(self.chan, movieextension):
-                d.method = "getmovies"
-                args = []
-            elif isinstance(self.chan, showextension):
-                d.method = "getshows"
-                args = [None]
-            else:
-                continue
+        hay = self.hay(_resolvehay)
+        scrapers = hay.find("index").data
+        if not scrapers:
+            self.cacheextentions()
+            scrapers = hay.find("index").data
+        for title, info, art, method, args, kwargs in scrapers:
+            d = self.item(title, info, art)
+            d.method = method
             settings = self.item("Extension Settings", method="_context")
-            d.context(settings, False, "settings", self.chan._tinyxbmc["addon"])
-            d.dir(None, *args, **self.chan._tinyxbmc)
+            d.context(settings, False, "settings", kwargs["addon"])
+            d.dir(None, *args, **kwargs)
+        d = self.item("Update Extentions", method="cacheextentions")
+        d.call(refresh=True)
         return tinyconst.CT_ALBUMS
 
     def search(self, typ=None, cache=False, **kwargs):
