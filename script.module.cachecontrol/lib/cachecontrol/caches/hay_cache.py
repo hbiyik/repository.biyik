@@ -13,7 +13,7 @@ class HayCache(BaseCache):
             data = None
         return data
 
-    def set(self, key, value):
+    def set(self, key, value, expires):
         self.hay.throw(key, value)
         self.hay.snapshot()
 
