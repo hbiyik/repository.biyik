@@ -102,7 +102,11 @@ class hlsurl(url):
     
     def props(self):
         props = super(hlsurl, self).props()
+        headers = self.kodiurl.split("|")
+        headers = headers[1] if len(headers) == 2 else ""
         props['inputstream.adaptive.manifest_type'] = self.manifest
+        props['inputstream.adaptive.stream_headers'] = headers
+        props['inputstream.adaptive.manifest_headers'] = headers
         return props
 
 
