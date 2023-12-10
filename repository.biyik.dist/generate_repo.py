@@ -71,7 +71,6 @@ class Generator:
     """
 
     def __init__(self):
-
         # travel path one up
         os.chdir(os.path.abspath(os.path.join(tools_path, os.pardir)))
 
@@ -83,15 +82,12 @@ class Generator:
         self._generate_zip_files()
 
     def _pre_run(self):
-
         # create output  path if it does not exists
         if not os.path.exists(output_path):
             os.makedirs(output_path)
 
     def _generate_repo_files(self):
-
         print("Create repository addon")
-
         with open(tools_path + os.path.sep + "template.xml", "r") as f:
             template_xml = f.read()
 
@@ -113,67 +109,45 @@ class Generator:
         self._save_file(repo_xml, file=addonid + os.path.sep + "addon.xml")
 
     def _generate_zip_files(self):
-
         global version, addonid
-
         addons = os.listdir(".")
 
         # loop thru and add each addons addon.xml file
         for addon in addons:
-
             # create path
             _path = os.path.join(addon, "addon.xml")
-
             # skip path if it has no addon.xml
             if not os.path.isfile(_path):
                 continue
-
             try:
-
                 # skip any file or .git folder
                 if not (os.path.isdir(addon) or addon in ignored_dirs):
                     continue
-
                 # create path
                 _path = os.path.join(addon, "addon.xml")
-
                 # split lines for stripping
                 document = minidom.parse(_path)
-
                 for parent in document.getElementsByTagName("addon"):
                     version = parent.getAttribute("version")
                     addonid = parent.getAttribute("id")
-
                 self._generate_zip_file(addon, version, addonid)
-
             except Exception as e:
-
                 print(e)
 
     def _generate_zip_file(self, path, version, addonid):
-
         print("Generate zip file for " + addonid + " " + version)
-
         filename = path + "-" + version + ".zip"
-
         compression = zipfile.ZIP_DEFLATED if compress else zipfile.ZIP_STORED
-
         try:
-
             zip = zipfile.ZipFile(filename, 'w', compression=compression)
-
             for root, dirs, files in os.walk(path + os.path.sep):
-
                 for ignored_dir in ignored_dirs:
                     if ignored_dir in dirs:
                         dirs.remove(ignored_dir)
-
                 for ignored_file in ignored_files:
                     if ignored_file in files:
                         files.remove(ignored_file)
-
                 zip.write(os.path.join(root))
-
                 for file in files:
                     skip = False
                     for ignored_ext in ignored_exts:
@@ -183,30 +157,19 @@ class Generator:
                     if not skip:
                         zip.write(os.path.join(root, file))
             zip.close()
-
             if not os.path.exists(output_path + addonid):
                 os.makedirs(output_path + addonid)
-
             destination = output_path + addonid + os.path.sep + filename
             output_exists = os.path.isfile(destination)
-
             if output_exists and rename_old:
                 os.rename(destination, destination + "." + datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
-
             if output_exists and overwrite_existing:
-
                 shutil.move(filename, destination)
-
             elif output_exists and not overwrite_existing:
-
                 os.remove(filename)
-
             else:
-
                 shutil.move(filename, destination)
-
         except Exception as e:
-
             print(e)
 
     def _generate_addons_file(self):
@@ -259,9 +222,7 @@ class Generator:
     def _generate_md5_file(self):
 
         print("Generating addons.xml.md5 file")
-
         try:
-
             # create a new md5 hash
             try:
                 # noinspection PyArgumentList
@@ -270,13 +231,11 @@ class Generator:
             except TypeError:
                 with open(output_path + "addons.xml") as f:
                     addons_xml = f.read()
-
             try:
                 m = hashlib.md5(addons_xml).hexdigest()
             except TypeError:
                 # noinspection PyArgumentList
                 m = hashlib.md5(bytes(addons_xml, encoding='utf-8')).hexdigest()
-
             m = m + '  ' + 'addons.xml'
 
             # save file
@@ -288,7 +247,6 @@ class Generator:
     def _save_file(self, data, file):
 
         try:
-
             # write data to the file
             try:
                 with open(file, "w") as f:
@@ -307,31 +265,21 @@ class Generator:
 
 
 class Copier:
-
     def __init__(self):
-
         self._copy_additional_files()
 
     def _copy_additional_files(self):
-
         os.chdir(os.path.abspath(os.path.join(tools_path, os.pardir)))
         addons = os.listdir(".")
-
         for addon in addons:
-
             xml_file = os.path.join(addon, "addon.xml")
-
             if not os.path.isfile(xml_file):
                 continue
             if not (os.path.isdir(addon) or addon in ignored_dirs):
                 continue
-
             document = minidom.parse(xml_file)
-
             for parent in document.getElementsByTagName("addon"):
-
                 version = parent.getAttribute("version")
-
                 # Changelog.txt
                 try:
                     if os.path.isfile(output_path + addon + os.path.sep + "changelog-" + version + ".txt") and overwrite_existing:
@@ -340,7 +288,6 @@ class Copier:
                         shutil.copy(addon + os.path.sep + "changelog.txt", output_path + addon + os.path.sep + "changelog-" + version + ".txt")
                 except IOError:
                     pass
-
                 # Icon.png
                 try:
                     if os.path.isfile(output_path + addon + os.path.sep + "icon.png") and overwrite_existing:
@@ -349,7 +296,6 @@ class Copier:
                         shutil.copy(addon + os.path.sep + "icon.png", output_path + addon + os.path.sep + "icon.png")
                 except IOError:
                     pass
-
                 # Fanart.jpg
                 try:
                     if os.path.isfile(output_path + addon + os.path.sep + "fanart.jpg") and overwrite_existing:
@@ -361,7 +307,7 @@ class Copier:
 
 
 if __name__ == "__main__":
-
+    os.system("git -C ../ clean -fdx")
     print('Repository bootstrapper script, version: {0}'.format(__version__))
 
     Generator()
@@ -370,13 +316,8 @@ if __name__ == "__main__":
         Copier()
 
     print("Process completed")
-
     if ask_for_exit_input:
-
         try:
-
             input("Press enter to exit")
-
         except SyntaxError:
-
             pass
