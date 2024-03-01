@@ -104,7 +104,7 @@ def _getrels(uname, rname):
 def _getcommits(uname, rname, branch, commit):
     if not commit:
         page = htmlement.fromstring(_page("https://%s/%s/%s/commits/%s" % (_dom, uname, rname, branch)))
-        comms = [x.get("value") for x in page.findall('.//clipboard-copy')]
+        comms = [x.get("href").split("/")[-1] for x in page.findall(".//a[@data-pjax='true']")]
     else:
         comms = [commit]
     allcoms = []
@@ -125,6 +125,13 @@ def _updatezip(u, tdir, rname):
             shutil.rmtree(p)
     zp = zipfile.ZipFile(io(_page(u, rname)))
     zp.extractall(tdir)
+
+
+def findmoduledir(bdir, rname):
+    for d in os.listdir(bdir):
+        sdir = os.path.join(bdir, d)
+        if os.path.isdir(sdir) and d.startswith(rname):
+            return sdir
 
 
 def _load(uname, rname, branch, commit, path, period):
@@ -159,7 +166,7 @@ def _load(uname, rname, branch, commit, path, period):
 
         # download new package, extract and update the memory file
         lcommit, zipu = ref[0]
-        if not mem or not lcommit == mem["latest"]:
+        if not mem or not lcommit == mem["latest"] or not findmoduledir(bdir, rname):
             print("GITHUB: INFO: Updating to commit %s->%s for %s Repo:%s Branch:%s Commit: %s" % (lcommit, zipu,
                                                                                                    uname, rname, branch, commit))
             _updatezip(zipu, bdir, rname)
@@ -208,11 +215,7 @@ def load(uname, rname, branch, commit=None, path=None, period=24):
     bdir = _load(uname, rname, branch, commit, path, period)
     # prepare the path
     if bdir:
-        sdir = None
-        for d in os.listdir(bdir):
-            sdir = os.path.join(bdir, d)
-            if os.path.isdir(sdir) and d.startswith(rname):
-                break
+        sdir = findmoduledir(bdir, rname)
         if sdir and sdir not in sys.path:
             sys.path.append(os.path.join(sdir, *path))
         return sdir
