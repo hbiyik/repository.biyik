@@ -23,7 +23,7 @@ import traceback
 import inspect
 import json
 import sys
-import imp
+import importlib
 import gc
 
 from tinyxbmc import tools
@@ -37,6 +37,14 @@ global _xhay
 _debug = True
 _addons = None
 _xhay = None
+
+
+
+def loadmodule(modname, *paths):
+    spec = importlib.machinery.PathFinder.find_spec(modname, paths)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 
 def _doesinherit(cls, parents=None):
@@ -232,7 +240,7 @@ def getobjects(directory, mod=None, cls=None, parents=None, stack=None):
         if directory not in sys.path:
             sys.path.append(directory)
         try:
-            imod = imp.load_module(f, *imp.find_module(f, [directory]))
+            imod = loadmodule(f, directory)
             clsd = vars(imod)
         except Exception:
             print("Error Loading File: %s: %s" % (directory, f))
@@ -308,7 +316,7 @@ def getplugins(pid, addon=None, path=None, package=None, module=None, instance=N
                 else:
                     paths = sys.path
                 try:
-                    m = imp.load_module(subm, *imp.find_module(subm, paths))
+                    m = loadmodule(subm, *paths)
                 except Exception:
                     print(traceback.format_exc())
                     continue
