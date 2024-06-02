@@ -215,14 +215,19 @@ class kodisetting():
     
     def set(self, key, value):
         if tools.kodiversion() >= 21:
-            settings = get_addon(self.aid).getSettings()
+            a = get_addon(self.aid)
+            settings = a.getSettings()
             if isinstance(value, bool):
+                a.setSetting(key, str(value).lower())
                 return settings.setBool(key, value)
             elif isinstance(value, int):
+                a.setSetting(key, str(value))
                 return settings.setInt(key, value)
             elif isinstance(value, float):
+                a.setSetting(key, str(value))
                 return settings.setNumber(key, value)
             elif isinstance(value, six.string_types):
+                a.setSetting(key, str(value))
                 return settings.setString(key, value)
         else:
             if isinstance(value, bool):
