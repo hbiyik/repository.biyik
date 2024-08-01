@@ -59,14 +59,16 @@ class url(dict):
     HASISA = addon.has_addon(const.INPUTSTREAMADAPTIVE) and addon.addon_details(const.INPUTSTREAMADAPTIVE).get("enabled")
     HASFFDR = addon.has_addon(const.INPUTSTREAFFMPEGDIRECT) and addon.addon_details(const.INPUTSTREAFFMPEGDIRECT).get("enabled")
     
-    def __init__(self, manifest=None, adaptive=True, ffmpegdirect=True, noinputstream=True, **kwargs):
+    def __init__(self, url=None, manifest=None, adaptive=True, ffmpegdirect=True, noinputstream=True, **kwargs):
+        self.url = url
         self.adaptive = adaptive
         self.ffmpegdirect = ffmpegdirect
         self.noinputstream = noinputstream
         self.manifest = manifest
         for k, v in kwargs.items():
             setattr(self, k, v)
-        dict.__init__(self, manifest=self.manifest,
+        dict.__init__(self, url=url,
+                            manifest=self.manifest,
                             adaptive=self.adaptive,
                             ffmpegdirect=self.ffmpegdirect,
                             noinputstream=self.noinputstream,
@@ -94,7 +96,7 @@ class url(dict):
 
 class hlsurl(url):
     def __init__(self, url, headers=None, adaptive=True, ffmpegdirect=True, noinputstream=True):
-        super(hlsurl, self).__init__(const.MANIFEST_HLS, adaptive, ffmpegdirect, noinputstream, url=url, headers=headers or {})
+        super(hlsurl, self).__init__(url, const.MANIFEST_HLS, adaptive, ffmpegdirect, noinputstream, headers=headers or {})
 
     @property
     def kodiurl(self):
@@ -130,7 +132,7 @@ class mpdurl(url):
             mincdm = None
         headers = headers or {}
         lheaders = lheaders or {}
-        super(mpdurl, self).__init__(const.MANIFEST_MPD, True, False, False, license=license, mincdm=mincdm, url=url, headers=headers,
+        super(mpdurl, self).__init__(url, const.MANIFEST_MPD, True, False, False, license=license, mincdm=mincdm, headers=headers,
                                      lurl=lurl, lheaders=lheaders, lbody=lbody, lresponse=lresponse)
 
     @property
@@ -177,7 +179,7 @@ class mpdurl(url):
 
 class acestreamurl(url):
     def __init__(self, url, adaptive=False, ffmpegdirect=True, noinputstream=True):
-        super(acestreamurl, self).__init__(const.MANIFEST_ACE, adaptive, ffmpegdirect, noinputstream, url=url)
+        super(acestreamurl, self).__init__(url, const.MANIFEST_ACE, adaptive, ffmpegdirect, noinputstream)
         if aceengine:
             self.aceurl = aceengine.acestream(self.url)
         else:
