@@ -119,10 +119,9 @@ def tokodiurl(url, domain=None, headers=None, pushverify=None, pushua=None):
         headers["User-agent"] = const.USERAGENT
     if pushverify is not None and "verifypeer" not in headerkeys:
         headers["verifypeer"] = pushverify
-    if url.startswith("http://") or url.startswith("https://"):
-        strheaders = parse.urlencode(headers)
-        if strheaders:
-            url += "|" + parse.urlencode(headers)
+    strheaders = parse.urlencode(headers)
+    if strheaders:
+        url += "|" + parse.urlencode(headers)
     return url
 
 
