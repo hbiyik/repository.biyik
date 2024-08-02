@@ -95,26 +95,9 @@ class url(dict):
 
 
 class hlsurl(url):
-    def __init__(self, url, headers=None, adaptive=True, ffmpegdirect=True, noinputstream=True):
-        super(hlsurl, self).__init__(url, const.MANIFEST_HLS, adaptive, ffmpegdirect, noinputstream, headers=headers or {})
-
-    @property
-    def kodiurl(self):
-        return net.tokodiurl(self.url, headers=self.headers, pushverify="false", pushua=const.USERAGENT)
-    
-    def props(self):
-        props = super(hlsurl, self).props()
-        headers = self.kodiurl.split("|")
-        headers = headers[1] if len(headers) == 2 else ""
-        props['inputstream.adaptive.manifest_type'] = self.manifest
-        props['inputstream.adaptive.stream_headers'] = headers
-        props['inputstream.adaptive.manifest_headers'] = headers
-        return props
-
-
-class mpdurl(url):
     HASWV = False
     CDMVER = None
+    manifest = const.MANIFEST_HLS
 
     if url.HASISA:
         HASWV, CDMVER = installwidevine()
@@ -124,16 +107,42 @@ class mpdurl(url):
     if isstub():
         HASWV = True
 
-    def __init__(self, url, headers=None, lurl=None, lheaders=None, lbody="R{SSM}", lresponse="", mincdm=None):
-        self.license = "com.widevine.alpha"
+    def __init__(self, url, headers=None, adaptive=True, ffmpegdirect=True, noinputstream=True,
+                 lurl=None, lheaders=None, lbody="R{SSM}", lresponse="", license="com.widevine.alpha", mincdm=None):
+        headers = headers or {}
+        lheaders = lheaders or {}
         if isinstance(mincdm, six.string_types):
             mincdm = LooseVersion(mincdm)
         else:
             mincdm = None
-        headers = headers or {}
-        lheaders = lheaders or {}
-        super(mpdurl, self).__init__(url, const.MANIFEST_MPD, True, False, False, license=license, mincdm=mincdm, headers=headers,
-                                     lurl=lurl, lheaders=lheaders, lbody=lbody, lresponse=lresponse)
+        super(hlsurl, self).__init__(url, self.manifest, adaptive, ffmpegdirect, noinputstream, headers=headers,
+                                     lurl=lurl, lheaders=lheaders, lbody=lbody, lresponse=lresponse, license=license,
+                                     mincdm=mincdm)
+
+    @property
+    def kodiurl(self):
+        return net.tokodiurl(self.url, headers=self.headers, pushverify="false", pushua=const.USERAGENT)
+
+    @property
+    def kodilurl(self):
+        if self.lurl or self.lheaders:
+            lurl = net.tokodiurl(self.lurl, headers=self.lheaders)
+            if "|" not in lurl:
+                return lurl + "|"
+            return "%s|%s|%s" % (lurl, self.lbody, self.lresponse)
+    
+    def props(self):
+        props = super(hlsurl, self).props()
+        headers = self.kodiurl.split("|")
+        headers = headers[1] if len(headers) == 2 else ""
+        props['inputstream.adaptive.manifest_type'] = self.manifest
+        props['inputstream.adaptive.stream_headers'] = headers
+        props['inputstream.adaptive.manifest_headers'] = headers
+        if self.lurl:
+            props['inputstream.adaptive.license_type'] = self.license
+            self.lurl, self.lheaders = net.fromkodiurl(net.tokodiurl(self.lurl, headers=self.lheaders, pushua=const.USERAGENT, pushverify="false"))
+        props['inputstream.adaptive.license_key'] = self.kodilurl
+        return props
 
     @property
     def inputstream(self):
@@ -155,26 +164,9 @@ class mpdurl(url):
             inputstream = const.INPUTSTREAMADAPTIVE
         return inputstream
 
-    @property
-    def kodiurl(self):
-        return net.tokodiurl(self.url, headers=self.headers, pushverify="false", pushua=const.USERAGENT)
 
-    @property
-    def kodilurl(self):
-        if self.lurl:
-            lurl = net.tokodiurl(self.lurl, headers=self.lheaders)
-            if "|" not in lurl:
-                return lurl + "|"
-            return "%s|%s|%s" % (lurl, self.lbody, self.lresponse)
-
-    def props(self):
-        props = super(hlsurl, self).props()
-        props['inputstream.adaptive.manifest_type'] = self.manifest
-        if self.lurl:
-            props['inputstream.adaptive.license_type'] = self.license
-            self.lurl, self.lheaders = net.fromkodiurl(net.tokodiurl(self.lurl, headers=self.lheaders, pushua=const.USERAGENT, pushverify="false"))
-        props['inputstream.adaptive.license_key'] = self.kodilurl
-        return props
+class mpdurl(hlsurl):
+    manifest = const.MANIFEST_MPD
 
 
 class acestreamurl(url):
