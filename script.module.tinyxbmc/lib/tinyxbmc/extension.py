@@ -47,16 +47,6 @@ def loadmodule(modname, *paths):
     return mod
 
 
-def _doesinherit(cls, parents=None):
-    if not parents:
-        parents = []
-    badchild = False
-    for parent in parents:
-        if not inspect.isclass(parent) or not issubclass(cls, parent) or cls == parent:
-            badchild = True
-    return not badchild
-
-
 def getaddons(cache=True):
     global _addons
     if cache and _addons:
@@ -191,86 +181,50 @@ def addonattrs(addon, depends=None, exclude=None):
     return slibs, dlibs, plugins
 
 
-def getobjects(directory, mod=None, cls=None, parents=None, stack=None):
+def doesinherit(cls, parents=None):
+    parents = parents or []
+    badchild = False
+    for parent in parents:
+        if not inspect.isclass(parent) or not issubclass(cls, parent) or cls == parent:
+            badchild = True
+    return not badchild
+
+
+def getobjects(*directories, mod=None, cls=None, parents=None):
     '''
     Collects the class objects in a given directory.
     The objects can be narrowed by the module name, class name, and the
     classes that they must be inherited from.
     '''
     # find all files in dir
-    if not parents:
-        parents = []
-    if mod:
-        files = [mod]
-    else:
-        files = []
-        dirs = [x[0] for x in os.walk(directory)]
-        packages = []
-        for im, pck, ispkg in pkgutil.iter_modules(dirs):
-            path = os.path.relpath(im.path, directory)
-            path = path.replace(os.path.sep, ".")
-            if path in packages:
-                mod = path + "." + pck
-            elif path == pck or path == ".":
-                mod = pck
-            else:
-                continue
-            if ispkg:
-                packages.append(mod)
-            files.append(mod)
-    pid = ""
-    for parent in parents:
-        pid += inspect.getfile(parent)
-        pid += parent.__name__
-    for f in files:
-        # prepare sys.path for import
-        # import module
-        gc.collect()
-        objid = os.path.join(directory, f + ".py")
-        if not os.path.exists(objid):
-            # print "Skipping %s" % objid
-            continue
-        objid += str(os.path.getsize(objid)) + pid
-        if stack:
-            cache = stack.find(objid).data
-        else:
-            cache = {}
-        if cache.get("skip"):
-            continue
+    for directory in directories:
         if directory not in sys.path:
             sys.path.append(directory)
+    for finder, modname, _ispkg in pkgutil.walk_packages(directories):
         try:
-            imod = loadmodule(f, directory)
-            clsd = vars(imod)
-        except Exception:
-            print("Error Loading File: %s: %s" % (directory, f))
-            cache["skip"] = True
-            if stack:
-                stack.throw(objid, cache)
-            if _debug:
-                print(traceback.format_exc())
-            continue
-        # gc.collect()
-        # dont import if module is already imported,
-        # sometimes when this function is called from getplugins
-        # root path points to file from either plugin rootdir
-        # or plugin include dir ie. lib folder
-        found = False
-        for k, icls in clsd.items():
-            # k: class name, icls: imported class object
-            if cls and not k == cls:
-                # if specific class is defined, skip other classes
+            spec = finder.find_spec(modname)
+            imod = importlib.util.module_from_spec(spec)
+            if inspect.getfile(imod).endswith("__init__.py"):
                 continue
+            if mod and imod.__name != mod:
+                continue
+            spec.loader.exec_module(imod)
+        except Exception as e:
+            print("Object Loading Error: %s: %s, exception: %s" % (finder.path, modname, e))
+            print(traceback.format_exc())
+            continue
+        gc.collect()
+        for _k, icls in vars(imod).items():
+            # k: class name, icls: imported class object
             if not inspect.isclass(icls):
                 # skip other objects which are not classes
                 continue
-            if not _doesinherit(icls, parents):
+            if not doesinherit(icls, parents):
                 continue
-            found = True
+            if cls and cls != icls.__name__:
+                continue 
+            print("Object Loaded: %s.%s" % (modname, icls.__name__))
             yield imod, icls
-        cache["skip"] = not found
-        if stack:
-            stack.throw(objid, cache)
 
 
 def getplugins(pid, addon=None, path=None, package=None, module=None, instance=None):
