@@ -14,9 +14,8 @@ from libchromium import defs
 
 
 class Browser:
-    def __init__(self, useragent=None, loadtimeout=1, maxtimeout=10, port=9222):
+    def __init__(self, useragent=None, maxtimeout=10, port=9222):
         self.maxtimeout = maxtimeout
-        self.loadtimeout = loadtimeout
         self.useragent = useragent
         self.id = 1000
         self.port = port
@@ -159,7 +158,7 @@ class Browser:
     def evaljs(self, js):
         return self.command_block("Runtime.evaluate", expression=js)
     
-    def navigate(self, url, referer=None, headers=None, wait=True):
+    def navigate(self, url, referer=None, headers=None, wait=True, html=True):
         self.ws.settimeout(self.maxtimeout)
         kwargs = {"url": url}
         if referer:
@@ -167,9 +166,16 @@ class Browser:
         if headers:
             self.command("Network.setExtraHTTPHeaders", headers=headers)
         self.command("Page.navigate", **kwargs)
-        startt = time.time()
         if wait:
-            self.wait_message(self.maxtimeout, msg_method="Page.loadEventFired")
+            self.waitloadevent()
+        if html:
+            return self.html(url)
+        
+    def waitloadevent(self):
+        self.wait_message(self.maxtimeout, msg_method="Page.loadEventFired")
+
+    def html(self, url=None):
+        startt = time.time()
         while True:
             if (time.time() - startt) > self.maxtimeout:
                 print("Timeout waiting %s" % url)
