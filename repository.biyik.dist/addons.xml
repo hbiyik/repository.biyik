@@ -165,10 +165,9 @@
   </tinyxbmc>
 </addon>
 
-<addon id="script.module.sublib" name="Sublib Module" provider-name="hbiyik" version="0.1.2">
+<addon id="script.module.sublib" name="Sublib Module" provider-name="hbiyik" version="0.2.0">
     <requires>
 	<import addon="script.module.tinyxbmc"/>
-	<import addon="script.module.six"/>
 	<import addon="vfs.rar" optional="true"/>
 	<import addon="vfs.libarchive" optional="true"/>
 	</requires>
@@ -184,7 +183,7 @@
 	</extension>
 </addon>
 
-<addon id="service.subtitles.turkcealtyazi" name="Turkcealtyazi.org" provider-name="hbiyik" version="0.1.2">
+<addon id="service.subtitles.turkcealtyazi" name="Turkcealtyazi.org" provider-name="hbiyik" version="0.2.0">
   <requires>
     <import addon="script.module.sublib"/>
     <import addon="script.module.htmlement"/>
@@ -230,29 +229,30 @@
   </extension>
 </addon>
 
-<addon id="script.module.chromium" name="Chromium Service" provider-name="hbiyik" version="0.0.8">
+<addon id="script.module.chromium" name="Chromium Service" provider-name="hbiyik" version="0.1.0">
     <requires>
 		<import addon="script.module.tinyxbmc"/>
 		<import addon="service.system.docker" optional="true"/>
 	</requires>
-    <extension point="xbmc.service" library="service.py" />
 	<extension point="xbmc.python.module" library="lib" />
+    <extension point="xbmc.service" library="lib/libchromium/service.py" />
 	<extension point="xbmc.addon.metadata">
-		<platform>linux windows</platform>
-		<summary lang="en">TinxyXBMC module</summary>
-		<description lang="en">TinyXBMC</description>
+		<platform>linux</platform>
+		<summary lang="en">TinyXBMC Chromium Service</summary>
+		<description lang="en">TinyXBMC Chromium Service</description>
 		<license>GNU General Public License, v2</license>
 		<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
 		<website>https://github.com/hbiyik/repository.biyik</website>
 	</extension>
 </addon>
 
-<addon id="service.subtitles.planetdp" name="Planetdp.org" version="0.0.12" provider-name="hbiyik">
+<addon id="service.subtitles.planetdp" name="Planetdp.org" version="0.0.13" provider-name="hbiyik">
   <requires>
     <import addon="script.module.sublib"/>
   </requires>
   <extension point="xbmc.subtitle.module" library="addon.py" />
   <extension point="xbmc.addon.metadata">
+    <broken>site is no more in service</broken>
   	<platform>all</platform>
     <summary lang="en">Planetdp.org</summary>
     <description lang="en">Turkish / English Subtitle Service from planetdp.org</description>
