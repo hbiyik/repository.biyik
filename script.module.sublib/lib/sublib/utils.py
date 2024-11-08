@@ -23,12 +23,10 @@ import xbmcgui
 import xbmc
 
 from tinyxbmc import const
-from tinyxbmc import tools
 import re
 import unicodedata
 import os
-from six.moves.urllib import parse
-from six import string_types, PY2
+from urllib import parse
 
 
 useragent = "KODI / XBMC Sublib Library"
@@ -74,12 +72,8 @@ def html_decode(s):
 
 
 def normstr(s):
-    if PY2:
-        s = unicodedata.normalize('NFKD', unicode(unicode(s, 'utf-8')))
-        return s.encode('ascii', 'ignore')
-    else:
-        s = unicodedata.normalize('NFKD', s)
-        return s.encode('ascii', 'ignore').decode()
+    s = unicodedata.normalize('NFKD', s)
+    return s.encode('ascii', 'ignore').decode()
 
 
 def dformat(d, m):
@@ -156,14 +150,10 @@ def getlof(ar, fname, path="", lof=None):
     ds, fs = xbmcvfs.listdir("%s://%s%s" % (ar, parse.quote_plus(fname),
                                             path))
     for d in ds:
-        if PY2:
-            d = unicode(d.decode("utf-8"))
         dpath = path + "/" + d
         lof.append(dpath + "/")
         getlof(ar, fname, dpath, lof)
     for f in fs:
-        if PY2:
-            f = unicode(f.decode("utf-8"))
         lof.append(path + "/" + f)
     return lof
 
@@ -209,8 +199,6 @@ def getar(fname, ar, show, season, episode):
 
 def getsub(fname, show, season, episode):
     isar = checkarchive(fname)
-    if tools.isstub():
-        return fname
     if isar:
         arname = getar(fname, isar, show, season, episode)
         if not arname:
@@ -235,7 +223,7 @@ def infofromstr(txt, title=None, show=False, season=-1, episode=-1):
         title = title.replace("  ", "")
         title = title.strip()
         return title
-    if not isinstance(txt, string_types):
+    if not isinstance(txt, str):
         txt = str(txt)
     regmatch = False
     matchstr = txt.lower()

@@ -24,19 +24,19 @@ import sublib.item
 from tinyxbmc import net
 from tinyxbmc import const
 from tinyxbmc import collector
-from six import PY2
 
 import json
 import os
 import sys
 import shutil
-from six.moves.urllib import parse
+from urllib import parse
 
 import xbmc
 import xbmcgui
 import xbmcplugin
 import xbmcaddon
 import xbmcvfs
+from codecs import ignore_errors
 
 
 class service(object):
@@ -88,17 +88,10 @@ class service(object):
             addonid = xbmcaddon.Addon()
             self._sid = xbmcaddon.Addon().getAddonInfo('id')
             profile = addonid.getAddonInfo('profile')
-            if PY2:
-                self._profile = xbmc.translatePath(profile)
-            else:
-                self._profile = xbmcvfs.translatePath(profile)
+            self._profile = xbmcvfs.translatePath(profile)
             temp = os.path.join(profile, 'temp')
-            self.path = xbmc.translatePath(temp)
-            if PY2:
-                self._profile = self._profile.decode("utf-8")
-                self.path = self.path.decode("utf-8")
-            if os.path.exists(self.path):
-                shutil.rmtree(self.path)
+            self.path = xbmcvfs.translatePath(temp)
+            shutil.rmtree(self.path, ignore_errors=True)
             xbmcvfs.mkdirs(self.path)
             params = dict(parse.parse_qsl(sys.argv[2][1:]))
             params = sublib.utils.dformat(params, json.loads)

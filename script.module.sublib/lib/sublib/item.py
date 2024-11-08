@@ -19,8 +19,7 @@
 '''
 import json
 import os
-from six.moves.urllib import parse
-from six import PY2
+from urllib import parse
 
 import xbmc
 import xbmcgui
@@ -133,14 +132,10 @@ class model():
             pass
 
         # process languages
-        if PY2:
-            preflang = preflang.decode('utf-8')
         preflang = xbmc.convertLanguage(preflang, 0)
         if not preflang == "":
             self.languages.append(preflang)
         languages = parse.unquote(langs)
-        if PY2:
-            languages = languages.decode('utf-8')
         languages = languages.split(",")
         for lang in languages:
             lang = xbmc.convertLanguage(lang, 0)
@@ -149,8 +144,6 @@ class model():
 
         # process file name
         fname = xbmc.Player().getPlayingFile()
-        if PY2:
-            fname = fname.decode('utf-8')
         fname = parse.unquote(fname)
         if "|" in fname:
             fname = fname.split("|")[0]

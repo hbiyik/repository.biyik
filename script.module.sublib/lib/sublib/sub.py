@@ -18,7 +18,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 import sublib.iso639
-from six import string_types
 
 
 class model(object):
@@ -95,7 +94,7 @@ class model(object):
 
     @label.setter
     def label(self, val):
-        if not isinstance(val, string_types):
+        if not isinstance(val, str):
             raise(TypeError(type(val)))
         self.__label = val
 
