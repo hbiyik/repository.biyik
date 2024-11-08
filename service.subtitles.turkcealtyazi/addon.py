@@ -20,9 +20,7 @@
 import service
 from sublib import utils
 
-REMOTE_DBG = "localhost"
-# REMOTE_DBG = False
-PROFILE = False
+REMOTE_DBG = False
 
 if REMOTE_DBG:
     import sys
