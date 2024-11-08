@@ -6,32 +6,27 @@ Created on Oct 31, 2021
 import websocket
 import json
 import time
-import re
 import os
-from six.moves.urllib.request import urlopen
-from six.moves.urllib.parse import quote
-from tinyxbmc import addon
-
-latestchromium = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
-
-def isnotcf(page):
-    if not re.search('form id="challenge-form"', page):
-        return page
+import traceback
+from urllib.request import urlopen
+from urllib.parse import quote
+from libchromium import defs
 
 
 class Browser:
-    def __init__(self, useragent=None, loadtimeout=1, maxtimeout=30, port=9222):
+    def __init__(self, useragent=None, loadtimeout=1, maxtimeout=10, port=9222):
         self.maxtimeout = maxtimeout
         self.loadtimeout = loadtimeout
-        self.debug = False
-        if not useragent:
-            useragent = latestchromium 
         self.useragent = useragent
         self.id = 1000
         self.port = port
         self.nodecmds = []
         self.log = []
         self.ws = None
+        self.lastmsgtime = 0
+        self.url = "http://127.0.0.1:%s" % self.port
+        if not defs.DEBUG:
+            self.closetabs()
 
     def __enter__(self):
         self.open()
@@ -40,9 +35,29 @@ class Browser:
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.ws:
             self.close()
+            
+    def closetabs(self):
+        # in case some weird pop ups infest the browser or due to some exception windows are left open
+        tabs = json.loads(urlopen("%s/json/list" % self.url).read())
+        for tab in tabs:
+            # keep the 1 single chrome://newtab open so the browser wont be closed
+            if tab["url"].startswith("chrome"):
+                continue
+            self.closetab(tab["id"])
+
+    def closetab(self, tabid):        
+        return urlopen("%s/json/close/%s" % (self.url, tabid)).read()
+
+
+    def validate(self, page):
+        if "<title>Just a moment...</title>" in page:
+            if "_cf_chl_opt" in page:
+                print("Detected CF, sleeping 1 sec")
+                time.sleep(1)
+                return
+        return page
 
     def open(self):
-        self.url = "http://127.0.0.1:%s" % self.port
         d = json.loads(urlopen("%s/json/new" % self.url).read())
         self.tabid = d["id"]
         self.wsurl = d["webSocketDebuggerUrl"]
@@ -62,17 +77,37 @@ class Browser:
 
     def command(self, method, **kwargs):
         self.id += 1
-        if self.debug:
+        if defs.DEBUG:
             print("Command (%s): %s, %s" % (self.id, method, kwargs))
         self.connect()
         self.ws.send(json.dumps({"id": self.id, "method": method, "params": kwargs}))
         return self.id
+    
+    def command_block(self, method, **kwargs):
+        cmdid = self.command(method, **kwargs)
+        message = self.wait_message(defs.CMD_TIMEOUT, cmdid)
+        if message:
+            return message if "result" in message else None
+            
+    def wait_message(self, timeout, msg_id=None, msg_method=None):
+        startt = time.time()
+        for message, ev_msg_id, ev_msg_method in self.itermessages():
+            if (time.time() - startt) > timeout:
+                break
+            if (msg_id and msg_id == ev_msg_id):
+                if defs.DEBUG:
+                    print("Received msg_id: %s" % msg_id)
+                return message
+            if msg_method and msg_method == ev_msg_method:
+                if defs.DEBUG:
+                    print("Received msg_method: %s" % msg_method)
+                return message
 
     def getmessage(self):
         try:
             self.connect()
             data = self.ws.recv()
-            if self.debug:
+            if defs.DEBUG:
                 print(data[:200])
             return json.loads(data)
         except websocket.WebSocketTimeoutException:
@@ -89,11 +124,9 @@ class Browser:
             yield message, msg_id, msg_method
 
     def getcfheaders(self, url):
-        self.command("Network.getCookies", urls=[url])
-        for m, mid, _ in self.itermessages():
-            if mid == self.id:
-                cookies = m["result"]["cookies"]
-                break
+        cmd_cookies = self.command_block("Network.getCookies", urls=[url])
+        if cmd_cookies:
+            cookies = cmd_cookies["result"]["cookies"]
 
         return {"User-Agent": self.useragent,
                 "cookie": "; ".join(["%s=%s" % (c["name"], quote(c["value"])) for c in cookies])
@@ -124,58 +157,9 @@ class Browser:
             return self.evaljs(js)
 
     def evaljs(self, js):
-        comid = self.command("Runtime.evaluate", expression=js)
-        for m, mid, mmtd in self.itermessages():
-            if mid == comid:
-                return m
-
-    def html(self, validate=isnotcf):
-        doc_comid = 0
-        outer_comid = 0
-        node = 0
-        lock = False
-        html = None
-        hasslept = not self.loadtimeout
-        startt = time.time()
-        for message, msg_id, _msg_method in self.itermessages():
-            if (time.time() - startt) > self.maxtimeout:
-                break
-            if not node and not lock:
-                node = None
-                doc_comid = self.command("DOM.getDocument")
-                lock = True
-                continue
-            if msg_id == doc_comid:
-                node = message["result"].get("root", {}).get("nodeId")
-                outer_comid = self.command("DOM.getOuterHTML", nodeId=node)
-                lock = False
-                continue
-            if outer_comid == msg_id:
-                if not message.get("error"):
-                    nhtml = message.get("result", {}).get("outerHTML")
-                    if validate:
-                        try:
-                            isvalid = validate(nhtml)
-                            if isvalid:
-                                html = isvalid
-                            else:
-                                html = None
-                        except Exception:
-                            html = None
-                    else:
-                        html = nhtml
-                    if html:
-                        if hasslept:
-                            break
-                        else:
-                            time.sleep(self.loadtimeout)
-                            hasslept = True
-                node = None
-                doc_comid = self.command("DOM.getDocument")
-                lock = True
-        return html
-
-    def navigate(self, url, referer=None, validate=isnotcf, headers=None):
+        return self.command_block("Runtime.evaluate", expression=js)
+    
+    def navigate(self, url, referer=None, headers=None, wait=True):
         self.ws.settimeout(self.maxtimeout)
         kwargs = {"url": url}
         if referer:
@@ -183,14 +167,43 @@ class Browser:
         if headers:
             self.command("Network.setExtraHTTPHeaders", headers=headers)
         self.command("Page.navigate", **kwargs)
-        return self.html(validate)
+        startt = time.time()
+        if wait:
+            self.wait_message(self.maxtimeout, msg_method="Page.loadEventFired")
+        while True:
+            if (time.time() - startt) > self.maxtimeout:
+                print("Timeout waiting %s" % url)
+                break
+            cmd_getdoc = self.command_block("DOM.getDocument")
+            if not cmd_getdoc:
+                continue
+            cmd_getouter = self.command_block("DOM.getOuterHTML",
+                                              nodeId=cmd_getdoc["result"]["root"]["nodeId"])
+            if not cmd_getouter:
+                continue
+            html = cmd_getouter["result"]["outerHTML"]
+            try:
+                html = self.validate(html)
+            except Exception:
+                print(traceback.format_exc())
+                html = None
+            if html:
+                return html
 
     def getdownloads(self):
-        path = os.path.join(addon.get_addondir("script.module.chromium"), "downloads")
-        return [os.path.join(path, x) for x in os.listdir(path)]
+        return [os.path.join(defs.DOWNLOAD_PATH, x) for x in os.listdir(defs.DOWNLOAD_PATH)]
 
-    def iterdownload(self):
+    def cleardownloads(self):
+        for x in os.listdir(defs.DOWNLOAD_PATH):
+            fpath = os.path.join(defs.DOWNLOAD_PATH, x)
+            if os.path.isfile(fpath):
+                os.remove(fpath)
+
+    def iterdownload(self, timeout=defs.CMD_TIMEOUT):
+        startt = time.time()
         for m, _mid, mmtd in self.itermessages():
+            if (time.time() - startt) > timeout:
+                break
             if mmtd == "Page.downloadProgress":
                 state = m.get("params", {}).get("state")
                 if state == "inProgress":
@@ -204,4 +217,5 @@ class Browser:
 
     def close(self):
         self.ws.close()
-        urlopen("%s/json/close/%s" % (self.url, self.tabid)).read()
+        if not defs.DEBUG:
+            self.closetab(self.tabid)
