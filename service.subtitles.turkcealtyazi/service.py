@@ -22,7 +22,6 @@ import htmlement
 import shutil
 from chromium import Browser
 from tinyxbmc.const import DB_TOKEN
-from six import string_types
 
 import re
 import os
@@ -183,7 +182,7 @@ class turkcealtyazi(sublib.service):
                     (self.ignoreyear or self.item.year is None or self.item.year == year)):
                 self.found = True
                 with Browser() as browser:
-                    p = browser.navigate(domain + link, referer=domain, validate=isvalid)
+                    p = browser.navigate(domain + link, referer=domain)
                 self.scrapepage(htmlement.fromstring(p))
                 break
         if not self.found:
@@ -192,8 +191,8 @@ class turkcealtyazi(sublib.service):
                 if "sonra" in page.text.lower():
                     if self.found:
                         break
-                    with Browser():
-                        npage = browser.navigate(domain + page.get("href"), referer=domain, validate=isvalid)
+                    with Browser() as browser:
+                        npage = browser.navigate(domain + page.get("href"), referer=domain)
                     self.scraperesults(npage, htmlement.fromstring(npage))
 
     def scrapepage(self, tree):
@@ -227,7 +226,7 @@ class turkcealtyazi(sublib.service):
             qual = s.find(".//div[@class='fl']/span")
             if qual is not None:
                 qual = qual.get("class")
-                if isinstance(qual, string_types):
+                if isinstance(qual, str):
                     qual = qual.replace("kal", "")
                     if qual.isdigit():
                         qualrate = qual
@@ -241,7 +240,7 @@ class turkcealtyazi(sublib.service):
 
     def find(self, query):
         with Browser() as browser:
-            browser.navigate(domain, validate=isvalid)
+            browser.navigate(domain)
             page = browser.navigate(domain + "/find.php?cat=sub&find=" + query, referer=domain)
         tree = htmlement.fromstring(page)
         title = tree.find(".//title")
@@ -252,7 +251,9 @@ class turkcealtyazi(sublib.service):
 
     def download(self, link):
         with Browser() as browser:
-            browser.navigate(link, validate=isvalid)
+            browser.navigate(domain)
+            browser.navigate(link)
+            browser.cleardownloads()
             browser.elem_call("submit", tag="form", index=3)
             list(browser.iterdownload())
             subtitle = browser.getdownloads()[0]
