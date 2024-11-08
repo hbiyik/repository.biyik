@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<addon id="service.subtitles.planetdp" name="Planetdp.org" version="0.0.12" provider-name="hbiyik">
+<addon id="service.subtitles.planetdp" name="Planetdp.org" version="0.0.13" provider-name="hbiyik">
   <requires>
     <import addon="script.module.sublib"/>
   </requires>
   <extension point="xbmc.subtitle.module" library="addon.py" />
   <extension point="xbmc.addon.metadata">
+    <broken>site is no more in service</broken>
   	<platform>all</platform>
     <summary lang="en">Planetdp.org</summary>
     <description lang="en">Turkish / English Subtitle Service from planetdp.org</description>
