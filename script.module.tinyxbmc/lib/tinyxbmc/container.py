@@ -263,6 +263,8 @@ class container(object):
         if "user-agent" not in [x.lower() for x in headers.keys()]:
             headers["user-agent"] = self._container.useragent
         for k, v in d.items():
+            if not v.startswith("https://") or not v.startswith("http://"):
+                continue
             try:
                 d[k] = net.tokodiurl(v, headers=headers)
             except Exception:
