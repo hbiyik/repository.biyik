@@ -113,7 +113,7 @@
 	</extension>
 </addon>
 
-<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.2.21">
+<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.2.22">
     <requires>
 		<import addon="script.module.cachecontrol"/>
 		<import addon="script.module.requests"/>
@@ -244,23 +244,6 @@
 		<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
 		<website>https://github.com/hbiyik/repository.biyik</website>
 	</extension>
-</addon>
-
-<addon id="service.subtitles.planetdp" name="Planetdp.org" version="0.0.13" provider-name="hbiyik">
-  <requires>
-    <import addon="script.module.sublib"/>
-  </requires>
-  <extension point="xbmc.subtitle.module" library="addon.py" />
-  <extension point="xbmc.addon.metadata">
-    <broken>site is no more in service</broken>
-  	<platform>all</platform>
-    <summary lang="en">Planetdp.org</summary>
-    <description lang="en">Turkish / English Subtitle Service from planetdp.org</description>
-    <description lang="tr">planetdp.org ile Türkçe / İngilizce altyazı servisi</description>
-    <license>GNU General Public License, v2</license>
-	<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
-	<website>https://github.com/hbiyik/repository.biyik</website>
-  </extension>
 </addon>
 
 <addon id="script.module.cachecontrol" name="Cachecontrol Module" provider-name="hbiyik" version="3.0.3">
