@@ -220,7 +220,7 @@ def getobjects(directory, mod=None, cls=None, parents=None, stack=None):
             files.append(mod)
     pid = ""
     for parent in parents:
-        pid += inspect.getfile(parent)
+        # pid += inspect.getfile(parent)
         pid += parent.__name__
     for f in files:
         # prepare sys.path for import
