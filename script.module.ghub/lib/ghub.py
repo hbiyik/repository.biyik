@@ -104,7 +104,7 @@ def _getrels(uname, rname):
 def _getcommits(uname, rname, branch, commit):
     if not commit:
         page = htmlement.fromstring(_page("https://%s/%s/%s/commits/%s" % (_dom, uname, rname, branch)))
-        comms = [x.get("href").split("/")[-1] for x in page.findall(".//a[@data-pjax='true']")]
+        comms = [x.get("data-commit-link").split("/")[-1] for x in page.findall(".//li[@data-commit-link]")]
     else:
         comms = [commit]
     allcoms = []
@@ -159,6 +159,8 @@ def _load(uname, rname, branch, commit, path, period):
                 ref = _getcommits(uname, rname, branch, commit)
             else:
                 ref = _getrels(uname, rname)
+            if not len(ref):
+                raise Exception
         except Exception:
             print("GITHUB: WARNING: Can not get latest meta: User:%s Repo:%s Branch:%s Commit: %s" % (uname, rname, branch, commit))
             print(traceback.format_exc())
