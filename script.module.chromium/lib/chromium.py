@@ -9,7 +9,7 @@ import time
 import os
 import traceback
 from urllib.request import urlopen
-from urllib.parse import quote
+from urllib import parse
 from libchromium import defs
 
 
@@ -128,7 +128,7 @@ class Browser:
             cookies = cmd_cookies["result"]["cookies"]
 
         return {"User-Agent": self.useragent,
-                "cookie": "; ".join(["%s=%s" % (c["name"], quote(c["value"])) for c in cookies])
+                "cookie": "; ".join(["%s=%s" % (c["name"], parse.quote(c["value"])) for c in cookies])
                 }
 
     def _get_elem_js(self, tag=None, name=None, eid=None, index=0):
@@ -157,12 +157,24 @@ class Browser:
 
     def evaljs(self, js):
         return self.command_block("Runtime.evaluate", expression=js)
+
+
+    def jspost(self, addr, data="", headers=None):
+        headers = headers or {} 
+        script = f"var xhr = new XMLHttpRequest();"
+        script += f"xhr.open('POST', '{addr}', true);"
+        for k, v in headers.items():
+            script += f"xhr.setRequestHeader('{k}', '{v}');"
+        script += "xhr.onload = function () { document.write(this.responseText);};"
+        data = parse.urlencode(data)
+        script += f"xhr.send('{data}');"
+        self.evaljs(script)
     
     def navigate(self, url, referer=None, headers=None, wait=True, html=True):
         self.ws.settimeout(self.maxtimeout)
         kwargs = {"url": url}
         if referer:
-            kwargs["referer"] = referer
+            kwargs["referrer"] = referer
         if headers:
             self.command("Network.setExtraHTTPHeaders", headers=headers)
         self.command("Page.navigate", **kwargs)
