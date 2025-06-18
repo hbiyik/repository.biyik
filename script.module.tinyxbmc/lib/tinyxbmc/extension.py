@@ -51,8 +51,9 @@ def _doesinherit(cls, parents=None):
     if not parents:
         parents = []
     badchild = False
+    parent_names = [c.__name__ for c in inspect.getmro(cls)[1:]]
     for parent in parents:
-        if not inspect.isclass(parent) or not issubclass(cls, parent) or cls == parent:
+        if not inspect.isclass(parent) or parent.__name__ not in parent_names or cls == parent:
             badchild = True
     return not badchild
 
