@@ -85,9 +85,10 @@ def getsession(seskey):
 
 def makeheader(url=None, headers=None, referer=None, useragent=None, pushnoverify=False, pushua=False, pushcookie=False):
     newheaders = {}
+    isurl_remote = url and url.startswith("http://") or url.startswith("https://")
     useragent = useragent or const.USERAGENT
 
-    # lowercase for easier pasring
+    # lowercase for easier parsing
     if headers:
         for k, v in headers.items():
             newheaders[k.lower()] = v
@@ -98,14 +99,18 @@ def makeheader(url=None, headers=None, referer=None, useragent=None, pushnoverif
         for k, v in oldheaders.items():
             newheaders[k.lower()] = v
 
+    if not isurl_remote:
+        return newheaders
+
     # push cookies
     if url and pushcookie:
         domain = parse.urlparse(url).netloc
-        cookiestr = newheaders.get("cookies", "")
-        for cookie in cookicachelist:
-            if domain in cookie.domain:
-                cookiestr += ";%s=%s" % (cookie.name, cookie.value)
-        newheaders["cookies"] = cookiestr
+        if not domain == "":
+            cookiestr = newheaders.get("cookies", "")
+            for cookie in cookicachelist:
+                if domain in cookie.domain:
+                    cookiestr += ";%s=%s" % (cookie.name, cookie.value)
+            newheaders["cookies"] = cookiestr
 
     # push user agent
     if pushua and "user-agent" not in newheaders:
@@ -121,8 +126,8 @@ def makeheader(url=None, headers=None, referer=None, useragent=None, pushnoverif
     return newheaders
 
 
-def tokodiurl(url, headers=None, pushnoverify=True, pushua=True, pushcookie=True):
-    headers = makeheader(url, headers=headers,
+def tokodiurl(url, headers=None, pushnoverify=True, pushua=True, pushcookie=True, useragent=None):
+    headers = makeheader(url, headers=headers, useragent=useragent,
                          pushnoverify=pushnoverify, pushua=pushua, pushcookie=pushcookie)
     strheaders = parse.urlencode(headers)
     if strheaders:
