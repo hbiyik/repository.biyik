@@ -125,11 +125,16 @@ class hlsurl(url):
 
     @property
     def kodilurl(self):
-        if self.lurl or self.lheaders:
+        if self.lurl:
             lurl = net.tokodiurl(self.lurl, headers=self.lheaders)
             if "|" not in lurl:
                 return lurl + "|"
             return "%s|%s|%s" % (lurl, self.lbody, self.lresponse)
+        else:
+            lurl = net.tokodiurl(self.url, headers=self.lheaders)
+            if "|" not in lurl:
+                return "|"
+            return "|%s" % lurl.split("|")[1]
 
     def props(self):
         props = super(hlsurl, self).props()
