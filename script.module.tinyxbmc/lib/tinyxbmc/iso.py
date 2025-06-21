@@ -19,7 +19,7 @@ for dbs, isos in (((countries_2letter, countries_3letter), ("iso3166-1", "iso316
     for iso in isos: 
         with open(os.path.join(ISOPATH, iso) + ".json") as f:
             js = json.load(f)
-        for entry in js[js.keys[0]]:
+        for entry in js[list(js.keys())[0]]:
             key = entry.get("alpha_2")
             if key:
                 dbs[0][key.lower()] = entry["name"].title()
