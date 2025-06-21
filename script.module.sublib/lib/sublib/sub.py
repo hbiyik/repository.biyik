@@ -17,7 +17,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
-import sublib.iso639
+from tinyxbmc import iso
 
 
 class model(object):
@@ -101,17 +101,18 @@ class model(object):
     @iso.setter
     def iso(self, val):
         val = val.lower().strip()
-        twolet = val in sublib.iso639.one
-        human = val in sublib.iso639.one.values()
+        twolet = val in iso.languages_2letter or val in iso.languages_3letter
+        human = val.title() in iso.countries_3letter
         if not twolet and not human:
             raise(ValueError(val))
         if twolet:
             self.__iso = val
         if human:
-            for k, v in sublib.iso639.one.items():
-                if v == val:
-                    self.__iso = k
-                    break
+            for d in [iso.languages_2letter, iso.languages_3letter]:
+                for k, v in d.items():
+                    if v == val:
+                        self.__iso = k
+                        break
 
     @cc.setter
     def cc(self, val):

@@ -36,7 +36,6 @@ import xbmcgui
 import xbmcplugin
 import xbmcaddon
 import xbmcvfs
-from codecs import ignore_errors
 
 
 class service(object):
