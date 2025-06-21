@@ -20,13 +20,14 @@ if isstub():
     import inspect
     import xbmcaddon
     from tinyxbmc import tools
-    
+
     rootpath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..")
 
     def xbmclog(msg, *args, **kwargs):
         print(msg)
 
     class Addon(xbmcaddon.Addon):
+
         def __init__(self, nid=None):
             self.rootpath = None
             self.settingfile = None
@@ -95,11 +96,10 @@ if isstub():
                 if len(parsed.path):
                     path_return = os.path.join(path_return, *os.path.split(parsed.path[1:]))
         return os.path.join(path_return, "")
-    
+
     def executeJSONRPC(*args, **kwargs):
         return '{"result": {"addon": {}}}'
-    
-   
+
     tools.kodiversion = lambda: 19
     xbmc.executeJSONRPC = executeJSONRPC
     xbmcaddon.Addon = Addon

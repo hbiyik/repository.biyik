@@ -18,7 +18,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
-
 import json
 import os
 import time
@@ -42,6 +41,7 @@ def _null(data, *args, **kwargs):
 
 
 class needle():
+
     def __init__(self, nid=None, data=None, timestamp=None, serial=None, compress=1):
         self.compress = compress
         self.id = nid
@@ -105,6 +105,7 @@ class needle():
 
 
 class stack(object):
+
     def __init__(self, path, serial=None, compress=1, maxrows=5000, write=True, aid=None):
         self.write = write
         self.mutex = Lock()
@@ -154,7 +155,7 @@ class stack(object):
     def __del__(self):
         try:
             self.close()
-        except:
+        except Exception:
             pass
 
     def _check_db(self):
@@ -191,11 +192,13 @@ class stack(object):
                             """)
 
     def _open_db(self, path):
+
         def _tunedb():
             self.cur.executescript("""
                        PRAGMA JOURNAL_MODE = MEMORY;
                        PRAGMA SYNCHRONOUS = OFF;
                        PRAGMA LOCKING_MODE = UNLOCKED;""")
+
         if _debug:
             addon.log("DB: %s, opened at %s" % (self.path, path))
         with Mutex(self.mutex):
@@ -328,6 +331,7 @@ class stack(object):
 
 
 class Mutex(object):
+
     def __init__(self, mutex):
         self.mutex = mutex
 

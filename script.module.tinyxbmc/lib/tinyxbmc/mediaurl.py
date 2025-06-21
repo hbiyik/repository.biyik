@@ -16,7 +16,6 @@ import os
 import re
 import traceback
 
-
 if addon.has_addon("plugin.program.aceengine"):
     addon.depend_addon("plugin.program.aceengine")
     import aceengine
@@ -49,16 +48,16 @@ def installwidevine():
         if HASWV:
             CDMVER = LooseVersion(helper._get_lib_version(inputstreamhelper.widevinecdm_path()))
             addon.log("MPD: Widewine is enabled with CDM version %s" % CDMVER)
-    except Exception as e:
+    except Exception as _e:
         print(traceback.format_exc())
-        
+
     return HASWV, CDMVER
 
 
 class url(dict):
     HASISA = addon.has_addon(const.INPUTSTREAMADAPTIVE) and addon.addon_details(const.INPUTSTREAMADAPTIVE).get("enabled")
     HASFFDR = addon.has_addon(const.INPUTSTREAFFMPEGDIRECT) and addon.addon_details(const.INPUTSTREAFFMPEGDIRECT).get("enabled")
-    
+
     def __init__(self, url=None, manifest=None, adaptive=True, ffmpegdirect=True, noinputstream=True, **kwargs):
         self.url = url
         self.adaptive = adaptive
@@ -67,12 +66,13 @@ class url(dict):
         self.manifest = manifest
         for k, v in kwargs.items():
             setattr(self, k, v)
-        dict.__init__(self, url=url,
-                            manifest=self.manifest,
-                            adaptive=self.adaptive,
-                            ffmpegdirect=self.ffmpegdirect,
-                            noinputstream=self.noinputstream,
-                            **kwargs)
+        dict.__init__(self,
+                      url=url,
+                      manifest=self.manifest,
+                      adaptive=self.adaptive,
+                      ffmpegdirect=self.ffmpegdirect,
+                      noinputstream=self.noinputstream,
+                      **kwargs)
 
     def props(self):
         props = {}
@@ -84,7 +84,7 @@ class url(dict):
         if self.manifest:
             props['inputstream.adaptive.manifest_type'] = self.manifest
         return props
-    
+
     @property
     def inputstream(self):
         if self.HASISA and self.adaptive:
@@ -108,7 +108,7 @@ class hlsurl(url):
         HASWV = True
 
     def __init__(self, url, headers=None, adaptive=True, ffmpegdirect=True, noinputstream=True,
-                 lurl=None, lheaders=None, lbody="R{SSM}", lresponse="", license="com.widevine.alpha", mincdm=None):
+                 lurl=None, lheaders=None, lbody="R{SSM}", lresponse="", lic="com.widevine.alpha", mincdm=None):
         headers = headers or {}
         lheaders = lheaders or {}
         if isinstance(mincdm, six.string_types):
@@ -116,7 +116,7 @@ class hlsurl(url):
         else:
             mincdm = None
         super(hlsurl, self).__init__(url, self.manifest, adaptive, ffmpegdirect, noinputstream, headers=headers,
-                                     lurl=lurl, lheaders=lheaders, lbody=lbody, lresponse=lresponse, license=license,
+                                     lurl=lurl, lheaders=lheaders, lbody=lbody, lresponse=lresponse, lic=lic,
                                      mincdm=mincdm)
 
     @property
@@ -130,7 +130,7 @@ class hlsurl(url):
             if "|" not in lurl:
                 return lurl + "|"
             return "%s|%s|%s" % (lurl, self.lbody, self.lresponse)
-    
+
     def props(self):
         props = super(hlsurl, self).props()
         headers = self.kodiurl.split("|")
@@ -170,6 +170,7 @@ class mpdurl(hlsurl):
 
 
 class acestreamurl(url):
+
     def __init__(self, url, adaptive=False, ffmpegdirect=True, noinputstream=True):
         super(acestreamurl, self).__init__(url, const.MANIFEST_ACE, adaptive, ffmpegdirect, noinputstream)
         if aceengine:

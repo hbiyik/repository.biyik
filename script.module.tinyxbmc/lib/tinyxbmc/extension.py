@@ -39,7 +39,6 @@ _addons = None
 _xhay = None
 
 
-
 def loadmodule(modname, *paths):
     spec = importlib.machinery.PathFinder.find_spec(modname, paths)
     mod = importlib.util.module_from_spec(spec)
@@ -88,7 +87,6 @@ def getaddons(cache=True):
                        "enabled": True,
                        }
             }
-    
     addons = {}
     for addon in json.loads(xbmc.executeJSONRPC(json.dumps(data)))["result"]["addons"]:
         addons[addon["addonid"]] = addon
@@ -277,7 +275,7 @@ def getobjects(directory, mod=None, cls=None, parents=None, stack=None):
 def getplugins(pid, addon=None, path=None, package=None, module=None, instance=None):
     if not isinstance(pid, (tuple, list)):
         pid = (pid,)
-    for addonid, adn in getaddons().items():
+    for _addonid, adn in getaddons().items():
         if (addon and not adn["addonid"] == addon) or adn["broken"]:
             continue
         slibs, dlibs, plugins = addonattrs(adn["addonid"])

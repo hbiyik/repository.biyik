@@ -15,9 +15,9 @@ languages_2letter = {}
 languages_3letter = {}
 
 for dbs, isos in (((countries_2letter, countries_3letter), ("iso3166-1", "iso3166-3")),
-            ((languages_2letter, languages_3letter), ("iso639-3", "iso639-5"))):
-    for iso in isos: 
-        with open(os.path.join(ISOPATH, iso) + ".json") as f:
+                  ((languages_2letter, languages_3letter), ("iso639-3", "iso639-5"))):
+    for iso in isos:
+        with open(os.path.join(ISOPATH, iso) + ".json", "rb") as f:
             js = json.load(f)
         for entry in js[list(js.keys())[0]]:
             key = entry.get("alpha_2")

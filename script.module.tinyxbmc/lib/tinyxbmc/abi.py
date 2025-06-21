@@ -15,7 +15,6 @@ import binascii
 
 from tinyxbmc import const
 
-
 elf_machines = {2: "sparc", 3: "x86", 8: "mips", 20: "ppc", 21: "ppc64", 22: "s390",
                 40: "arm", 42: "superh", 50: "ia64", 62: "amd64", 183: "aarch64", 243: "riscv"}
 
@@ -37,14 +36,16 @@ def detect_os():
 
 
 def getelfabi():
+
     def readbyte(offset, decoder="B", size=1):
         f.seek(offset)
         return struct.unpack(decoder, f.read(size))[0]
+
     mflags_d = {}
     with open("/proc/self/exe", "rb") as f:
         is64 = readbyte(0x4) == 2
-        oseabi = readbyte(0x7)
-        eabiver = readbyte(0x8)
+        _oseabi = readbyte(0x7)
+        _eabiver = readbyte(0x8)
         machine = elf_machines.get(readbyte(0x12, "H", 2))
         if is64:
             f.seek(0x30)
@@ -52,7 +53,7 @@ def getelfabi():
             f.seek(0x24)
         mflags = f.read(4)
     if machine in ["arm", "arm64"]:
-        first, mid, abi = struct.unpack("HBB", mflags)
+        first, _mid, abi = struct.unpack("HBB", mflags)
         mflags_d["ABI"] = abi
         mflags_d["HRD"] = first >> 10 & 1
         mflags_d["SFT"] = first >> 9 & 1

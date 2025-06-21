@@ -36,8 +36,6 @@ REMOTE_DBG = False
 PROFILE = False
 
 if REMOTE_DBG:
-    pdevpath = "/home/boogie/.p2/pool/plugins/org.python.pydev.core_9.3.0.202203051235/pysrc/"
-    sys.path.append(pdevpath)
     import pydevd  # @UnresolvedImport
     pydevd.settrace(REMOTE_DBG, stdoutToServer=True, stderrToServer=True, suspend=False)
 

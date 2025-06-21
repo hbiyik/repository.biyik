@@ -147,6 +147,7 @@ def get_commondir():
 
 
 class kodisetting():
+
     def __init__(self, aid=None):
         self.e = "utf-8"
         self.aid = aid
@@ -212,7 +213,7 @@ class kodisetting():
             return get_addon(self.aid).getSettings().getNumber(variable)
         else:
             return float(self._get_val(variable))
-    
+
     def set(self, key, value):
         if tools.kodiversion() >= 21:
             a = get_addon(self.aid)
@@ -259,6 +260,7 @@ def log(txt, level=0):
 
 
 class blockingloop(object):
+
     def __init__(self, *args, **kwargs):
         self.wait = 0.1
         self.dropboxtoken = None
