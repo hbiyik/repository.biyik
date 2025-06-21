@@ -108,14 +108,15 @@ class hlsurl(url):
         HASWV = True
 
     def __init__(self, url, headers=None, adaptive=True, ffmpegdirect=True, noinputstream=True,
-                 lurl=None, lheaders=None, lbody="R{SSM}", lresponse="", lic="com.widevine.alpha", mincdm=None):
+                 lurl=None, lheaders=None, lbody="R{SSM}", lresponse="", lic="com.widevine.alpha", aesparams=None, mincdm=None):
         headers = headers or {}
         lheaders = lheaders or headers or {}
+        aesparams = aesparams or {}
         if mincdm:
             mincdm = LooseVersion(mincdm)
         super(hlsurl, self).__init__(url, self.manifest, adaptive, ffmpegdirect, noinputstream, headers=headers,
                                      lurl=lurl, lheaders=lheaders, lbody=lbody, lresponse=lresponse, lic=lic,
-                                     mincdm=mincdm)
+                                     aesparams=aesparams, mincdm=mincdm)
 
     @property
     def kodiurl(self):
@@ -130,7 +131,7 @@ class hlsurl(url):
         else:
             headers = net.makeheader(self.url, headers=self.lheaders,
                                      pushnoverify=True, pushua=True, pushcookie=True)
-            return "|%s" % parse.urlencode(headers)
+            return "%s|%s" % (parse.urlencode(self.aesparams), parse.urlencode(headers))
 
     def props(self):
         props = super(hlsurl, self).props()
