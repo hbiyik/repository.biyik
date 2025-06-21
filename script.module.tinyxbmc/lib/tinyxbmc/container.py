@@ -33,6 +33,7 @@ import six
 from six.moves.urllib import parse
 
 REMOTE_DBG = False
+# REMOTE_DBG = "192.168.2.10"
 PROFILE = False
 
 if REMOTE_DBG:
@@ -256,15 +257,9 @@ class container(object):
 
     def _art(self, art, headers=None):
         d = art.copy()
-        if not headers:
-            headers = {}
-        if "user-agent" not in [x.lower() for x in headers.keys()]:
-            headers["user-agent"] = self._container.useragent
         for k, v in d.items():
-            if not v.startswith("https://") or not v.startswith("http://"):
-                continue
             try:
-                d[k] = net.tokodiurl(v, headers=headers)
+                d[k] = net.tokodiurl(v, headers, useragent=self._container.useragent)
             except Exception:
                 pass
         return d
@@ -337,10 +332,8 @@ class container(object):
                  json=None, method="GET", referer=None, useragent=None, encoding="utf-8",
                  verify=None, stream=None, proxies=None, cache=10, text=True):
 
-        if not (headers and "user-agent" in [x.lower() for x in headers] or useragent):
-            useragent = self._container.useragent
-        if not timeout:
-            timeout = self._container.httptimeout
+        timeout = timeout or self._container.httptimeout
+        useragent = useragent or self._container.useragent
         ret = net.http(url, params, data, headers, timeout, json, method, referer,
                        useragent, encoding, verify, stream, proxies, cache, text)
         return ret
@@ -457,7 +450,7 @@ class xbmcplayer(xbmc.Player):
         if isinstance(url, mediaurl.url):
             u = url.kodiurl
         else:
-            u = net.tokodiurl(url, pushverify="false", pushua=const.USERAGENT)
+            u = net.tokodiurl(url, useragent=const.USERAGENT)
         if not u:
             return False
         if not li:

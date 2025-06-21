@@ -9,12 +9,12 @@ from tinyxbmc import net
 from tinyxbmc.distversion import LooseVersion
 from tinyxbmc.stubmod import isstub
 
-import six
 import ghub
 import xbmc
 import os
 import re
 import traceback
+from urllib import parse
 
 if addon.has_addon("plugin.program.aceengine"):
     addon.depend_addon("plugin.program.aceengine")
@@ -110,64 +110,51 @@ class hlsurl(url):
     def __init__(self, url, headers=None, adaptive=True, ffmpegdirect=True, noinputstream=True,
                  lurl=None, lheaders=None, lbody="R{SSM}", lresponse="", lic="com.widevine.alpha", mincdm=None):
         headers = headers or {}
-        lheaders = lheaders or {}
-        if isinstance(mincdm, six.string_types):
+        lheaders = lheaders or headers or {}
+        if mincdm:
             mincdm = LooseVersion(mincdm)
-        else:
-            mincdm = None
         super(hlsurl, self).__init__(url, self.manifest, adaptive, ffmpegdirect, noinputstream, headers=headers,
                                      lurl=lurl, lheaders=lheaders, lbody=lbody, lresponse=lresponse, lic=lic,
                                      mincdm=mincdm)
 
     @property
     def kodiurl(self):
-        return net.tokodiurl(self.url, headers=self.headers, pushverify="false", pushua=const.USERAGENT)
+        return net.tokodiurl(self.url)
 
     @property
     def kodilurl(self):
         if self.lurl:
-            lurl = net.tokodiurl(self.lurl, headers=self.lheaders)
-            if "|" not in lurl:
-                return lurl + "|"
-            return "%s|%s|%s" % (lurl, self.lbody, self.lresponse)
+            headers = net.makeheader(self.lurl, headers=self.lheaders,
+                                     pushnoverify=True, pushua=True, pushcookie=True)
+            return "%s|%s|%s|%s" % (self.lurl, parse.urlencode(headers), self.lbody, self.lresponse)
         else:
-            lurl = net.tokodiurl(self.url, headers=self.lheaders)
-            if "|" not in lurl:
-                return "|"
-            return "|%s" % lurl.split("|")[1]
+            headers = net.makeheader(self.url, headers=self.lheaders,
+                                     pushnoverify=True, pushua=True, pushcookie=True)
+            return "|%s" % parse.urlencode(headers)
 
     def props(self):
         props = super(hlsurl, self).props()
-        headers = self.kodiurl.split("|")
-        headers = headers[1] if len(headers) == 2 else ""
         props['inputstream.adaptive.manifest_type'] = self.manifest
-        props['inputstream.adaptive.stream_headers'] = headers
-        props['inputstream.adaptive.manifest_headers'] = headers
+        props['inputstream.adaptive.stream_headers'] = parse.urlencode(self.headers)
+        props['inputstream.adaptive.manifest_headers'] = parse.urlencode(self.headers)
         if self.lurl:
             props['inputstream.adaptive.license_type'] = self.license
-            self.lurl, self.lheaders = net.fromkodiurl(net.tokodiurl(self.lurl, headers=self.lheaders, pushua=const.USERAGENT, pushverify="false"))
         props['inputstream.adaptive.license_key'] = self.kodilurl
         return props
 
     @property
     def inputstream(self):
-        inputstream = None
-        if self.lurl:
-            if self.HASWV:
-                if self.mincdm:
-                    if self.mincdm <= self.CDMVER:
-                        inputstream = const.INPUTSTREAMADAPTIVE
-                    else:
-                        addon.log("MPD: Available CDM version (%s) is not >= minimum required (%s): %s" % (self.CDMVER,
-                                                                                                           self.mincdm,
-                                                                                                           self.url))
-                else:
-                    inputstream = const.INPUTSTREAMADAPTIVE
-            else:
-                addon.log("MPD: DASH stream requires drm but widewine is not available: %s" % (self.url))
-        elif self.HASISA:
-            inputstream = const.INPUTSTREAMADAPTIVE
-        return inputstream
+        if not self.lurl:
+            return const.INPUTSTREAMADAPTIVE
+        if not self.HASWV:
+            addon.log("MPD: DASH stream requires drm but widewine is not available: %s" % (self.url))
+            return
+        if self.mincdm and self.mincdm > self.CDMVER:
+            addon.log("MPD: Available CDM version (%s) is not >= minimum required (%s): %s" % (self.CDMVER,
+                                                                                               self.mincdm,
+                                                                                               self.url))
+            return
+        return const.INPUTSTREAMADAPTIVE
 
 
 class mpdurl(hlsurl):

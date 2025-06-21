@@ -19,10 +19,10 @@
 '''
 import requests
 import os
-import six
 import calendar
-from six.moves.urllib import parse
-from six.moves import http_cookiejar
+import html
+from urllib import parse
+from http import cookiejar
 from datetime import datetime, timedelta
 from email.utils import parsedate, formatdate
 
@@ -34,18 +34,6 @@ from cachecontrol.caches import HayCache as Cache
 from tinyxbmc import addon
 from tinyxbmc import const
 
-if six.PY3:
-    import html
-else:
-    from six.moves import html_parser
-    html = html_parser.HTMLParser()
-
-if addon.has_addon("plugin.program.aceengine"):
-    addon.depend_addon("plugin.program.aceengine")
-    import aceengine
-else:
-    aceengine = None
-
 __profile = addon.get_commondir()
 __cache = Cache(const.HTTPCACHEHAY)
 
@@ -54,7 +42,7 @@ sessions = {}
 
 def loadcookies():
     cpath = os.path.join(__profile, const.COOKIEFILE)
-    cookie = http_cookiejar.LWPCookieJar(filename=cpath)
+    cookie = cookiejar.LWPCookieJar(filename=cpath)
     try:
         if not os.path.exists(cpath):
             cookie.save()
@@ -95,30 +83,47 @@ def getsession(seskey):
         return sess
 
 
-def tokodiurl(url, domain=None, headers=None, pushverify=None, pushua=None):
-    if not headers:
-        headers = {}
-    if domain:
-        domain = parse.urlparse(domain).netloc
-    else:
-        domain = parse.urlparse(url).netloc
-    if "|" in url:
+def makeheader(url=None, headers=None, referer=None, useragent=None, pushnoverify=False, pushua=False, pushcookie=False):
+    newheaders = {}
+    useragent = useragent or const.USERAGENT
+
+    # lowercase for easier pasring
+    if headers:
+        for k, v in headers.items():
+            newheaders[k.lower()] = v
+
+    # get existing kodiurl headers
+    if url and "|" in url:
         _, oldheaders = fromkodiurl(url)
-        oldheaders.update(headers)
-        headers = oldheaders
-    cookiestr = ""
-    for cookie in cookicachelist:
-        if domain in cookie.domain:
-            cookiestr += ";%s=%s" % (cookie.name, cookie.value)
-    if cookiestr:
-        headers["Cookie"] = headers.get("cookie", headers.get("Cookie", "")) + cookiestr
-    if headers is None:
-        headers = {"User-agent": const.USERAGENT}
-    headerkeys = [x.lower() for x in headers.keys()]
-    if pushua is not None and "user-agent" not in headerkeys:
-        headers["User-agent"] = const.USERAGENT
-    if pushverify is not None and "verifypeer" not in headerkeys:
-        headers["verifypeer"] = pushverify
+        for k, v in oldheaders.items():
+            newheaders[k.lower()] = v
+
+    # push cookies
+    if url and pushcookie:
+        domain = parse.urlparse(url).netloc
+        cookiestr = newheaders.get("cookies", "")
+        for cookie in cookicachelist:
+            if domain in cookie.domain:
+                cookiestr += ";%s=%s" % (cookie.name, cookie.value)
+        newheaders["cookies"] = cookiestr
+
+    # push user agent
+    if pushua and "user-agent" not in newheaders:
+        newheaders["user-agent"] = useragent
+
+    # push verify peer
+    if pushnoverify and "verifypeer" not in newheaders:
+        newheaders["verifypeer"] = "false"
+
+    if referer and "referer" not in newheaders:
+        newheaders["referer"] = referer
+
+    return newheaders
+
+
+def tokodiurl(url, headers=None, pushnoverify=True, pushua=True, pushcookie=True):
+    headers = makeheader(url, headers=headers,
+                         pushnoverify=pushnoverify, pushua=pushua, pushcookie=pushcookie)
     strheaders = parse.urlencode(headers)
     if strheaders:
         url += "|" + parse.urlencode(headers)
@@ -140,14 +145,8 @@ def http(url, params=None, data=None, headers=None, timeout=5, json=None, method
     ret = None
     if url.startswith("//"):
         url = "http:%s" % url
-    if not headers:
-        headers = {}
-    if useragent:
-        headers["User-Agent"] = useragent
-    if referer:
-        headers["Referer"] = referer
-    if "user-agent" not in [x.lower() for x in headers.keys()]:
-        headers["User-Agent"] = const.USERAGENT
+    headers = makeheader(url, headers=headers, referer=referer, useragent=useragent,
+                         pushua=True, pushcookie=False, pushnoverify=False)
     kwargs = {"params": params,
               "data": data,
               "headers": headers,
@@ -174,7 +173,7 @@ def http(url, params=None, data=None, headers=None, timeout=5, json=None, method
             text = response.content.decode(encoding)
         else:
             text = response.text
-        ret = six.text_type(html.unescape(text))
+        ret = str(html.unescape(text))
     return ret
 
 
