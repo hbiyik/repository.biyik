@@ -40,22 +40,12 @@ if isstub():
                 self.root = self.findroot()
 
         def findroot(self):
-            found = False
-            for stack in inspect.stack():
-                if found:
-                    break
-                parent = os.path.dirname(stack.filename)
-                lookups = [self.id]
-                for _ in range(10):
-                    rootpath = os.path.abspath(os.path.join(parent, *lookups))
-                    if os.path.exists(rootpath) and os.path.isdir(rootpath):
-                        self.rootpath = rootpath
-                        settingfile = os.path.join(self.rootpath, "resources", "settings.xml")
-                        if os.path.exists(settingfile):
-                            self.settingfile = settingfile
-                        found = True
-                        break
-                    lookups.insert(0, "..")
+            rootpath = os.path.expanduser(f"~/.kodi/addons/{self.id}")
+            if os.path.exists(rootpath) and os.path.isdir(rootpath):
+                self.rootpath = rootpath
+                settingfile = os.path.join(self.rootpath, "resources", "settings.xml")
+                if os.path.exists(settingfile):
+                    self.settingfile = settingfile
 
         def getAddonInfo(self, info):
             if info == "path" and self.rootpath:

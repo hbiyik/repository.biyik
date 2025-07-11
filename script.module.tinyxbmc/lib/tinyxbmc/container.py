@@ -450,7 +450,7 @@ class xbmcplayer(xbmc.Player):
         if isinstance(url, mediaurl.url):
             u = url.kodiurl
         else:
-            u = net.tokodiurl(url, useragent=const.USERAGENT)
+            u = net.tokodiurl(url)
         if not u:
             return False
         if not li:

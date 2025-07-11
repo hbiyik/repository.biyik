@@ -31,7 +31,7 @@ def installwidevine():
         fname = os.path.join(ishelper, "lib", "inputstreamhelper", "kodiutils.py")
         with open(fname) as f:
             src = f.read()
-        src = re.sub("script\.module\.inputstreamhelper", "script.module.tinyxbmc", src)
+        src = re.sub(r"script\.module\.inputstreamhelper", "script.module.tinyxbmc", src)
         with open(fname, "w") as f:
             f.write(src)
         import inputstreamhelper

@@ -84,8 +84,8 @@ def dynamicret(iterable):
 def strip(txt, tags=False):
     if tags:
         txt = re.sub('<[^<]+?>', '', txt)
-    txt = re.sub("(\t|\n)", " ", txt)
-    txt = re.sub("\s+", " ", txt)
+    txt = re.sub(r"(\t|\n)", " ", txt)
+    txt = re.sub(r"\s+", " ", txt)
     return txt.strip()
 
 
@@ -106,7 +106,7 @@ def readdom(xname):
 
 
 def unescapehtml(string):
-    entity_re = re.compile("&(#?)(\d{1,5}|\w{1,8});")
+    entity_re = re.compile(r"&(#?)(\d{1,5}|\w{1,8});")
 
     def substitute_entity(match):
         from six.moves.html_entities import codepoint2name as n2cp
