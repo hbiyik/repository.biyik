@@ -111,6 +111,8 @@ class hlsurl(url):
                  lurl=None, lheaders=None, lbody="R{SSM}", lresponse="", lic="com.widevine.alpha", aesparams=None, mincdm=None):
         headers = headers or {}
         lheaders = lheaders or headers or {}
+        headers = net.makeheader(url, headers=lheaders, pushnoverify=True, pushua=True, pushcookie=True)
+        lheaders = net.makeheader(lurl or url, headers=lheaders, pushnoverify=True, pushua=True, pushcookie=True)
         aesparams = aesparams or {}
         if mincdm:
             mincdm = LooseVersion(mincdm)
@@ -120,24 +122,21 @@ class hlsurl(url):
 
     @property
     def kodiurl(self):
-        return net.tokodiurl(self.url)
+        return net.tokodiurl(self.url, self.headers)
 
     @property
     def kodilurl(self):
         if self.lurl:
-            headers = net.makeheader(self.lurl, headers=self.lheaders,
-                                     pushnoverify=True, pushua=True, pushcookie=True)
-            return "%s|%s|%s|%s" % (self.lurl, parse.urlencode(headers), self.lbody, self.lresponse)
+            return "%s|%s|%s|%s" % (self.lurl, parse.urlencode(self.lheaders), self.lbody, self.lresponse)
         else:
-            headers = net.makeheader(self.url, headers=self.lheaders,
-                                     pushnoverify=True, pushua=True, pushcookie=True)
-            return "%s|%s" % (parse.urlencode(self.aesparams), parse.urlencode(headers))
+            return "%s|%s" % (parse.urlencode(self.aesparams), parse.urlencode(self.lheaders))
 
     def props(self):
         props = super(hlsurl, self).props()
+        headers = parse.urlencode(self.headers)
         props['inputstream.adaptive.manifest_type'] = self.manifest
-        props['inputstream.adaptive.stream_headers'] = parse.urlencode(self.headers)
-        props['inputstream.adaptive.manifest_headers'] = parse.urlencode(self.headers)
+        props['inputstream.adaptive.stream_headers'] = headers
+        props['inputstream.adaptive.manifest_headers'] = headers
         if self.lurl:
             props['inputstream.adaptive.license_type'] = self.license
         props['inputstream.adaptive.license_key'] = self.kodilurl
