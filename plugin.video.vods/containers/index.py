@@ -24,6 +24,8 @@ from vods import linkplayerextension
 from vods import scraperextension
 from vodsmodel import extension as vextension
 
+import meta
+
 from tinyxbmc import container
 from tinyxbmc import extension
 from tinyxbmc import gui
@@ -35,11 +37,9 @@ from tinyxbmc import const
 from tinyxbmc import collector
 from tinyxbmc import mediaurl
 
-from six import string_types
-import six
-
 import json
 import os
+
 
 _prefix = "plugin.program.vods-"
 _resolvehay = "vods_resolve"
@@ -54,10 +54,10 @@ _extaddonplayer = "vodsaddonplayer"
 def channelmethod(chanmethod):
     def wrapped(self, page, *args, **kwargs):
         with collector.LogException("VODS", const.DB_TOKEN, True) as errcoll:
-            six.next(self.getscrapers(page=page,
-                                      mtd=chanmethod.__name__,
-                                      args=args,
-                                      **kwargs))
+            next(self.getscrapers(page=page,
+                                  mtd=chanmethod.__name__,
+                                  args=args,
+                                  **kwargs))
             if errcoll.hasexception:
                 return
         ret = chanmethod(self, *args)
@@ -78,25 +78,13 @@ def makenameart(cls):
         cls.art = {"thumb": icon, "poster": icon, "icon": icon}
 
     # auto config title form info or class name
-    if not hasattr(cls, "title") or not isinstance(cls.title, string_types) or \
+    if not hasattr(cls, "title") or not isinstance(cls.title, str) or \
             cls.title == vextension.title:
         if hasattr(cls, "info") and isinstance(cls.info, dict) and \
-                isinstance(cls.info.get("title"), string_types):
+                isinstance(cls.info.get("title"), str):
             cls.title = cls.info["title"]
         else:
             cls.title = cls.__class__.__name__.title()
-
-    # make title unicode
-    if six.PY2 and not isinstance(cls.title, unicode):
-        try:
-            cls.title = unicode(cls.title)
-        except UnicodeError:
-            try:
-                import chardet
-                enc = chardet.detect(cls.title)
-                cls.title = unicode(cls.title.decode(enc["encoding"]))
-            except Exception:
-                cls.title = unicode(cls.title.encode("ascii", "ignore"))
 
 
 class index(container.container):
@@ -123,60 +111,60 @@ class index(container.container):
             return False
         clsmtd = getattr(clsob, mtd)
         chnmtd = getattr(base, mtd)
-        if six.PY2:
-            return not clsmtd.__func__ == chnmtd.__func__
-        else:
-            return not clsmtd.__func__ == chnmtd
+        return not clsmtd.__func__ == chnmtd
 
     def _context(self, mode=None, *args, **kwargs):
         if mode == "settings":
             tinyaddon.builtin("Addon.OpenSettings(%s)" % args[0])
-        elif mode == "meta":
-            with collector.LogException("VODS", const.DB_TOKEN, True) as errcoll:
-                six.next(self.getscrapers(**kwargs))
-                if errcoll.hasexception:
-                    return
-            self._cachemeta(*args)
-            tinyaddon.builtin("Container.Refresh")
 
-    def _cachemeta(self, arg, info, art, typ, scrape=True, percent=None):
-        ninfo = info.copy()
-        nart = art.copy()
-        if hasattr(arg, "__len__") and not len(arg):
-            print("VODS: Warning, argument is empty, nothing to cache")
-            return ninfo, nart
-        if typ == "movie":
-            base = movieextension
-        elif typ == "show":
-            base = showextension
-        elif typ == "episode":
-            base = showextension
+    def getimdb(self, info, istv):
+        imdbid = info.get("imdbnumber")
+        if not imdbid:
+            return
+        if not isinstance(imdbid, str) or not imdbid.startswith("tt"):
+            return
+        results = meta.findimdb(imdbid, istv)
+        if not results:
+            return
+        return imdbid
+
+    def cachemeta(self, info, art, istv=False, percent=None):
+        imdbid = info.get("imdbnumber")
+        if not imdbid:
+            return
+        if not isinstance(imdbid, str) or not imdbid.startswith("tt"):
+            return
+        season = info.get("season")
+        if not isinstance(season, int):
+            season = None
+        episode = info.get("episode")
+        if not isinstance(episode, int):
+            episode = None
+
+        # lookup in cache
+        lang = tools.language()
+        cachehay = self.hay(".".join([str(x) for x in self.chan._tinyxbmc.values()]))
+        cachekey = f"{imdbid}_{season}_{episode}_{lang}"
+        details = cachehay.find(cachekey).data
+
+        if not details:
+            details = meta.query(imdbid, istv, season, episode, lang)
+            if not details:
+                return
+            # make cache
+            cachehay.throw(cachekey, details)
+            info.update(meta.kodiinfo(details, istv, season, episode))
+            art.update(meta.kodiart(details, lang))
+            if percent is not None:
+                name = info.get("tvshowtitle", info.get("title", imdbid))
+                if season is not None and episode is not None:
+                    name = f"{name} S{season}E{episode}"
+                elif season is not None:
+                    name = f"{name} S{season}"
+                self.bgprg.update(int(percent), "Queried Meta", name)
         else:
-            return ninfo, nart
-        mname = "cache%ss" % typ
-        if self._isimp(base, mname):
-            path = ".".join([str(x) for x in self.chan._tinyxbmc.values()])
-            cachehay = self.hay(path)
-            cachekey = json.dumps(arg, sort_keys=True)
-            cinfo = cachehay.find("%s%sinfo" % (cachekey, typ)).data
-            cart = cachehay.find("%s%sart" % (cachekey, typ)).data
-            if cinfo == {} and cart == {} and scrape:
-                cache = getattr(self.chan, mname)
-                with collector.LogException("VODS", const.DB_TOKEN, True) as errcoll:
-                    cinfo, cart = cache(arg)
-                    if errcoll.hasexception:
-                        return info, art
-                name = cinfo.get("title", info.get("title"))
-                if not name:
-                    name = cinfo.get("tvshowtitle", info.get("tvshowtitle", "media"))
-                cachehay.throw("%s%sinfo" % (cachekey, typ), cinfo)
-                cachehay.throw("%s%sart" % (cachekey, typ), cart)
-                if not (cinfo == {} and cart == {}) and percent:
-                    self.bgprg.update(int(percent), "Caching", name)
-            ninfo.update(cinfo)
-            nart.update(cart)
-            return ninfo, nart
-        return ninfo, nart
+            info.update(meta.kodiinfo(details, istv, season, episode))
+            art.update(meta.kodiart(details))
 
     def cacheresolve(self, arg, info, art):
         if info or art:
@@ -212,7 +200,7 @@ class index(container.container):
 
             makenameart(chan)
             yield ret
-            
+
     def cacheextentions(self, refresh=False):
         extentions = []
         for _ in self.getscrapers([_extmovie, _extshow]):
@@ -275,19 +263,15 @@ class index(container.container):
                 gui.notify(self.chan.title, "Found %d" % numitems, False)
             for i, [name, arg, info, art] in enumerate(self.chan.items):
                 percent = (i + 1) * 100 / numitems
-                ninfo, nart = self._cachemeta(arg, info, art, "movie", cache, percent)
-                if ninfo == {}:
+                self.cachemeta(info, art, False, percent)
+                if not info:
                     info = {"title": name}
                 lname = "[%s] %s" % (self.chan.title, name)
-                li = self.item(lname, ninfo, nart, method="geturls")
-                select = self.item("Select Source", ninfo, nart, method="selecturl")
+                li = self.item(lname, info, art, method="geturls")
+                select = self.item("Select Source", info, art, method="selecturl")
                 li.context(select, True, arg, **self.chan._tinyxbmc)
-                if self._isimp(movieextension, "cachemovies") and not cache:
-                    context = self.item("Query Meta Information", method="_context")
-                    args = [arg, ninfo, nart, "movie"]
-                    li.context(context, False, "meta", *args, **self.chan._tinyxbmc)
                 li.resolve(arg, False, **self.chan._tinyxbmc)
-                self.cacheresolve(arg, ninfo, nart)
+                self.cacheresolve(arg, info, art)
         return tinyconst.CT_MOVIES
 
     def searchshows(self, keyw, cache=False, **kwargs):
@@ -297,23 +281,18 @@ class index(container.container):
                 gui.notify(self.chan.title, "Found %d" % numitems, False)
             for i, [name, arg, info, art] in enumerate(self.chan.items):
                 percent = (i + 1) * 100 / numitems
-                ninfo, nart = self._cachemeta(arg, info, art, "show", cache, percent)
-                if ninfo == {}:
-                    ninfo = {"tvshowtitle": name}
+                self.cachemeta(info, art, True, percent)
+                if not info:
+                    info = {"tvshowtitle": name}
                 lname = "[%s] %s" % (self.chan.title, name)
                 canseason = self._isimp(showextension, "getseasons")
                 if canseason:
-                    li = self.item(lname, ninfo, nart, method="getseasons")
-                else:
-                    li = self.item(lname, ninfo, nart, method="getepisodes")
-                if self._isimp(showextension, "cacheshows") and not cache:
-                    context = self.item("Query Meta Information", method="_context")
-                    args = [arg, ninfo, nart, "show"]
-                    li.context(context, False, "meta", *args, **self.chan._tinyxbmc)
-                if canseason:
+                    li = self.item(lname, info, art, method="getseasons")
                     li.dir(None, arg, **self.chan._tinyxbmc)
                 else:
+                    li = self.item(lname, info, art, method="getepisodes")
                     li.dir(None, arg, None, **self.chan._tinyxbmc)
+
         return tinyconst.CT_TVSHOWS
 
     def searchepisodes(self, keyw, cache=False, **kwargs):
@@ -323,17 +302,13 @@ class index(container.container):
                 gui.notify(self.chan.title, "Found %d" % numitems, False)
             for i, [name, arg, info, art] in enumerate(self.chan.items):
                 percent = (i + 1) * 100 / numitems
-                ninfo, nart = self._cachemeta(arg, info, art, "episode", cache, percent)
+                self.cachemeta(info, art, True, percent)
                 lname = "[%s] %s" % (self.chan.title, name)
-                li = self.item(lname, ninfo, nart, method="geturls")
-                select = self.item("Select Source", ninfo, nart, method="selecturl")
-                if self._isimp(showextension, "cacheepisodes") and not cache:
-                    context = self.item("Query Meta Information", method="_context")
-                    args = [arg, ninfo, nart, "episode"]
-                    li.context(context, False, "meta", *args, **self.chan._tinyxbmc)
+                li = self.item(lname, info, art, method="geturls")
+                select = self.item("Select Source", info, art, method="selecturl")
                 li.context(select, True, arg, **self.chan._tinyxbmc)
                 li.resolve(arg, False, **self.chan._tinyxbmc)
-                self.cacheresolve(arg, ninfo, nart)
+                self.cacheresolve(arg, info, art)
         return tinyconst.CT_EPISODES
 
     @channelmethod
@@ -361,12 +336,12 @@ class index(container.container):
         numitems = len(self.chan.items)
         for i, [name, movie, info, art] in enumerate(self.chan.items):
             percent = (i + 1) * 100 / numitems
-            ninfo, nart = self._cachemeta(movie, info, art, "movie", True, percent)
-            li = self.item(name, ninfo, nart, method="geturls")
-            select = self.item("Select Source", ninfo, nart, method="selecturl")
+            self.cachemeta(info, art, False, percent)
+            li = self.item(name, info, art, method="geturls")
+            select = self.item("Select Source", info, art, method="selecturl")
             li.context(select, True, movie, **self.chan._tinyxbmc)
             li.resolve(movie, False, **self.chan._tinyxbmc)
-            self.cacheresolve(movie, ninfo, nart)
+            self.cacheresolve(movie, info, art)
         return tinyconst.CT_MOVIES
 
     @channelmethod
@@ -387,18 +362,21 @@ class index(container.container):
         numitems = len(self.chan.items)
         for i, [name, show, info, art] in enumerate(self.chan.items):
             percent = (i + 1) * 100 / numitems
-            ninfo, nart = self._cachemeta(show, info, art, "show", True, percent)
+            self.cachemeta(info, art, True, percent)
             if canseason:
-                li = self.item(name, ninfo, nart, method="getseasons")
+                li = self.item(name, info, art, method="getseasons")
                 li.dir(None, show, **self.chan._tinyxbmc)
             else:
-                li = self.item(name, ninfo, nart, method="getepisodes")
+                li = self.item(name, info, art, method="getepisodes")
                 li.dir(None, show, None, **self.chan._tinyxbmc)
         return tinyconst.CT_TVSHOWS
 
     @channelmethod
     def getseasons(self, show):
-        for name, sea, info, art in self.chan.items:
+        numitems = len(self.chan.items)
+        for i, (name, sea, info, art) in enumerate(self.chan.items):
+            percent = (i + 1) * 100 / numitems
+            self.cachemeta(info, art, True, percent)
             li = self.item(name, info, art, method="getepisodes")
             li.dir(None, show, sea, **self.chan._tinyxbmc)
         return tinyconst.CT_ALBUMS
@@ -408,12 +386,12 @@ class index(container.container):
         numitems = len(self.chan.items)
         for i, [name, url, info, art] in enumerate(self.chan.items):
             percent = (i + 1) * 100 / numitems
-            ninfo, nart = self._cachemeta(url, info, art, "episode", True, percent)
-            li = self.item(name, ninfo, nart, method="geturls")
-            select = self.item("Select Source", ninfo, nart, method="selecturl")
+            self.cachemeta(info, art, True, percent)
+            li = self.item(name, info, art, method="geturls")
+            select = self.item("Select Source", info, art, method="selecturl")
             li.context(select, True, url, **self.chan._tinyxbmc)
             li.resolve(url, False, **self.chan._tinyxbmc)
-            self.cacheresolve(url, ninfo, nart)
+            self.cacheresolve(url, info, art)
         return tinyconst.CT_EPISODES
 
     def selecturl(self, url, **kwargs):
@@ -421,11 +399,11 @@ class index(container.container):
         info = self.hay(_resolvehay).find(key + "_info").data
         art = self.hay(_resolvehay).find(key + "_art").data
         with collector.LogException("VODS", const.DB_TOKEN, True) as errcoll:
-            links = six.next(self.getscrapers(mtd="geturls", args=[url], **kwargs))
+            links = next(self.getscrapers(mtd="geturls", args=[url], **kwargs))
             if errcoll.hasexception:
                 return
         for link in tools.safeiter(links):
-            if not isinstance(link, (string_types, mediaurl.url)):
+            if not isinstance(link, (str, mediaurl.url)):
                 continue
             item = self.item(str(link), info, art, method="geturls")
             self.cacheresolve(link, info, art)
@@ -462,10 +440,10 @@ class index(container.container):
 
         if not direct:
             with collector.LogException("VODS", const.DB_TOKEN, True):
-                links = six.next(self.getscrapers(mtd="geturls", args=[url], **kwargs))
+                links = next(self.getscrapers(mtd="geturls", args=[url], **kwargs))
         else:
             with collector.LogException("VODS", const.DB_TOKEN, True):
-                six.next(self.getscrapers(**kwargs))
+                next(self.getscrapers(**kwargs))
             links = iter([url])
         priority = 0
         if self.chan.useaddonplayers:
@@ -486,11 +464,8 @@ class index(container.container):
             if self.player.dlg.iscanceled():
                     raise StopIteration
             link, headers = net.fromkodiurl(kodilink)
-            if six.PY2:
-                alink = link.encode("ascii", "replace")
-            else:
-                alink = link
-            if not isinstance(link, six.string_types):
+            alink = link
+            if not isinstance(link, str):
                 self.logplayer("VODS received broken link, skipping...: %s" % alink)
                 continue
             self.logplayer("VODS is scraping link: %s" % alink)
@@ -498,10 +473,7 @@ class index(container.container):
                 if self.player.dlg.iscanceled():
                     raise StopIteration
                 target, pcls = getplayer(priority)
-                if six.PY2:
-                    atarget = target.encode("ascii", "replace").replace("None", "")
-                else:
-                    atarget = target
+                atarget = target
                 self.logplayer("VODS is trying player: %s %s" % (alink, atarget))
                 if not pcls:
                     self.logplayer("VODS received broken player, skipping...: %s %s" % (alink,
@@ -514,10 +486,7 @@ class index(container.container):
                         raise StopIteration
                     if not url:
                         continue
-                    if six.PY2:
-                        aurl = url.encode("ascii", "replace")
-                    else:
-                        aurl = url
+                    aurl = url
                     found = True
                     if url.startswith("plugin://"):
                         with collector.LogException("VODS", None, True) as errcoll:

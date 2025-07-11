@@ -23,6 +23,8 @@ from vodsmodel import extension
 
 from tinyxbmc import net
 
+import meta
+
 
 class showextension(scraperextension):
 
@@ -34,10 +36,6 @@ class showextension(scraperextension):
         #  inherit this
         pass
 
-    def cacheshows(self, id):
-        #  inherit this
-        pass
-
     def searchshows(self, keyword=None):
         pass
 
@@ -46,10 +44,6 @@ class showextension(scraperextension):
         pass
 
     def getepisodes(self, showargs=None, seaargs=None):
-        #  inherit this
-        pass
-
-    def cacheepisodes(self, id):
         #  inherit this
         pass
 
@@ -69,10 +63,6 @@ class movieextension(scraperextension):
         pass
 
     def getmovies(self, catargs=None):
-        #  inherit this
-        pass
-
-    def cachemovies(self, id):
         #  inherit this
         pass
 
