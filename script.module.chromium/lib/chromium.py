@@ -34,7 +34,7 @@ class Browser:
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.ws:
             self.close()
-            
+
     def closetabs(self):
         # in case some weird pop ups infest the browser or due to some exception windows are left open
         tabs = json.loads(urlopen("%s/json/list" % self.url).read())
@@ -44,9 +44,8 @@ class Browser:
                 continue
             self.closetab(tab["id"])
 
-    def closetab(self, tabid):        
+    def closetab(self, tabid):
         return urlopen("%s/json/close/%s" % (self.url, tabid)).read()
-
 
     def validate(self, page):
         if "<title>Just a moment...</title>" in page:
@@ -81,13 +80,13 @@ class Browser:
         self.connect()
         self.ws.send(json.dumps({"id": self.id, "method": method, "params": kwargs}))
         return self.id
-    
+
     def command_block(self, method, **kwargs):
         cmdid = self.command(method, **kwargs)
         message = self.wait_message(defs.CMD_TIMEOUT, cmdid)
         if message:
             return message if "result" in message else None
-            
+
     def wait_message(self, timeout, msg_id=None, msg_method=None):
         startt = time.time()
         for message, ev_msg_id, ev_msg_method in self.itermessages():
@@ -107,7 +106,7 @@ class Browser:
             self.connect()
             data = self.ws.recv()
             if defs.DEBUG:
-                print(data[:200])
+                print(data[:400])
             return json.loads(data)
         except websocket.WebSocketTimeoutException:
             pass
@@ -158,9 +157,8 @@ class Browser:
     def evaljs(self, js):
         return self.command_block("Runtime.evaluate", expression=js)
 
-
     def jspost(self, addr, data="", headers=None):
-        headers = headers or {} 
+        headers = headers or {}
         script = f"var xhr = new XMLHttpRequest();"
         script += f"xhr.open('POST', '{addr}', true);"
         for k, v in headers.items():
@@ -169,7 +167,7 @@ class Browser:
         data = parse.urlencode(data)
         script += f"xhr.send('{data}');"
         self.evaljs(script)
-    
+
     def navigate(self, url, referer=None, headers=None, wait=True, html=True):
         self.ws.settimeout(self.maxtimeout)
         kwargs = {"url": url}
@@ -182,7 +180,7 @@ class Browser:
             self.waitloadevent()
         if html:
             return self.html(url)
-        
+
     def waitloadevent(self):
         self.wait_message(self.maxtimeout, msg_method="Page.loadEventFired")
 
