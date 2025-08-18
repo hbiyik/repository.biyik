@@ -91,8 +91,8 @@ def strip(txt, tags=False):
 
 def readdom(xname):
     try:
-        f = open(xname, "r")
-        data = f.read()
+        f = open(xname, "rb")
+        data = f.read().decode()
         f.close()
         '''ignore whitespace before '<' character. some android versions
         suspected to put chars in front of xmls'''
