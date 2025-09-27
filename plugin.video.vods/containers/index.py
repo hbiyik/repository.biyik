@@ -128,12 +128,8 @@ class index(container.container):
             return
         return imdbid
 
-    def cachemeta(self, info, art, istv=False, percent=None):
+    def cachemeta(self, info, art, arg=None, istv=False, percent=None):
         imdbid = info.get("imdbnumber")
-        if not imdbid:
-            return
-        if not isinstance(imdbid, str) or not imdbid.startswith("tt"):
-            return
         season = info.get("season")
         if not isinstance(season, int):
             season = None
@@ -141,13 +137,25 @@ class index(container.container):
         if not isinstance(episode, int):
             episode = None
 
+        key = imdbid or arg
         # lookup in cache
         lang = tools.language()
         cachehay = self.hay(".".join([str(x) for x in self.chan._tinyxbmc.values()]))
-        cachekey = f"{imdbid}_{season}_{episode}_{lang}"
+        cachekey = f"{key}_{season}_{episode}_{lang}"
         details = cachehay.find(cachekey).data
 
         if not details:
+            # query imdbid with a callback to the scraper if no cache is hit
+            if imdbid is None:
+                if arg is None or not self._isimp(showextension, "getimdb") or not self._isimp(movieextension, "getimdb"):
+                    return
+                with collector.LogException("VODS", const.DB_TOKEN, True) as errcoll:
+                    imdbid = self.chan.getimdb(arg)
+                    if errcoll.hasexception:
+                        return
+            # sanity check of imdbid
+            if not isinstance(imdbid, str) or not imdbid.startswith("tt"):
+                return
             details = meta.query(imdbid, istv, season, episode, lang)
             if not details:
                 return
@@ -161,7 +169,7 @@ class index(container.container):
                     name = f"{name} S{season}E{episode}"
                 elif season is not None:
                     name = f"{name} S{season}"
-                self.bgprg.update(int(percent), "Queried Meta", name)
+                self.bgprg.update(int(percent), " Meta", name)
         else:
             info.update(meta.kodiinfo(details, istv, season, episode))
             art.update(meta.kodiart(details))
@@ -263,7 +271,7 @@ class index(container.container):
                 gui.notify(self.chan.title, "Found %d" % numitems, False)
             for i, [name, arg, info, art] in enumerate(self.chan.items):
                 percent = (i + 1) * 100 / numitems
-                self.cachemeta(info, art, False, percent)
+                self.cachemeta(info, art, arg, False, percent)
                 if not info:
                     info = {"title": name}
                 lname = "[%s] %s" % (self.chan.title, name)
@@ -281,7 +289,7 @@ class index(container.container):
                 gui.notify(self.chan.title, "Found %d" % numitems, False)
             for i, [name, arg, info, art] in enumerate(self.chan.items):
                 percent = (i + 1) * 100 / numitems
-                self.cachemeta(info, art, True, percent)
+                self.cachemeta(info, art, arg, True, percent)
                 if not info:
                     info = {"tvshowtitle": name}
                 lname = "[%s] %s" % (self.chan.title, name)
@@ -302,7 +310,7 @@ class index(container.container):
                 gui.notify(self.chan.title, "Found %d" % numitems, False)
             for i, [name, arg, info, art] in enumerate(self.chan.items):
                 percent = (i + 1) * 100 / numitems
-                self.cachemeta(info, art, True, percent)
+                self.cachemeta(info, art, arg, True, percent)
                 lname = "[%s] %s" % (self.chan.title, name)
                 li = self.item(lname, info, art, method="geturls")
                 select = self.item("Select Source", info, art, method="selecturl")
@@ -336,7 +344,7 @@ class index(container.container):
         numitems = len(self.chan.items)
         for i, [name, movie, info, art] in enumerate(self.chan.items):
             percent = (i + 1) * 100 / numitems
-            self.cachemeta(info, art, False, percent)
+            self.cachemeta(info, art, movie, False, percent)
             li = self.item(name, info, art, method="geturls")
             select = self.item("Select Source", info, art, method="selecturl")
             li.context(select, True, movie, **self.chan._tinyxbmc)
@@ -362,7 +370,7 @@ class index(container.container):
         numitems = len(self.chan.items)
         for i, [name, show, info, art] in enumerate(self.chan.items):
             percent = (i + 1) * 100 / numitems
-            self.cachemeta(info, art, True, percent)
+            self.cachemeta(info, art, show, True, percent)
             if canseason:
                 li = self.item(name, info, art, method="getseasons")
                 li.dir(None, show, **self.chan._tinyxbmc)
@@ -376,7 +384,7 @@ class index(container.container):
         numitems = len(self.chan.items)
         for i, (name, sea, info, art) in enumerate(self.chan.items):
             percent = (i + 1) * 100 / numitems
-            self.cachemeta(info, art, True, percent)
+            self.cachemeta(info, art, sea, True, percent)
             li = self.item(name, info, art, method="getepisodes")
             li.dir(None, show, sea, **self.chan._tinyxbmc)
         return tinyconst.CT_ALBUMS
@@ -386,7 +394,7 @@ class index(container.container):
         numitems = len(self.chan.items)
         for i, [name, url, info, art] in enumerate(self.chan.items):
             percent = (i + 1) * 100 / numitems
-            self.cachemeta(info, art, True, percent)
+            self.cachemeta(info, art, url, True, percent)
             li = self.item(name, info, art, method="geturls")
             select = self.item("Select Source", info, art, method="selecturl")
             li.context(select, True, url, **self.chan._tinyxbmc)

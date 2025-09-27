@@ -55,6 +55,9 @@ class showextension(scraperextension):
         #  inherit this
         yield id
 
+    def getimdb(self, arg):
+        pass
+
 
 class movieextension(scraperextension):
 
@@ -73,6 +76,9 @@ class movieextension(scraperextension):
     def geturls(self, id):
         #  inherit this
         yield id
+
+    def getimdb(self, url):
+        pass
 
 
 class linkplayerextension(extension):
