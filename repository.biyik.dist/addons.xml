@@ -17,7 +17,7 @@
 	</extension>
 </addon>
 
-<addon id="plugin.video.vods" name="VODS" provider-name="hbiyik" version="0.3.3">
+<addon id="plugin.video.vods" name="VODS" provider-name="hbiyik" version="0.3.4">
     <requires>
 		<import addon="script.module.tinyxbmc"/>
 		<import addon="script.module.ghub"/>
