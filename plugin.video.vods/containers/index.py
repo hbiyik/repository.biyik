@@ -247,7 +247,7 @@ class index(container.container):
             d.dir(None, *args, **kwargs)
         d = self.item("Update Extentions", method="cacheextentions")
         d.call(refresh=True)
-        return tinyconst.CT_VIDEOS
+        return tinyconst.CT_ALBUMS
 
     def search(self, typ=None, cache=False, **kwargs):
         funcs = {1: "searchmovies", 2: "searchshows", 3: "searchepisodes"}
