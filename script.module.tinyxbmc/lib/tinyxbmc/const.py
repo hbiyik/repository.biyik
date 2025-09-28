@@ -25,8 +25,12 @@ CT_MOVIES = "movies"
 CT_TVSHOWS = "tvshows"
 CT_EPISODES = "episodes"
 CT_MUSICVIDEOS = "musicvideos"
+CT_VIDEOS = "videos"
+CT_IMAGES = "images"
+CT_GAMES = "games"
 CT_ALL = [CT_ALBUMS, CT_ARTISTS, CT_EPISODES, CT_FILES,
-          CT_MOVIES, CT_MUSICVIDEOS, CT_SONGS, CT_TVSHOWS]
+          CT_MOVIES, CT_MUSICVIDEOS, CT_SONGS, CT_TVSHOWS,
+          CT_VIDEOS, CT_IMAGES, CT_GAMES]
 OPTIONHAY = "tinyxbmc_option"
 HTTPCACHEHAY = "httpcache"
 OBJCACHEHAY = "objcache"
