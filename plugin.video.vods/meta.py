@@ -171,18 +171,27 @@ def kodiinfo(details, istv=False, season=None, episode=None):
                 'title': title,
                 }
         if episode:
-            info['title'] = searchvalue(details, 'name', lookup=[DETAILS_EPISODE])  or f"{title} Episode {episode}"
+            info['title'] = searchvalue(details, 'name', lookup=[DETAILS_EPISODE]) or f"{title} Episode {episode}"
+            info['mediatype'] = "episode"
         elif season:
             info['title'] = searchvalue(details, 'name', lookup=[DETAILS_SEASON]) or f"{title} Season {season}"
+            info['mediatype'] = "season"
+        else:
+            pass
+            # info['mediatype'] = "tvshow"
     else:
         info = {'title': searchvalue(details, 'title'),
                 'originaltitle': searchvalue(details, 'original_title'),
+                'mediatype': "movie"
                 }
 
     for infokey, reskey in (("plot", "overview"),
                             ("tagline", "tagline"),
                             ("premiered", "release_date"),
-                            ("premiered", "first_air_date")):
+                            ("premiered", "first_air_date"),
+                            ("rating", "vote_average"),
+                            ("userrating", "vote_average"),
+                            ("aired", "air_date"),):
         val = searchvalue(details, reskey)
         if not val:
             continue
@@ -191,7 +200,6 @@ def kodiinfo(details, istv=False, season=None, episode=None):
     release_date = searchvalue(details, "release_date", lookup=DETAILS_LOOKUP_REVERSE)
     if release_date:
         info["year"] = int(release_date[:4])
-
     for infokey, resnamekey in (("studio", "production_companies"),
                                 ("genre", "genres"),
                                 ("country", "production_countries")):
