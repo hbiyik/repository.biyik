@@ -39,6 +39,7 @@ from tinyxbmc import mediaurl
 
 import json
 import os
+from datetime import datetime
 
 
 _prefix = "plugin.program.vods-"
@@ -93,6 +94,7 @@ class index(container.container):
         self._next = True
         self.__bg = None
         self.option(_useragent, _timeout)
+        self.today = datetime.today()
 
     @property
     def bgprg(self):
@@ -143,8 +145,19 @@ class index(container.container):
         cachehay = self.hay(".".join([str(x) for x in self.chan._tinyxbmc.values()]))
         cachekey = f"{key}_{season}_{episode}_{lang}"
         details = cachehay.find(cachekey).data
+        airedlater = False
+        newinfo = {}
+        newart = {}
+        
+        if details:
+            # fetch from cache
+            newinfo = meta.kodiinfo(details, istv, season, episode)
+            newart = meta.kodiart(details, lang)
+            # check if cahed data is mature enough, if before aired, then fetch & cache again
+            airdate = newinfo.get("aired")
+            airedlater = airdate is not None and datetime.strptime(airdate, "%Y-%m-%d") > self.today
 
-        if not details:
+        if not details or airedlater:
             # query imdbid with a callback to the scraper if no cache is hit
             if imdbid is None:
                 if arg is None or not self._isimp(showextension, "getimdb") or not self._isimp(movieextension, "getimdb"):
@@ -161,18 +174,18 @@ class index(container.container):
                 return
             # make cache
             cachehay.throw(cachekey, details)
-            info.update(meta.kodiinfo(details, istv, season, episode))
-            art.update(meta.kodiart(details, lang))
+            newinfo = meta.kodiinfo(details, istv, season, episode)
+            newart = meta.kodiart(details, lang)
             if percent is not None:
-                name = info.get("tvshowtitle", info.get("title", imdbid))
+                name = newinfo.get("tvshowtitle", info.get("title", imdbid))
                 if season is not None and episode is not None:
                     name = f"{name} S{season}E{episode}"
                 elif season is not None:
                     name = f"{name} S{season}"
                 self.bgprg.update(int(percent), " Meta", name)
-        else:
-            info.update(meta.kodiinfo(details, istv, season, episode))
-            art.update(meta.kodiart(details))
+
+        info.update(newinfo)
+        art.update(newart)
 
     def cacheresolve(self, arg, info, art):
         if info or art:
