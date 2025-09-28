@@ -165,13 +165,15 @@ def searchvalue(details, *keys, lookup=DETAILS_LOOKUP):
 
 def kodiinfo(details, istv=False, season=None, episode=None):
     if istv:
-        info = {'tvshowtitle': searchvalue(details, 'name', lookup=DETAILS_LOOKUP_REVERSE),
+        title = searchvalue(details, 'name', lookup=DETAILS_LOOKUP_REVERSE)
+        info = {'tvshowtitle': title,
                 'originaltitle': searchvalue(details, 'original_name', lookup=DETAILS_LOOKUP_REVERSE),
+                'title': title,
                 }
         if episode:
-            info['title'] = searchvalue(details, 'name', lookup=[DETAILS_EPISODE])
+            info['title'] = searchvalue(details, 'name', lookup=[DETAILS_EPISODE])  or f"{title} Episode {episode}"
         elif season:
-            info['title'] = searchvalue(details, 'name', lookup=[DETAILS_SEASON])
+            info['title'] = searchvalue(details, 'name', lookup=[DETAILS_SEASON]) or f"{title} Season {season}"
     else:
         info = {'title': searchvalue(details, 'title'),
                 'originaltitle': searchvalue(details, 'original_title'),
