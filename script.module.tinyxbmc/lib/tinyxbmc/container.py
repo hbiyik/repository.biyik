@@ -199,6 +199,10 @@ class container(object):
                             setview.method = "_setview"
                             item.context(setview, False, cnttyp)
                             item.docontext()
+                        if isfolder:
+                            showinfo = self.item(19033)
+                            item.context(showinfo, "builtin", "Action(Info)")
+                            item.docontext()
                         xbmcplugin.addDirectoryItem(self.syshandle, url, item.item, isfolder, itemlen)
                 if self.emptycontainer or itemlen:
                     xbmcplugin.endOfDirectory(self.syshandle, cacheToDisc=True)
@@ -283,10 +287,7 @@ class container(object):
         if not art:
             art = {}
         if isinstance(name, int):
-            if six.PY2:
-                name = xbmcaddon.Addon().getLocalizedString(name).encode('utf-8')
-            else:
-                name = xbmcaddon.Addon().getLocalizedString(name)
+            name = xbmcaddon.Addon().getLocalizedString(name) or xbmc.getLocalizedString(name) 
         if not art.get("icon"):
             art["icon"] = "DefaultFolder.png"
         if not art.get("thumb"):
@@ -420,12 +421,15 @@ class itemfactory(object):
         self._dir(False, None, "player", *args, **kwargs)
 
     def context(self, sub, isdir, *args, **kwargs):
-        url = sub.dourl(sub.media, *args, **kwargs)
         sub.item.addContextMenuItems(sub._contexts)  # nested fun :)
-        if isdir:
-            self._contexts.append([sub.name, 'Container.Update(%s)' % url])
+        if isdir == "builtin":
+            self._contexts.append([sub.name, *args])
         else:
-            self._contexts.append([sub.name, 'RunPlugin(%s)' % url])
+            url = sub.dourl(sub.media, *args, **kwargs)
+            if isdir:
+                self._contexts.append([sub.name, 'Container.Update(%s)' % url])
+            else:
+                self._contexts.append([sub.name, 'RunPlugin(%s)' % url])
 
 
 class xbmcplayer(xbmc.Player):
