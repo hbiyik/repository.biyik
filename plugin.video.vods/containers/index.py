@@ -247,7 +247,7 @@ class index(container.container):
             d.dir(None, *args, **kwargs)
         d = self.item("Update Extentions", method="cacheextentions")
         d.call(refresh=True)
-        return tinyconst.CT_ALBUMS
+        return tinyconst.CT_VIDEOS
 
     def search(self, typ=None, cache=False, **kwargs):
         funcs = {1: "searchmovies", 2: "searchshows", 3: "searchepisodes"}
@@ -330,7 +330,7 @@ class index(container.container):
                     self._isimp(showextension, "getepisodes"):
                 li.method = "getshows"
                 li.dir(None, cat, **self.chan._tinyxbmc)
-        return tinyconst.CT_ALBUMS
+        return tinyconst.CT_VIDEOS
 
     @channelmethod
     def getmovies(self, cat=None):
@@ -387,7 +387,7 @@ class index(container.container):
             self.cachemeta(info, art, sea, True, percent)
             li = self.item(name, info, art, method="getepisodes")
             li.dir(None, show, sea, **self.chan._tinyxbmc)
-        return tinyconst.CT_ALBUMS
+        return tinyconst.CT_VIDEOS
 
     @channelmethod
     def getepisodes(self, show, sea):
