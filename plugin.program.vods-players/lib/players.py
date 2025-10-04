@@ -20,19 +20,18 @@
 
 from tinyxbmc import addon
 from tinyxbmc import const
+from tinyxbmc import mediaurl
 
 from vods import addonplayerextension
-from six.moves.urllib import parse
+from urllib import parse
 
 
 class youtube(addonplayerextension):
     dropboxtoken = const.DB_TOKEN
-    title = "YoutubeAddon Extension"
-    builtin = "PlayMedia(%s)"
 
     def geturls(self, link, headers=None):
         if not addon.has_addon('plugin.video.youtube'):
-            raise StopIteration
+            return
         up = parse.urlparse(link)
         dom = up.netloc.lower()
         if dom == "youtube.com" or dom.startswith("www.youtube.com"):
@@ -43,22 +42,19 @@ class youtube(addonplayerextension):
         elif dom in ["youtu.be", "www.youtu.be"]:
             vid = up.path[1:]
         else:
-            raise StopIteration
-        yield "plugin://plugin.video.youtube/play/?video_id=%s" % vid
+            return
+        yield mediaurl.AddonUrl("plugin.video.youtube", path="play/", query={"video_id": vid})
 
 
 class dailymotion(addonplayerextension):
     dropboxtoken = const.DB_TOKEN
-    title = "DailymotionAddon Extension"
-    builtin = "PlayMedia(%s)"
 
     def geturls(self, link, headers=None):
-        if not addon.has_addon('plugin.video.youtube'):
-            yield
+        if not addon.has_addon('plugin.video.dailymotion'):
+            return
         up = parse.urlparse(link)
         dom = up.netloc.lower()
-        if "dailymotion.com" in dom:
-            vid = up.path.split("/")[-1]
-            yield "plugin://plugin.video.dailymotion_com/?url=%s&mode=playLiveVideo" % vid
-        else:
-            yield
+        if "dailymotion.com" not in dom:
+            return
+        vid = up.path.split("/")[-1]
+        yield mediaurl.AddonUrl("plugin.video.dailymotion", url=vid, mode="playLiveVideo")
