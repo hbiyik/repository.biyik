@@ -20,13 +20,16 @@
 from tinyxbmc import gui
 from tinyxbmc import addon
 from tinyxbmc import tools
+from tinyxbmc import const
 
 
 class extension(object):
     dropboxtoken = None
     title = "Unnamed Extension"
     info = {}
-    art = {"icon": "DefaultFolder.png", "thumb": "DefaultFolder.png", "poster": "DefaultFolder.png"}
+    art = {"icon": const.DEFAULT_FOLDER,
+           "thumb": const.DEFAULT_FOLDER,
+           "poster": const.DEFAULT_FOLDER}
 
     def __init__(self, container):
         self.__container = container
@@ -71,7 +74,6 @@ class extension(object):
 
 
 class scraperextension(extension):
-    usedirect = True
     uselinkplayers = True
     useaddonplayers = True
 

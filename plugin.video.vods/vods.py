@@ -23,8 +23,6 @@ from vodsmodel import extension
 
 from tinyxbmc import net
 
-import meta
-
 
 class showextension(scraperextension):
 
@@ -87,7 +85,5 @@ class linkplayerextension(extension):
 
 
 class addonplayerextension(extension):
-    builtin = "RunPlugin(%s)"
-
     def geturls(self, url, headers=None):
         yield url

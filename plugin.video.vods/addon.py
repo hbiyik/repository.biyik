@@ -17,21 +17,6 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
-
-_profile = False
-_debugger = False
-
-if _profile:
-    import cProfile
-    pr = cProfile.Profile()
-    pr.enable()
-
-import os
-from tinyxbmc import addon
 from containers import index
 
 index.index()
-if _profile:
-    pr.disable()
-    print(os.path.join(addon.get_addondir(), "profile.dump"))
-    pr.dump_stats(os.path.join(addon.get_addondir(), "profile.dump"))

@@ -20,8 +20,8 @@
 
 from vods import movieextension
 from vods import showextension
-from vods import linkplayerextension
 from vods import scraperextension
+from player import Players
 from vodsmodel import extension as vextension
 
 import meta
@@ -37,19 +37,16 @@ from tinyxbmc import const
 from tinyxbmc import collector
 from tinyxbmc import mediaurl
 
-import json
 import os
 from datetime import datetime
 
 
-_prefix = "plugin.program.vods-"
-_resolvehay = "vods_resolve"
-_useragent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36"
-_timeout = 5
-_extmovie = "vodsmovie"
-_extshow = "vodsshow"
-_extlinkplayer = "vodslinkplayer"
-_extaddonplayer = "vodsaddonplayer"
+ADDONPREFIX = "plugin.program.vods-"
+CACHEHAY = "vods_cache"
+USERAGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36"
+TIMEOUT = 5
+EXTMOVIE = "vodsmovie"
+EXTSHOW = "vodsshow"
 
 
 def channelmethod(chanmethod):
@@ -93,7 +90,6 @@ class index(container.container):
         self.dropboxtoken = const.DB_TOKEN
         self._next = True
         self.__bg = None
-        self.option(_useragent, _timeout)
         self.today = datetime.today()
 
     @property
@@ -114,10 +110,6 @@ class index(container.container):
         clsmtd = getattr(clsob, mtd)
         chnmtd = getattr(base, mtd)
         return not clsmtd.__func__ == chnmtd
-
-    def _context(self, mode=None, *args, **kwargs):
-        if mode == "settings":
-            tinyaddon.builtin("Addon.OpenSettings(%s)" % args[0])
 
     def getimdb(self, info, istv):
         imdbid = info.get("imdbnumber")
@@ -148,10 +140,10 @@ class index(container.container):
         airedlater = False
         newinfo = {}
         newart = {}
-        
+
         if details:
             # fetch from cache
-            newinfo = meta.kodiinfo(details, istv, season, episode)
+            newinfo = meta.kodiinfo(details, istv, season, episode, lang)
             newart = meta.kodiart(details, lang)
             # check if cahed data is mature enough, if before aired, then fetch & cache again
             airdate = newinfo.get("aired")
@@ -174,7 +166,7 @@ class index(container.container):
                 return
             # make cache
             cachehay.throw(cachekey, details)
-            newinfo = meta.kodiinfo(details, istv, season, episode)
+            newinfo = meta.kodiinfo(details, istv, season, episode, lang)
             newart = meta.kodiart(details, lang)
             if percent is not None:
                 name = newinfo.get("tvshowtitle", info.get("title", imdbid))
@@ -186,15 +178,6 @@ class index(container.container):
 
         info.update(newinfo)
         art.update(newart)
-
-    def cacheresolve(self, arg, info, art):
-        if info or art:
-            hay = self.hay(_resolvehay)
-            key = json.dumps(arg, sort_keys=True)
-            if info:
-                hay.throw(key + "_info", info)
-            if art:
-                hay.throw(key + "_art", art)
 
     def getscrapers(self, id, addon=None, path=None, package=None, module=None,
                     instance=None, mtd=None, args=[], page=None):
@@ -224,7 +207,7 @@ class index(container.container):
 
     def cacheextentions(self, refresh=False):
         extentions = []
-        for _ in self.getscrapers([_extmovie, _extshow]):
+        for _ in self.getscrapers([EXTMOVIE, EXTSHOW]):
             if isinstance(self.chan, movieextension):
                 method = "getmovies"
                 args = []
@@ -239,15 +222,15 @@ class index(container.container):
                                method,
                                args,
                                self.chan._tinyxbmc])
-        hay = self.hay(_resolvehay)
+        hay = self.hay(CACHEHAY)
         hay.throw("index", extentions)
         if refresh:
             container.refresh()
 
     def index(self, *args, **kwargs):
-        d = self.item("Search", method="search")
+        d = self.item("Search", method="mainsearch")
         d.dir()
-        hay = self.hay(_resolvehay)
+        hay = self.hay(CACHEHAY)
         scrapers = hay.find("index").data
         if not scrapers:
             self.cacheextentions()
@@ -255,29 +238,26 @@ class index(container.container):
         for title, info, art, method, args, kwargs in scrapers:
             d = self.item(title, info, art)
             d.method = method
-            settings = self.item("Extension Settings", method="_context")
-            d.context(settings, False, "settings", kwargs["addon"])
+            settings = self.item("Extension Settings")
+            d.context(settings, "builtin", "Addon.OpenSettings(%s)" % kwargs["addon"])
             d.dir(None, *args, **kwargs)
         d = self.item("Update Extentions", method="cacheextentions")
         d.call(refresh=True)
         return tinyconst.CT_ALBUMS
 
-    def search(self, typ=None, cache=False, **kwargs):
-        funcs = {1: "searchmovies", 2: "searchshows", 3: "searchepisodes"}
-        if not typ:
-            self.item("Search Movies", method="search").dir(1, cache, id=_extmovie, **kwargs)
-            self.item("Search Shows", method="search").dir(2, cache, id=_extshow, **kwargs)
-            self.item("Search Episodes", method="search").dir(3, cache, id=_extshow, **kwargs)
-            return
-        elif typ in funcs:
-            conf, txt = gui.keyboard()
-            if conf:
-                self.item(method=funcs[typ]).redirect(txt, cache, **kwargs)
-                return
-        self.item(method="search").redirect()
+    def mainsearch(self, **kwargs):
+        self.item("Search Movies", method="getsearchinput").call("searchmovies", id=EXTMOVIE, **kwargs)
+        self.item("Search Shows", method="getsearchinput").call("searchshows", id=EXTSHOW, **kwargs)
+        self.item("Search Episodes", method="getsearchinput").call("searchepisodes", id=EXTSHOW, **kwargs)
         return tinyconst.CT_FILES
 
-    def searchmovies(self, keyw, cache=False, **kwargs):
+    def getsearchinput(self, funcname, **kwargs):
+        conf, keyw = gui.keyboard()
+        if not conf:
+            return tinyconst.CT_FILES
+        self.item("Redirect", method=funcname).redirect(keyw, **kwargs)
+
+    def searchmovies(self, keyw, **kwargs):
         for _ in self.getscrapers(mtd="searchmovies", args=[keyw], **kwargs):
             numitems = len(self.chan.items)
             if numitems:
@@ -288,14 +268,10 @@ class index(container.container):
                 if not info:
                     info = {"title": name}
                 lname = "[%s] %s" % (self.chan.title, name)
-                li = self.item(lname, info, art, method="geturls")
-                select = self.item("Select Source", info, art, method="selecturl")
-                li.context(select, True, arg, **self.chan._tinyxbmc)
-                li.resolve(arg, False, **self.chan._tinyxbmc)
-                self.cacheresolve(arg, info, art)
+                self.addvideo(lname, arg, info, art)
         return tinyconst.CT_MOVIES
 
-    def searchshows(self, keyw, cache=False, **kwargs):
+    def searchshows(self, keyw, **kwargs):
         for _ in self.getscrapers(mtd="searchshows", args=[keyw], **kwargs):
             numitems = len(self.chan.items)
             if numitems:
@@ -316,7 +292,7 @@ class index(container.container):
 
         return tinyconst.CT_TVSHOWS
 
-    def searchepisodes(self, keyw, cache=False, **kwargs):
+    def searchepisodes(self, keyw, **kwargs):
         for _ in self.getscrapers(mtd="searchepisodes", args=[keyw], **kwargs):
             numitems = len(self.chan.items)
             if numitems:
@@ -325,11 +301,7 @@ class index(container.container):
                 percent = (i + 1) * 100 / numitems
                 self.cachemeta(info, art, arg, True, percent)
                 lname = "[%s] %s" % (self.chan.title, name)
-                li = self.item(lname, info, art, method="geturls")
-                select = self.item("Select Source", info, art, method="selecturl")
-                li.context(select, True, arg, **self.chan._tinyxbmc)
-                li.resolve(arg, False, **self.chan._tinyxbmc)
-                self.cacheresolve(arg, info, art)
+                self.addvideo(lname, arg, info, art)
         return tinyconst.CT_EPISODES
 
     @channelmethod
@@ -349,8 +321,8 @@ class index(container.container):
     def getmovies(self, cat=None):
         if not self.chan.page and not cat:
             if self._isimp(movieextension, "searchmovies"):
-                li = self.item("Search", method="search")
-                li.dir(1, None, **self.chan._tinyxbmc)
+                li = self.item("Search", method="getsearchinput")
+                li.call("searchmovies", **self.chan._tinyxbmc)
             if self._isimp(movieextension, "getcategories"):
                 li = self.item("Categories", method="getcategories")
                 li.dir(None, **self.chan._tinyxbmc)
@@ -358,22 +330,18 @@ class index(container.container):
         for i, [name, movie, info, art] in enumerate(self.chan.items):
             percent = (i + 1) * 100 / numitems
             self.cachemeta(info, art, movie, False, percent)
-            li = self.item(name, info, art, method="geturls")
-            select = self.item("Select Source", info, art, method="selecturl")
-            li.context(select, True, movie, **self.chan._tinyxbmc)
-            li.resolve(movie, False, **self.chan._tinyxbmc)
-            self.cacheresolve(movie, info, art)
+            self.addvideo(name, movie, info, art)
         return tinyconst.CT_MOVIES
 
     @channelmethod
     def getshows(self, cat=None):
         if not self.chan.page and not cat:
             if self._isimp(showextension, "searchshows"):
-                li = self.item("Search Shows", method="search")
-                li.dir(2, None, **self.chan._tinyxbmc)
+                li = self.item("Search Shows", method="getsearchinput")
+                li.call("searchshows", **self.chan._tinyxbmc)
             if self._isimp(showextension, "searchepisodes"):
-                li = self.item("Search Episodes", method="search")
-                li.dir(3, None, **self.chan._tinyxbmc)
+                li = self.item("Search Episodes", method="getsearchinput")
+                li.call("searchepisodes", **self.chan._tinyxbmc)
             if self._isimp(showextension, "getcategories"):
                 li = self.item("Categories", method="getcategories")
                 li.dir(None, **self.chan._tinyxbmc)
@@ -402,124 +370,63 @@ class index(container.container):
             li.dir(None, show, sea, **self.chan._tinyxbmc)
         return tinyconst.CT_VIDEOS
 
+    def addvideo(self, name, url, info, art):
+        li = self.item(name, info, art, method="geturls")
+        select = self.item("Select Source", info, art, method="selecturl")
+        li.context(select, True, url, info, art, **self.chan._tinyxbmc)
+        li.resolve(url,
+                   addonplayers=self.chan.useaddonplayers,
+                   linkplayers=self.chan.uselinkplayers,
+                   **self.chan._tinyxbmc)
+
     @channelmethod
     def getepisodes(self, show, sea):
         numitems = len(self.chan.items)
         for i, [name, url, info, art] in enumerate(self.chan.items):
             percent = (i + 1) * 100 / numitems
             self.cachemeta(info, art, url, True, percent)
-            li = self.item(name, info, art, method="geturls")
-            select = self.item("Select Source", info, art, method="selecturl")
-            li.context(select, True, url, **self.chan._tinyxbmc)
-            li.resolve(url, False, **self.chan._tinyxbmc)
-            self.cacheresolve(url, info, art)
+            self.addvideo(name, url, info, art)
         return tinyconst.CT_EPISODES
 
-    def selecturl(self, url, **kwargs):
-        key = json.dumps(url, sort_keys=True)
-        info = self.hay(_resolvehay).find(key + "_info").data
-        art = self.hay(_resolvehay).find(key + "_art").data
+    def selecturl(self, url, info, art, **kwargs):
         with collector.LogException("VODS", const.DB_TOKEN, True) as errcoll:
             links = next(self.getscrapers(mtd="geturls", args=[url], **kwargs))
             if errcoll.hasexception:
                 return
         for link in tools.safeiter(links):
-            if not isinstance(link, (str, mediaurl.url)):
-                continue
-            item = self.item(str(link), info, art, method="geturls")
-            self.cacheresolve(link, info, art)
-            item.resolve(link, True, **kwargs)
-
-    def logplayer(self, msg, percent=0):
-        self.player.dlg.update(percent, msg)
-
-    def geturls(self, url, direct, **kwargs):
-        key = json.dumps(url, sort_keys=True)
-        info = self.hay(_resolvehay).find(key + "_info").data
-        art = self.hay(_resolvehay).find(key + "_art").data
-        playerins = {}
-
-        def getplayer(priority):
-            target, hasinit, pcls = playerins[priority]
-            if hasinit:
-                return target, hasinit
+            if isinstance(link, str):
+                item = self.item(link, info, art, method="geturls")
+            elif isinstance(link, mediaurl.BaseUrl):
+                item = self.item(link.prettyurl, info, art, method="geturls")
             else:
-                with collector.LogException("VODS PLAYER: %s" % target, pcls.dropboxtoken, True) as errcoll:
-                    ins = pcls(self)
-                    playerins[priority] = (target, ins, pcls)
-                    makenameart(ins)
-                    return target, ins
-                    if errcoll.hasexception:
-                        return target, None
+                self.log("Scraper returned a broken link: %s" % (repr(link)))
+                continue
+            item.resolve(link,
+                         addonplayers=self.chan.useaddonplayers,
+                         linkplayers=self.chan.uselinkplayers)
 
-        def prepareplayers(priority, entrypoint):
-            for player in extension.getplugins(entrypoint):
-                priority += 1
-                target = ":".join([str(x) for x in player._tinyxbmc.values()])
-                playerins[priority] = (target, False, player)
-            return priority
-
-        if not direct:
-            with collector.LogException("VODS", const.DB_TOKEN, True):
-                links = next(self.getscrapers(mtd="geturls", args=[url], **kwargs))
+    def geturls(self, *args, addonplayers=True, linkplayers=True, **kwargs):
+        self.log("Scraping with args: %s" % repr(args))
+        players = Players(addonplayers, linkplayers)
+        if kwargs:
+            links = next(self.getscrapers(mtd="geturls", args=args, **kwargs))
         else:
-            with collector.LogException("VODS", const.DB_TOKEN, True):
-                next(self.getscrapers(**kwargs))
-            links = iter([url])
-        priority = 0
-        if self.chan.useaddonplayers:
-            priority = prepareplayers(priority, _extaddonplayer)
-        if self.chan.usedirect:
-            priority += 1
-            playerins[priority] = ("direct", linkplayerextension(self), None)
-        if self.chan.uselinkplayers:
-            priority = prepareplayers(priority, _extlinkplayer)
-        aplayers = ", ".join([playerins[x][0].replace("None", "") for x in sorted(playerins,
-                                                                                  reverse=True)])
-        self.logplayer("VODS found players (%s): %s" % (len(playerins), aplayers))
-        for kodilink in collector.loggingsafeiter(links, "VODS ADDON %s" % self.chan._tinyxbmc["addon"], self.chan.dropboxtoken):
-            kodilink = mediaurl.urlfromdict(kodilink)
-            if isinstance(kodilink, mediaurl.url):
-                yield kodilink
+            links = iter(args)
+        for scraperlink in tools.safeiter(links, self.player.iscanceled):
+            if isinstance(scraperlink, mediaurl.BaseUrl):
+                self.log("Openning direct link: %s" % scraperlink.prettyurl)
+                yield scraperlink
                 continue
-            if self.player.dlg.iscanceled():
-                    raise StopIteration
-            link, headers = net.fromkodiurl(kodilink)
-            alink = link
-            if not isinstance(link, str):
-                self.logplayer("VODS received broken link, skipping...: %s" % alink)
+            if not isinstance(scraperlink, str):
+                # scrapers must return a string link
+                self.log("Skipping broken link from scraper: %s" % scraperlink)
                 continue
-            self.logplayer("VODS is scraping link: %s" % alink)
-            for priority in sorted(playerins, reverse=True):
-                if self.player.dlg.iscanceled():
-                    raise StopIteration
-                target, pcls = getplayer(priority)
-                atarget = target
-                self.logplayer("VODS is trying player: %s %s" % (alink, atarget))
-                if not pcls:
-                    self.logplayer("VODS received broken player, skipping...: %s %s" % (alink,
-                                                                                        atarget))
-                    continue
-                found = False
-                isaddon = False
-                for url in tools.safeiter(pcls.geturls(link, headers)):
-                    if self.player.dlg.iscanceled():
-                        raise StopIteration
-                    if not url:
+            scraperlink, scraperheaders = net.fromkodiurl(scraperlink)
+            for player in tools.safeiter(players.list(), self.player.iscanceled):
+                self.log("Using %s to scrape: %s" % (players.target(player), scraperlink))
+                for playerlink in tools.safeiter(player.geturls(scraperlink, scraperheaders), self.player.iscanceled):
+                    if not isinstance(playerlink, mediaurl.BaseUrl):
+                        self.log("Skipping broken link from player: %s" % repr(playerlink))
                         continue
-                    aurl = url
-                    found = True
-                    if url.startswith("plugin://"):
-                        with collector.LogException("VODS", None, True) as errcoll:
-                            url = pcls.builtin % url
-                            if errcoll.hasexception:
-                                continue
-                        isaddon = True
-                    yield url, info, art
-                if found and not isaddon:
-                    while True:
-                        if not self._isplaying == 1 or self.player.dlg.iscanceled():
-                            break
-                    if self._isplaying == 2:
-                        self.logplayer("VODS started playback : %s" % aurl, 100)
-                        break
+                    self.log("Openning resolved link: %s" % playerlink.prettyurl)
+                    yield playerlink

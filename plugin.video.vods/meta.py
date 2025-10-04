@@ -4,8 +4,11 @@ Created on Jun 25, 2025
 @author: boogie
 '''
 from tinyxbmc import net
+from tinyxbmc import container
+from tinyxbmc import const
 import json
 import random
+from urllib import parse
 
 
 TMDB_URL = "https://api.themoviedb.org/3"
@@ -27,10 +30,16 @@ API_PARAM_SOURCE = "external_source"
 API_PARAM_LANGUAGE = "language"
 API_PARAM_IMAGE_LANGUAGE = "include_image_language"
 
+VIDTYPE_TRAILER = "trailer"
+VIDTYPE_TEASER = "teaser"
+VIDTYPE_CLIP = "clip"
+
+
 DEFAULT_LANGUAGE = "en"
 
 DETAILS_LOOKUP = DETAILS_EPISODE, DETAILS_SEASON, DETAILS_MAIN
 DETAILS_LOOKUP_REVERSE = DETAILS_MAIN, DETAILS_SEASON, DETAILS_EPISODE
+VIDTYPES_LOOKUP = [VIDTYPE_TRAILER, VIDTYPE_TEASER, VIDTYPE_CLIP]
 
 CACHETIME = None
 
@@ -136,6 +145,46 @@ def kodiart(details, lang=DEFAULT_LANGUAGE):
     return art
 
 
+def get_trailer(details, lang=DEFAULT_LANGUAGE):
+    for lookup in DETAILS_LOOKUP:
+        for detail in details[lookup]:
+            videos = detail.get("videos", {})
+            if not videos:
+                continue
+            vid_none = []
+            vid_en = []
+            vid_local = []
+            for vid in videos.get("results", []):
+                for lst, check in [(vid_none, None),
+                                   (vid_en, DEFAULT_LANGUAGE),
+                                   (vid_local, lang)]:
+                    if vid.get("iso_639_1") == check:
+                        lst.append(vid)
+            vids = vid_local or vid_en or vid_none
+            if not vids:
+                continue
+            for vid in vids:
+                for vidtype in VIDTYPES_LOOKUP:
+                    if not vidtype == vid["type"].lower():
+                        continue
+                    url = None
+                    if vid["site"].lower() == "youtube":
+                        url = f"https://www.youtube.com/watch?v={vid['key']}"
+                    elif vid["site"].lower() == "vimeo":
+                        url = f"https://vimeo.com/{vid['key']}"
+                    if not url:
+                        continue
+                    item = container.Item("", {},  {},
+                                          "plugin.video.vods",
+                                          "containers.index",
+                                          "index",
+                                          "geturls",
+                                          media_silent=True)
+                    url = item.resolve(url)
+                    url = f"plugin://{url}"
+                    return url
+
+
 def get_crew(details, department, jobs):
     result = []
     for look in DETAILS_LOOKUP:
@@ -163,7 +212,7 @@ def searchvalue(details, *keys, lookup=DETAILS_LOOKUP):
                 return subval
 
 
-def kodiinfo(details, istv=False, season=None, episode=None):
+def kodiinfo(details, istv=False, season=None, episode=None, lang=DEFAULT_LANGUAGE):
     if istv:
         title = searchvalue(details, 'name', lookup=DETAILS_LOOKUP_REVERSE)
         info = {'tvshowtitle': title,
@@ -213,6 +262,10 @@ def kodiinfo(details, istv=False, season=None, episode=None):
     runtime = searchvalue(details, "runtime")
     if runtime:
         info['duration'] = runtime * 60
+
+    trailer = get_trailer(details, lang)
+    if trailer:
+        info["trailer"] = trailer
 
     return info
 
