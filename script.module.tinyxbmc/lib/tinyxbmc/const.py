@@ -31,20 +31,38 @@ CT_GAMES = "games"
 CT_ALL = [CT_ALBUMS, CT_ARTISTS, CT_EPISODES, CT_FILES,
           CT_MOVIES, CT_MUSICVIDEOS, CT_SONGS, CT_TVSHOWS,
           CT_VIDEOS, CT_IMAGES, CT_GAMES]
+
 OPTIONHAY = "tinyxbmc_option"
 HTTPCACHEHAY = "httpcache"
 OBJCACHEHAY = "objcache"
+METACACHEHAY = "metacache"
+
 ADDONHAY = "xmlcache"
+
 COOKIEFILE = "cookie"
+
 USERAGENT = "Mozilla/5.0 (X11; Linux x86_64; rv:139.0) Gecko/20100101 Firefox/139.0"
 HTTPTIMEOUT = 5
 EXTPREFIX = "plugin.program.tinyxbmc-"
+
 XMLROOTNODE = "tinyxbmc"
 XMLPLUGINNODE = "plugin"
 XMLPLUGINATTRS = ["id", "path", "package", "module", "instance"]
+
 INPUTSTREAMADAPTIVE = "inputstream.adaptive"
 INPUTSTREAFFMPEGDIRECT = "inputstream.ffmpegdirect"
+
 DB_TOKEN = "7yvXj3oE05gAAAAAAAAAAaKdIWSlFGdkh0yyjBgf47i231ZucF-NiMjCLniqVO5Y"  # i trust people easily :)
+
 MANIFEST_HLS = "hls"
-MANIFEST_MPD = "mpd"
-MANIFEST_ACE = "ace"
+MANIFEST_DASH = "mpd"
+URL_BASE = "url"
+URL_LINK = "link"
+URL_ADDON = "addon"
+URL_HLS = MANIFEST_HLS
+URL_ACE = "ace"
+
+DEFAULT_FOLDER = "DefaultFolder.png"
+
+OPTION_VIEWS = "views"
+OPTION_INSTALLID = "installid"

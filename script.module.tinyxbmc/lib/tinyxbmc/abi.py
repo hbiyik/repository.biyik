@@ -87,10 +87,10 @@ def getmachineid():
         prefix = "i:"
         from tinyxbmc import hay
         with hay.stack(const.OPTIONHAY) as stack:
-            mid = stack.find("installid").data
+            mid = stack.find(const.OPTION_INSTALLID).data
             if not mid:
                 mid = random.getrandbits(48) | (1 << 40)
-                stack.throw("installid", mid)
+                stack.throw(const.OPTION_INSTALLID, mid)
                 stack.snapshot()
             mid = struct.pack("Q", mid)[:-2]
 

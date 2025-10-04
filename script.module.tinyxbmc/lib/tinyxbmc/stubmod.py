@@ -17,7 +17,6 @@ if isstub():
     from lxml import etree
     from six.moves.urllib import parse
     import tempfile
-    import inspect
     import xbmcaddon
     from tinyxbmc import tools
 
@@ -97,7 +96,7 @@ if isstub():
     xbmcvfs.translatePath = translatePath
 
     from tinyxbmc import mediaurl
-    mediaurl.url.HASFFDR = False
-    mediaurl.url.HASISA = False
+    mediaurl.HlsUrl.HASFFDR = False
+    mediaurl.HlsUrl.HASISA = False
     import aceengine
     aceengine.acestream.apiurl = lambda: "http://127.0.0.1:6878"

@@ -19,6 +19,7 @@
 '''
 # we want to patch python since some standart libraries in kodi python interpreter needs mocking
 from tinyxbmc import mocks
+
 import xbmcaddon
 import xbmcgui
 import xbmcplugin
@@ -26,11 +27,12 @@ import xbmc
 
 import json
 import importlib
+import traceback
+import inspect
 
 import time
 import sys
-import six
-from six.moves.urllib import parse
+from urllib import parse
 
 REMOTE_DBG = False
 # REMOTE_DBG = "192.168.2.10"
@@ -44,6 +46,8 @@ if PROFILE:
     import pprofile
     profiler = pprofile.Profile()
 
+from tinyxbmc import const
+from tinyxbmc import mediaurl
 from tinyxbmc import hay
 from tinyxbmc import const
 from tinyxbmc import tools
@@ -70,7 +74,7 @@ class container(object):
             self.__inittime = time.time()
             self.sysaddon = sys.argv[0]
             self.player = None
-            self.playertimeout = 60
+            self.playertimeout = 30
             self.emptycontainer = True
             aurl = parse.urlparse(self.sysaddon)
             if aurl.scheme.lower() in ["plugin", "script"]:
@@ -85,8 +89,13 @@ class container(object):
                 self.syshandle = -1
             try:
                 serial = sys.argv[2][1:]
-                data = json.loads(parse.unquote_plus(serial))
+                if not serial:
+                    data = {}
+                else:
+                    data = json.loads(parse.unquote_plus(serial), object_hook=mediaurl.BaseUrl.fromdict)
             except Exception:
+                addon.log("Failed to parse parameters to dispatch %s" % repr(sys.argv))
+                addon.log(traceback.format_exc())
                 data = {}
             self._items = []
             self._playlist = []
@@ -94,13 +103,12 @@ class container(object):
             self._container = data.get("container", self.__class__.__name__)
             self._module = data.get("module", self.__class__.__module__)
             self._method = data.get("method", _default_method)
-            self._media = data.get("media", None)
+            self._mediakwargs = data.get("mediakwargs", None)
             args = data.get("args", [])
             kwargs = data.get("kwargs", {})
             self._disp_container = self._container
             self._disp_module = self._module
             self._disp_method = self._method
-            self._isplaying = 0  # 0 stopped, 1: trying, 2: started
             self.ondispatch()
             if self._disp_module == self.__class__.__module__:
                 if self._disp_container == self.__class__.__name__:
@@ -114,15 +122,15 @@ class container(object):
                 self._container = getattr(self._module, self._disp_container)()
                 return
             self.__itime = (time.time() - _startt) * 1000
-            dispatchdata = "MODULE    : %s\r\n" % self._disp_module
+            dispatchdata = "TinyXBMC is Dispatching\r\n"
+            dispatchdata += "MODULE    : %s\r\n" % self._disp_module
             dispatchdata += "CONTAINER : %s\r\n" % self._disp_container
             dispatchdata += "METHOD    : %s\r\n" % self._disp_method
             dispatchdata += "ARGUMENTS : %s\r\n" % repr(args)
             dispatchdata += "KW ARGS   : %s\r\n" % repr(kwargs)
-            dispatchdata += "MEDIA     : %s\r\n" % repr(self._media)
+            dispatchdata += "MEDIA     : %s\r\n" % repr(self._mediakwargs)
             errorcol.msg = dispatchdata
-            xbmc.log("TinyXBMC is Dispatching")
-            xbmc.log("\r\n" + dispatchdata)
+            addon.log(dispatchdata)
             self._container.useragent = const.USERAGENT
             self._container.httptimeout = const.HTTPTIMEOUT
             self._container.autoupdate = False
@@ -130,97 +138,19 @@ class container(object):
                 ext_errcoll.token = self._container.dropboxtoken
                 self._container.init(*iargs, **ikwargs)
             self._method = getattr(self._container, self._disp_method)
-            if self._container._media == "resolver":
-                redirects = []
-                self.player = xbmcplayer(timeout=self.playertimeout)
-                for u, finfo, fart in tools.dynamicret(tools.safeiter(self._method(*args, **kwargs))):
-                    imdbid = finfo.get("imdbnumber", finfo.get("code", None))
-                    if imdbid:
-                        xbmcgui.Window(10000).setProperty('script.trakt.ids', json.dumps({u'imdb': imdbid}))
-                    if not isinstance(u, (six.string_types, mediaurl.url)):
-                        addon.log("Provided url %s is not playable" % repr(u))
-                        continue
-                    if self.player.dlg.iscanceled():
-                        break
-                    self.player.fallbackinfo = finfo
-                    self.player.fallbackart = fart
-                    self._container._isplaying = 1
-                    if isinstance(u, six.string_types) and "plugin://" in u:
-                        # play in another addonid
-                        redirects.append(u)
-                        continue
-                    state = self.player.stream(u)
-                    if state:
-                        self._container._isplaying = 2
-                        self._close()
-                        return
-                    else:
-                        self._container._isplaying = 0
-                        self.player.dlg.update(100, "Skipping broken url: %s" % u)
-                if not self._container._isplaying == 2 and len(redirects):
-                    redirects = list(set(redirects))
-                    if len(redirects) == 1:
-                        u = redirects[0]
-                    else:
-                        u = gui.select("Select Addon", *redirects)
-                    if self.player.canresolve:
-                        self.player.stream("", xbmcgui.ListItem())
-                    tools.builtin(u)
-                    state = self.player.waitplayback(u)
-                    self._close()
-                    self._container._isplaying = 2
-                    return
-                if self._container._isplaying == 0:
-                    self.player.dlg.close()
-            elif self._container._media == "player":
-                p = xbmc.PlayList(1)
-                p.clear()
-                for u, info, art in tools.dynamicret(tools.safeiter(self._method(*args, **kwargs))):
-                    item = xbmcgui.ListItem(path=u)
-                    item.setInfo("video", info)
-                    gui.setArt(item, art)
-                    p.add(u, item)
-                xbmc.Player().play(p)
+            info = art = {}
+            if self._mediakwargs:
+                # parse info and art from cache
+                info = self._mediakwargs.get("info") or {}
+                art = self._mediakwargs.get("art") or {}
+                # use script.trakt imdbid
+                imdbid = info.get("imdbnumber", info.get("code", None))
+                if imdbid:
+                    xbmcgui.Window(10000).setProperty('script.trakt.ids', json.dumps({u'imdb': imdbid}))
+            if self._container._mediakwargs:
+                self._media_resolver(info, art, *args, **kwargs)
             else:
-                def _onexception():
-                    self._close()
-                    sys.exit()
-                with collector.LogException("TINYXBMC EXTENSION ERROR", None, ignore=True) as ext_errcoll:
-                    ext_errcoll.onexception = _onexception
-                    ext_errcoll.token = self._container.dropboxtoken
-                    cnttyp = self._method(*args, **kwargs)
-                itemlen = len(self._container._items)
-                if cnttyp in const.CT_ALL:
-                    xbmcplugin.setContent(self.syshandle, cnttyp)
-                if itemlen:
-                    for url, item, isfolder in self._container._items:
-                        if cnttyp in const.CT_ALL:
-                            setview = self.item("Set view default for %s" % cnttyp.upper())
-                            setview.method = "_setview"
-                            item.context(setview, False, cnttyp)
-                            item.docontext()
-                        if isfolder:
-                            showinfo = self.item(19033)
-                            item.context(showinfo, "builtin", "Action(Info)")
-                            item.docontext()
-                        xbmcplugin.addDirectoryItem(self.syshandle, url, item.item, isfolder, itemlen)
-                if self.emptycontainer or itemlen:
-                    xbmcplugin.endOfDirectory(self.syshandle, cacheToDisc=True)
-                if self._container.autoupdate:
-                    d = self.item("Auto Update", method="_update")
-                    d.run(self._container.autoupdate)
-                if cnttyp in const.CT_ALL:
-                    views = self.hay(const.OPTIONHAY).find("views").data
-                    if cnttyp in views:
-                        spath = tools.getSkinDir()
-                        view = views[cnttyp].get(spath, None)
-                        if view:
-                            for _ in range(0, 10 * 20):
-                                if xbmc.getCondVisibility('Container.Content(%s)' % cnttyp):
-                                    xbmc.executebuiltin("Container.SetSortMethod(27)")
-                                    xbmc.executebuiltin('Container.SetViewMode(%d)' % view)
-                                    break
-                                xbmc.sleep(100)
+                self._method_dispatcher(*args, **kwargs)
             self._close()
             if PROFILE:
                 profiler.disable()
@@ -228,20 +158,80 @@ class container(object):
                 with open("cachegrind.out.tinyxbmc", "w") as f:
                     profiler.callgrind(f)
 
-    def option(self, useragent=None, httptimeout=None):
-        opthay = self.hay(const.OPTIONHAY)
-        if useragent:
-            self._container.useragent = useragent
-            opthay.throw("useragent", useragent)
-        if httptimeout:
-            self._container.httptimeout = httptimeout
-            opthay.throw("httptimeout", httptimeout)
+    def _media_resolver(self, info, art, *args, **kwargs):
+        if self._mediakwargs.get("self"):
+            it = iter(args)
+        elif not inspect.isgeneratorfunction(self._method):
+            addon.log("Provided method is not a generator")
+            return
+        else:
+            it = self._method(*args, **kwargs)
 
-    def resolver(self, url):
-        yield mediaurl.urlfromdict(url)
+        self.player = Player(silent=bool(self._mediakwargs.get("silent")),
+                             canresolve=bool(self._mediakwargs.get("resolve")),
+                             timeout=self.playertimeout)
+        with self.player:
+            for u in tools.safeiter(it, self.player.iscanceled):
+                # use only mediaurl type
+                if not isinstance(u, mediaurl.BaseUrl):
+                    try:
+                        u = mediaurl.LinkUrl(u)
+                    except Exception:
+                        self.log("Skipping broken url: %s" % repr(u), 100)
+                        continue
+                self.player.stream(u, info, art)
+                if self.player.alive:
+                    break
+                else:
+                    self.log("Skipping broken url: %s" % u, 100)
+        self.player = None
 
-    def player(self, url):
-        yield url
+    def _method_dispatcher(self, *args, **kwargs):
+        def _onexception():
+            self._close()
+            sys.exit()
+        with collector.LogException("TINYXBMC EXTENSION ERROR", None, ignore=True) as ext_errcoll:
+            ext_errcoll.onexception = _onexception
+            ext_errcoll.token = self._container.dropboxtoken
+            cnttyp = self._method(*args, **kwargs)
+        itemlen = len(self._container._items)
+        if cnttyp in const.CT_ALL:
+            xbmcplugin.setContent(self.syshandle, cnttyp)
+        if itemlen:
+            for url, item, isfolder in self._container._items:
+                if cnttyp in const.CT_ALL:
+                    setview = self.item("Set view default for %s" % cnttyp.upper())
+                    setview.method = "_setview"
+                    item.context(setview, False, cnttyp)
+                    item.docontext()
+                if isfolder:
+                    showinfo = self.item(19033)
+                    item.context(showinfo, "builtin", "Action(Info)")
+                    item.docontext()
+                xbmcplugin.addDirectoryItem(self.syshandle, url, item.item, isfolder, itemlen)
+        if self.emptycontainer or itemlen:
+            xbmcplugin.endOfDirectory(self.syshandle, cacheToDisc=True)
+        if self._container.autoupdate:
+            d = self.item("Auto Update", method="_update")
+            d.run(self._container.autoupdate)
+        if cnttyp in const.CT_ALL:
+            views = self.hay(const.OPTIONHAY).find(const.OPTION_VIEWS).data
+            if cnttyp in views:
+                spath = tools.getSkinDir()
+                view = views[cnttyp].get(spath, None)
+                if view:
+                    for _ in range(0, 10 * 20):
+                        if xbmc.getCondVisibility('Container.Content(%s)' % cnttyp):
+                            xbmc.executebuiltin("Container.SetSortMethod(27)")
+                            xbmc.executebuiltin('Container.SetViewMode(%d)' % view)
+                            break
+                        xbmc.sleep(100)
+
+    def log(self, msg, percent=0):
+        if self.player:
+            self.player.log(msg, percent)
+        else:
+            addon.log(msg)
 
     def _update(self, wait):
         xbmc.sleep(wait * 1000)
@@ -253,57 +243,43 @@ class container(object):
         self.onclose()
         dtime = (time.time() - self.__inittime) * 1000
         etime = (time.time() - _startt) * 1000
-        xbmc.log("****** TinyXBMC is Dispatched ******")
-        xbmc.log("INIT TIME      : %s ms" % self.__itime)
-        xbmc.log("DISPATCH TIME  : %s ms" % dtime)
-        xbmc.log("EXECUTION TIME : %s ms" % etime)
-        xbmc.log("************************************")
-
-    def _art(self, art, headers=None):
-        d = art.copy()
-        for k, v in d.items():
-            try:
-                d[k] = net.tokodiurl(v, headers, useragent=self._container.useragent)
-            except Exception:
-                pass
-        return d
+        addon.log("****** TinyXBMC is Dispatched ******")
+        addon.log("INIT TIME      : %s ms" % self.__itime)
+        addon.log("DISPATCH TIME  : %s ms" % dtime)
+        addon.log("EXECUTION TIME : %s ms" % etime)
+        addon.log("************************************")
 
     def _setview(self, ct):
         stack = self.hay(const.OPTIONHAY)
-        data = stack.find("views").data
+        data = stack.find(const.OPTION_VIEWS).data
         current = data.get(ct, {})
         spath = tools.getSkinDir()
         current[spath] = tools.getskinview()
         data[ct] = current
-        stack.throw("views", data)
+        stack.throw(const.OPTION_VIEWS, data)
         gui.notify(ct.upper(), "Default view is updated")
 
     def init(self, *args, **kwargs):
         pass
 
-    def item(self, name="item", info=None, art=None, module=None, container=None, method=None):
+    def item(self, name="item", info=None, art=None, module=None, container=None, method=None,
+             context_remove_old=False, media_silent=False, media_resolve=True):
         if not info:
             info = {}
         if not art:
             art = {}
         if isinstance(name, int):
-            name = xbmcaddon.Addon().getLocalizedString(name) or xbmc.getLocalizedString(name) 
+            name = xbmcaddon.Addon().getLocalizedString(name) or xbmc.getLocalizedString(name)
         if not art.get("icon"):
-            art["icon"] = "DefaultFolder.png"
+            art["icon"] = const.DEFAULT_FOLDER
         if not art.get("thumb"):
-            art["thumb"] = "DefaultFolder.png"
-        tinyitem = itemfactory(self, name, info, art, module, container, method)
+            art["thumb"] = const.DEFAULT_FOLDER
+        module = module or self._disp_module
+        container = container or self._disp_container
+        method = method or self._disp_method
+        tinyitem = Item(name, info, art, self.sysaddon, module, container, method,
+                        context_remove_old, media_silent, media_resolve, self)
         return tinyitem
-
-    def play(self, url, name="item", info=None, art=None):
-        if not info:
-            info = {}
-        if not art:
-            art = {}
-        item = xbmcgui.ListItem(label=name)
-        gui.setArt(item, self._art(art))
-        item.setInfo("videos", info)
-        self._playlist.append((url, item))
 
     def index(self, *args, **kwargs):
         # item = self.item("Hello TinyXBMC")
@@ -316,14 +292,11 @@ class container(object):
     def onclose(self):
         pass
 
-    def hay(self, hayid, *args, **kwargs):
+    def hay(self, hayid, compress=0, serial="json", aid=""):
+        if aid == "":
+            aid = self.addon
         if hayid not in self._hays:
-            kwargs["aid"] = self.addon
-            if "compress" not in kwargs:
-                kwargs["compress"] = 0
-            if "serial" not in kwargs:
-                kwargs["serial"] = "json"
-            h = hay.stack(hayid, *args, **kwargs)
+            h = hay.stack(hayid, serial, compress, aid=aid)
             self._hays[hayid] = h
         else:
             h = self._hays[hayid]
@@ -340,156 +313,175 @@ class container(object):
         return ret
 
 
-class itemfactory(object):
-    def __init__(self, context, name, info, art, module=None, container=None, method=None):
+class Item:
+    def __init__(self, name, info, art, addonid, module, container, method,
+                 context_remove_old=False, media_silent=False, media_resolve=True, containerobj=None):
+        item = xbmcgui.ListItem(label=name)
+        gui.setArt(item, net.art(art))
+        item.setInfo("video", info)
         self.name = name
         self.info = info
         self.art = art
-        item = xbmcgui.ListItem(label=name)
-        gui.setArt(item, context._art(art))
-        item.setInfo("video", info)
-        # item.addStreamInfo('video', {'Codec': ''})
         self.item = item
-        self._cntx = context
-        if not module:
-            module = self._cntx._disp_module
-        if not container:
-            container = self._cntx._disp_container
-        if not method:
-            method = self._cntx._disp_method
+        self.addonid = addonid
         self.module = module
         self.container = container
         self.method = method
-        self.removeold = False
-        self.media = None
-        self._contexts = []
+        self.contexts = []
+        self.isfolder = False
+        self.isself = False
+        self.context_remove_old = context_remove_old
+        self.media_silent = media_silent
+        self.media_resolve = media_resolve
+        self.containerobj = containerobj
+        if containerobj and \
+            self.addonid == containerobj.sysaddon and \
+            self.module == containerobj._disp_module and \
+            self.container == containerobj._disp_container and \
+                self.method == containerobj._disp_method:
+            self.isself = True
 
-    def dourl(self, media, *args, **kwargs):
+    def checkcontainer(self, container):
+        pass
+
+    def _dourl(self, ismedia, args, kwargs):
         data = {"module": self.module,
                 "container": self.container,
                 "method": self.method,
                 "args": args,
                 "kwargs": kwargs,
-                "media": media,
                 }
+        if ismedia:
+            data["mediakwargs"] = {"info": self.info,
+                                   "art": self.art,
+                                   "self": bool(self.isself),
+                                   "resolve": bool(self.media_resolve),
+                                   "silent": bool(self.media_silent)}
         serial = parse.quote_plus(json.dumps(data, sort_keys=True))
-        self.url = '%s?%s' % (self._cntx.sysaddon, serial)
-        return self.url
+        return '%s?%s' % (self.addonid, serial)
+
+    def dourl(self, *args, **kwargs):
+        return self._dourl(False, args, kwargs)
 
     def docontext(self):
-        self.item.addContextMenuItems(self._contexts, self.removeold)
+        self.item.addContextMenuItems(self.contexts, self.context_remove_old)
 
-    def _dir(self, isFolder, url=None, media=None, *args, **kwargs):
-        if not url:
-            url = self.dourl(media, *args, **kwargs)
+    def _dir(self, ismedia, args, kwargs):
+        url = self._dourl(ismedia, args, kwargs)
         self.docontext()
-        if media == "resolver":
+        if self.media_resolve:
             self.item.setProperty('IsPlayable', 'true')
-        self._cntx._container._items.append([url, self, isFolder])
+        if self.containerobj:
+            self.containerobj._items.append([url, self, self.isfolder])
+        return url
 
     def dir(self, *args, **kwargs):
-        #  item is added to container as a navigatable folder (isFolder=True)
-        self._dir(True, None, None, *args, **kwargs)
+        #  item is added to container as a navigatable folder (isfolder=True)
+        self.isfolder = True
+        return self._dir(False, args, kwargs)
 
     def call(self, *args, **kwargs):
-        #  item is added to container as a callable folder (isFolder=False)
-        self._dir(False, None, None, *args, **kwargs)
+        #  item is added to container as a callable folder (isfolder=False)
+        self.isfolder = False
+        return self._dir(False, args, kwargs)
 
     def run(self, *args, **kwargs):
         #  item is not added to container but called on runtime
-        url = self.dourl(None, *args, **kwargs)
+        url = self.dourl(*args, **kwargs)
         xbmc.executebuiltin('RunPlugin(%s)' % url)
+        return url
 
     def redirect(self, *args, **kwargs):
         #  item is not added to container but directory is changed to another container
         #  on runtime
-        url = self.dourl(None, *args, **kwargs)
-        if tools.kodiversion() > 17:
-            xbmc.executebuiltin('Container.Update(%s, replace)' % url)
-            xbmcplugin.endOfDirectory(int(sys.argv[1]), True, False, False)
-        else:
-            xbmc.executebuiltin('Container.Update(%s)' % url)
+        url = self.dourl(*args, **kwargs)
+        xbmc.executebuiltin('Container.Update(%s)' % url)
+        return url
 
     def resolve(self, *args, **kwargs):
-        if self._cntx._disp_method == self.method:
-            self.method = "resolver"
-        self._dir(False, None, "resolver", *args, **kwargs)
-
-    def play(self, *args, **kwargs):
-        if self._cntx._disp_method == self.method:
-            self.method = "player"
-        self._dir(False, None, "player", *args, **kwargs)
+        return self._dir(True, args, kwargs)
 
     def context(self, sub, isdir, *args, **kwargs):
-        sub.item.addContextMenuItems(sub._contexts)  # nested fun :)
+        # sub.item.addContextMenuItems(sub.contexts)  # nested fun :)
         if isdir == "builtin":
-            self._contexts.append([sub.name, *args])
+            self.contexts.append([sub.name, *args])
         else:
-            url = sub.dourl(sub.media, *args, **kwargs)
+            url = sub.dourl(*args, **kwargs)
             if isdir:
-                self._contexts.append([sub.name, 'Container.Update(%s)' % url])
+                self.contexts.append([sub.name, 'Container.Update(%s)' % url])
             else:
-                self._contexts.append([sub.name, 'RunPlugin(%s)' % url])
+                self.contexts.append([sub.name, 'RunPlugin(%s)' % url])
 
 
-class xbmcplayer(xbmc.Player):
-
-    def __init__(self, fallbackinfo=None, fallbackart=None, *args, **kwargs):
-        if not fallbackinfo:
-            fallbackinfo = {}
-        if not fallbackart:
-            fallbackart = {}
+class Player(xbmc.Player):
+    def __init__(self, silent=False, canresolve=True, timeout=10):
+        self.silent = silent
+        self.canresolve = canresolve
+        self.timeout = timeout  # max time to wait after player initiated the playback but not yet played
+        self.ttol = 5  # max time to wait for player to initiate the playback
         self.alive = False
-        self.fallbackinfo = fallbackinfo
-        self.fallbackart = fallbackart
+        self.dlg = None
         xbmc.Player.__init__(self)
-        self.timeout = int(kwargs.get("timeout", 10))  # max time to wait after player initiated the playback but not yet played
-        self.ttol = 3  # max time to wait for player to initiate the playback
-        self.dlg = xbmcgui.DialogProgress()
-        self.dlg.create('Opening Media', 'Waiting for media')
-        self.canresolve = True
-        self.waiting = False
 
-    def stream(self, url, li=None):
-        if isinstance(url, mediaurl.url):
-            u = url.kodiurl
-        else:
-            u = net.tokodiurl(url)
-        if not u:
-            return False
-        if not li:
-            li = xbmcgui.ListItem(path=u)
-        if isinstance(url, mediaurl.url) and url.inputstream:
+    def __enter__(self):
+        if not self.silent:
+            self.dlg = xbmcgui.DialogProgress()
+            self.dlg.create('Opening Media', 'Waiting for media')
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+    def log(self, msg, percent=None):
+        if self.dlg:
+            self.dlg.update(percent or 0, msg)
+        if percent is not None:
+            msg = f"[{percent}] {msg}"
+        addon.log(msg)
+
+    def close(self):
+        if self.dlg:
+            self.dlg.close()
+            self.dlg = None
+
+    def iscanceled(self):
+        if self.dlg:
+            return self.dlg.iscanceled()
+        return False
+
+    def stream(self, url, info, art):
+        u = url.kodiurl
+        li = xbmcgui.ListItem(path=u)
+        if url.inputstream:
             # utilize inputstream adaptive
             for pkey, pval in url.props().items():
                 li.setProperty(pkey, pval)
-        if self.dlg.iscanceled():
+        if self.iscanceled():
             return
         if self.canresolve:
             xbmcplugin.setResolvedUrl(int(sys.argv[1]), True, li)
         else:
-            if self.fallbackinfo:
-                li.setInfo("video", self.fallbackinfo)
-            if self.fallbackart:
-                gui.setArt(li, self.fallbackart)
+            if info:
+                li.setInfo("video", info)
+            if art:
+                gui.setArt(li, art)
             self.play(u, li)
         return self.waitplayback(u)
 
     def waitplayback(self, u=""):
-        self.waiting = True
         factor = 5
         startt = time.time()
         for i in range(self.timeout * factor):
             p = 100 * i / (self.timeout * factor)
-            self.dlg.update(int(p), u)
+            self.log(u, int(p))
             xbmc.executebuiltin('Dialog.Close(12002,true)​')
             if self.alive or \
                 (not self.isPlaying() and time.time() - startt > self.ttol) or \
-                    self.dlg.iscanceled():
+                    self.iscanceled():
                 if not self.alive:
                     if time.time() - startt > self.ttol:
                         addon.log("Can't play media because player can not initiate the playback (%i seconds): %s" % (self.ttol, u))
-                    if self.dlg.iscanceled():
+                    if self.iscanceled():
                         addon.log("Can't play media because user cancelled: %s" % u)
                 else:
                     addon.log("Succesfully playing: %s" % u)
@@ -500,18 +492,18 @@ class xbmcplayer(xbmc.Player):
                 addon.log("Can't play media because player initiate the playback, but the playback did not start in time (%i seconds): %s" % (self.timeout, u))
             self.canresolve = False
             xbmc.executebuiltin('Dialog.Close(12002,true)​')
-            self.dlg.create('Opening Media', 'Waiting for media')
+            if self.dlg:
+                self.dlg.close()
+                self.dlg.create('Opening Media', 'Waiting for media')
         else:
             xbmc.executebuiltin('Dialog.Close(all,true)​')
-        self.dlg.update(100, "")
-        self.waiting = False
+        self.log("", 100)
         return self.alive
 
     def onPlayBackStarted(self):
         if tools.kodiversion() < 18:
-            self.dlg.close()
             self.alive = True
 
     def onAVStarted(self):
-        self.dlg.close()
         self.alive = True
+        self.close()

@@ -24,61 +24,39 @@ import xbmcvfs
 import os
 import datetime
 import time
-import six
 import json
 import hashlib
 import zipfile
 
 from xml.dom import minidom
-
-if six.PY2:
-    from StringIO import StringIO as IOClass
-else:
-    from io import BytesIO as IOClass
+from io import BytesIO as IOClass
 
 
 def translatePath(*args, **kwargs):
-        if six.PY2:
-            return xbmc.translatePath(*args, **kwargs).decode("utf-8")
-        else:
-            return xbmcvfs.translatePath(*args, **kwargs)
+    return xbmcvfs.translatePath(*args, **kwargs)
 
 
 def getSkinDir(*args, **kwargs):
-    if six.PY2:
-        return xbmc.getSkinDir(*args, **kwargs).decode("utf-8")
-    else:
-        return xbmc.getSkinDir()
+    return xbmc.getSkinDir(*args, **kwargs)
 
 
-def safeiter(iterable):
+def safeiter(iterable, shouldstop=None):
     if hasattr(iterable, "next") or hasattr(iterable, "__next__"):
         while True:
+            if shouldstop:
+                try:
+                    if shouldstop():
+                        break
+                except Exception:
+                    xbmc.log(traceback.format_exc(), xbmc.LOGERROR)
+                    break
             try:
-                yield six.next(iterable)
+                yield next(iterable)
             except StopIteration:
                 break
             except Exception as e:
                 if "StopIteration" not in repr(e):
                     xbmc.log(traceback.format_exc(), xbmc.LOGERROR)
-
-
-def dynamicret(iterable):
-    for ret in iterable:
-        url = None
-        info = {}
-        art = {}
-        if isinstance(ret, (tuple, list)):
-            lsize = len(ret)
-            if lsize > 0:
-                url = ret[0]
-            if lsize > 1:
-                info = ret[1]
-            if lsize > 2:
-                art = ret[2]
-        else:
-            url = ret
-        yield url, info, art
 
 
 def strip(txt, tags=False):
@@ -112,15 +90,12 @@ def unescapehtml(string):
         from six.moves.html_entities import codepoint2name as n2cp
         ent = match.group(2)
         if match.group(1) == "#":
-            try:
-                return six.unichr(int(ent))
-            except Exception:
-                return ent
+            return chr(int(ent))
         else:
             cp = n2cp.get(ent)
 
             if cp:
-                return six.unichr(cp)
+                return chr(cp)
             else:
                 return match.group()
 
@@ -169,10 +144,7 @@ def elementsrc(element, exclude=None):
 
 class File(object):
     def __init__(self, p, m="r"):
-        if six.PY2:
-            self.f = xbmcvfs.File(p.encode("utf-8"), m)
-        else:
-            self.f = xbmcvfs.File(p, m)
+        self.f = xbmcvfs.File(p, m)
 
     def __enter__(self, *args, **kwargs):
         return self
@@ -204,10 +176,7 @@ class File(object):
 
 class Stat(object):
     def __init__(self, p):
-        if six.PY2:
-            self.s = xbmcvfs.Stat(p.encode("utf-8"))
-        else:
-            self.s = xbmcvfs.Stat(p)
+        self.s = xbmcvfs.Stat(p)
 
     def st_atime(self, *args, **kwargs):
         return self.s.st_atime(*args, **kwargs)
@@ -245,10 +214,7 @@ def exists(path):
 
 
 def mkdirs(path):
-    if six.PY2:
-        xbmcvfs.mkdirs(path.encode("utf-8"))
-    else:
-        xbmcvfs.mkdirs(path)
+    xbmcvfs.mkdirs(path)
 
 
 def copy(src, dst):
@@ -316,13 +282,9 @@ def jsonrpc(data):
 
 
 def hashfunc(x):
-    if six.PY2:
-        return hash(x)
-    else:
-        # in >= py3.6, hash function is seeded per session, and it changes, therefore we need fixed hash
-        if hasattr(x, "encode"):
-            x = x.encode()
-        return int.from_bytes(hashlib.blake2s(x, digest_size=8).digest(), "big", signed=True)
+    if hasattr(x, "encode"):
+        x = x.encode()
+    return int.from_bytes(hashlib.blake2s(x, digest_size=8).digest(), "big", signed=True)
 
 
 def memzip(datas):

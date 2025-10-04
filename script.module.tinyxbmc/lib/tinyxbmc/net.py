@@ -214,3 +214,13 @@ def absurl(url, fromurl):
                 return "%s://%s/%s" % (up.scheme, up.netloc, url)
             else:
                 return "%s://%s%s/%s" % (up.scheme, up.netloc, up.path, url)
+
+
+def art(art, headers=None):
+    d = art.copy()
+    for k, v in d.items():
+        try:
+            d[k] = tokodiurl(v, headers, useragent=self._container.useragent)
+        except Exception:
+            pass
+    return d
