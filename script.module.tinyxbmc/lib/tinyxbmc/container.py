@@ -144,9 +144,11 @@ class container(object):
                 info = self._mediakwargs.get("info") or {}
                 art = self._mediakwargs.get("art") or {}
                 # use script.trakt imdbid
-                imdbid = info.get("imdbnumber", info.get("code", None))
+                imdbid = info.get("imdbnumber", info.get("code"))
                 if imdbid:
                     xbmcgui.Window(10000).setProperty('script.trakt.ids', json.dumps({u'imdb': imdbid}))
+                else:
+                    xbmcgui.Window(10000).clearProperty('script.trakt.ids')
             if self._container._mediakwargs:
                 self._media_resolver(info, art, *args, **kwargs)
             else:
