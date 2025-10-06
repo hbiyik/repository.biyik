@@ -17,7 +17,7 @@
 	</extension>
 </addon>
 
-<addon id="plugin.video.vods" name="VODS" provider-name="hbiyik" version="0.3.4">
+<addon id="plugin.video.vods" name="VODS" provider-name="hbiyik" version="0.4.0">
     <requires>
 		<import addon="script.module.tinyxbmc"/>
 		<import addon="script.module.ghub"/>
@@ -113,7 +113,7 @@
 	</extension>
 </addon>
 
-<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.2.33">
+<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.3.0">
     <requires>
 		<import addon="script.module.cachecontrol"/>
 		<import addon="script.module.requests"/>
@@ -134,19 +134,17 @@
 	</extension>
 </addon>
 
-<addon id="plugin.program.vods-players" name="VODS Players" provider-name="hbiyik" version="0.0.11">
+<addon id="plugin.program.vods-players" name="VODS Players" provider-name="hbiyik" version="0.1.0">
   <requires>
     <import addon="plugin.video.vods" />
     <import addon="script.module.tinyxbmc" />
-    <import addon="script.module.six" />
-    <import addon="script.module.ghub"/>
   </requires>
   <extension point="xbmc.python.pluginsource" library="addon.py">
 		<provides>executable</provides>
   </extension>
   <extension point="xbmc.addon.metadata">
     <platform>all</platform>
-    <summary lang="en">Player Interfaces for script.module.boogie</summary>
+    <summary lang="en">Player Interfaces for plugin.video.vods</summary>
   </extension>
   <extension library="lib" point="xbmc.python.module" />
   <extension point="xbmc.addon.metadata">
@@ -159,7 +157,6 @@
 		<website>https://github.com/hbiyik/repository.biyik</website>
   </extension>
   <tinyxbmc>
-  	<plugin path="lib" id="vodslinkplayer" module="ydl" instance="ydl"/>
   	<plugin path="lib" id="vodsaddonplayer" module="players" instance="youtube"/>
   	<plugin path="lib" id="vodsaddonplayer" module="players" instance="dailymotion"/>
   </tinyxbmc>
@@ -229,7 +226,7 @@
   </extension>
 </addon>
 
-<addon id="script.module.chromium" name="Chromium Service" provider-name="hbiyik" version="0.1.2">
+<addon id="script.module.chromium" name="Chromium Service" provider-name="hbiyik" version="0.1.3">
     <requires>
 		<import addon="script.module.tinyxbmc"/>
 		<import addon="service.system.docker" optional="true"/>
