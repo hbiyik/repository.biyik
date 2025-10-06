@@ -174,7 +174,7 @@ class Browser:
             kwargs["referrer"] = referer
         if headers:
             self.command("Network.setExtraHTTPHeaders", headers=headers)
-        self.command_block("Page.navigate", **kwargs)
+        self.command("Page.navigate", **kwargs)
         if wait:
             self.waitloadevent()
         if html:
