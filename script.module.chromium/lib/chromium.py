@@ -14,7 +14,8 @@ from libchromium import defs
 
 
 class Browser:
-    def __init__(self, useragent=None, maxtimeout=10, port=9222):
+    def __init__(self, useragent=None, maxtimeout=10, port=9222, idle=1):
+        self.idle = idle
         self.maxtimeout = maxtimeout
         self.useragent = useragent
         self.id = 1000
@@ -23,6 +24,7 @@ class Browser:
         self.log = []
         self.ws = None
         self.lastmsgtime = 0
+        websocket.setdefaulttimeout(self.idle)
         self.url = "http://127.0.0.1:%s" % self.port
         if not defs.DEBUG:
             self.closetabs()
@@ -61,7 +63,7 @@ class Browser:
         self.wsurl = d["webSocketDebuggerUrl"]
         self.connect()
         self.command("Page.enable")
-        self.command("Runtime.enable")
+        # self.command("Runtime.enable")
         self.command("Network.enable")
         if self.useragent:
             self.command("Network.setUserAgentOverride", userAgent=self.useragent)
@@ -71,7 +73,7 @@ class Browser:
 
     def connect(self):
         if not self.ws or not self.ws.connected:
-            self.ws = websocket.create_connection(self.wsurl, enable_multithread=True)
+            self.ws = websocket.create_connection(self.wsurl, enable_multithread=True, timeout=self.idle)
 
     def command(self, method, **kwargs):
         self.id += 1
@@ -102,14 +104,11 @@ class Browser:
                 return message
 
     def getmessage(self):
-        try:
-            self.connect()
-            data = self.ws.recv()
-            if defs.DEBUG:
-                print(data[:400])
-            return json.loads(data)
-        except websocket.WebSocketTimeoutException:
-            pass
+        self.connect()
+        data = self.ws.recv()
+        if defs.DEBUG:
+            print(data[:400])
+        return json.loads(data)
 
     def itermessages(self):
         while True:
@@ -169,27 +168,27 @@ class Browser:
         self.evaljs(script)
 
     def navigate(self, url, referer=None, headers=None, wait=True, html=True):
-        self.ws.settimeout(self.maxtimeout)
+        # self.ws.settimeout(self.maxtimeout)
         kwargs = {"url": url}
         if referer:
             kwargs["referrer"] = referer
         if headers:
             self.command("Network.setExtraHTTPHeaders", headers=headers)
-        self.command("Page.navigate", **kwargs)
+        self.command_block("Page.navigate", **kwargs)
         if wait:
             self.waitloadevent()
         if html:
             return self.html(url)
 
     def waitloadevent(self):
-        self.wait_message(self.maxtimeout, msg_method="Page.loadEventFired")
+        try:
+            self.wait_message(self.maxtimeout, msg_method="Page.loadEventFired")
+        except websocket.WebSocketTimeoutException:
+            pass
 
     def html(self, url=None):
         startt = time.time()
         while True:
-            if (time.time() - startt) > self.maxtimeout:
-                print("Timeout waiting %s" % url)
-                break
             cmd_getdoc = self.command_block("DOM.getDocument")
             if not cmd_getdoc:
                 continue
@@ -205,6 +204,9 @@ class Browser:
                 html = None
             if html:
                 return html
+            if (time.time() - startt) > self.maxtimeout:
+                print("Timeout waiting %s" % url)
+                break
 
     def getdownloads(self):
         return [os.path.join(defs.DOWNLOAD_PATH, x) for x in os.listdir(defs.DOWNLOAD_PATH)]

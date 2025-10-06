@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<addon id="script.module.chromium" name="Chromium Service" provider-name="hbiyik" version="0.1.2">
+<addon id="script.module.chromium" name="Chromium Service" provider-name="hbiyik" version="0.1.3">
     <requires>
 		<import addon="script.module.tinyxbmc"/>
 		<import addon="service.system.docker" optional="true"/>
