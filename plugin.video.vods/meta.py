@@ -5,10 +5,8 @@ Created on Jun 25, 2025
 '''
 from tinyxbmc import net
 from tinyxbmc import container
-from tinyxbmc import const
 import json
 import random
-from urllib import parse
 
 
 TMDB_URL = "https://api.themoviedb.org/3"
@@ -138,9 +136,11 @@ def kodiart(details, lang=DEFAULT_LANGUAGE):
             for artkey, reskey, _, imgsizes in keymaps:
                 if reskey not in detail:
                     continue
+                if not detail[reskey]:
+                    continue
                 if artkey in art:
                     continue
-                art[artkey] = detail[reskey]
+                art[artkey] = getimgbaseurl(details[DETAILS_CONFIG], imgsizes) + detail[reskey]
 
     return art
 
