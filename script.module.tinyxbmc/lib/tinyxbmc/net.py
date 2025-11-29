@@ -105,12 +105,14 @@ def makeheader(url=None, headers=None, referer=None, useragent=None, pushnoverif
     # push cookies
     if url and pushcookie:
         domain = parse.urlparse(url).netloc
-        if not domain == "":
-            cookiestr = newheaders.get("cookies", "")
+        if not domain.startswith("."):
+            domain = "." + domain
+        if not domain == ".":
+            cookiestr = newheaders.get("cookie", "")
             for cookie in cookicachelist:
-                if domain in cookie.domain:
+                if domain.endswith(cookie.domain):
                     cookiestr += ";%s=%s" % (cookie.name, cookie.value)
-            newheaders["cookies"] = cookiestr
+            newheaders["cookie"] = cookiestr
 
     # push user agent
     if pushua and "user-agent" not in newheaders:
