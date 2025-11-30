@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<addon id="service.subtitles.turkcealtyazi" name="Turkcealtyazi.org" provider-name="hbiyik" version="0.2.1">
+<addon id="service.subtitles.turkcealtyazi" name="Turkcealtyazi.org" provider-name="hbiyik" version="0.3.0">
   <requires>
     <import addon="script.module.sublib"/>
     <import addon="script.module.htmlement"/>
-    <import addon="script.module.chromium"/>
   </requires>
   <extension library="addon.py" point="xbmc.subtitle.module"/>
   <extension point="xbmc.addon.metadata">

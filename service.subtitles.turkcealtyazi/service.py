@@ -19,8 +19,7 @@
 '''
 import sublib
 import htmlement
-import shutil
-from chromium import Browser
+from tinyxbmc import net
 from tinyxbmc.const import DB_TOKEN
 
 import re
@@ -181,8 +180,7 @@ class turkcealtyazi(sublib.service):
                 (self.item.show or
                     (self.ignoreyear or self.item.year is None or self.item.year == year)):
                 self.found = True
-                with Browser() as browser:
-                    p = browser.navigate(domain + link, referer=domain)
+                p = net.http(domain + link, referer=domain)
                 self.scrapepage(htmlement.fromstring(p))
                 break
         if not self.found:
@@ -191,8 +189,7 @@ class turkcealtyazi(sublib.service):
                 if "sonra" in page.text.lower():
                     if self.found:
                         break
-                    with Browser() as browser:
-                        npage = browser.navigate(domain + page.get("href"), referer=domain)
+                    npage = net.http(domain + page.get("href"), referer=domain)
                     self.scraperesults(npage, htmlement.fromstring(npage))
 
     def scrapepage(self, tree):
@@ -239,9 +236,8 @@ class turkcealtyazi(sublib.service):
             self.addsub(sub)
 
     def find(self, query):
-        with Browser() as browser:
-            browser.navigate(domain)
-            page = browser.navigate(domain + "/find.php?cat=sub&find=" + query, referer=domain)
+        net.http(domain)
+        page = net.http(domain + "/find.php?cat=sub&find=" + query, referer=domain, cache=None)
         tree = htmlement.fromstring(page)
         title = tree.find(".//title")
         if "arama" in title.text.lower():
@@ -250,13 +246,18 @@ class turkcealtyazi(sublib.service):
             self.scrapepage(tree)
 
     def download(self, link):
-        with Browser() as browser:
-            browser.navigate(domain)
-            browser.navigate(link)
-            browser.cleardownloads()
-            browser.elem_call("submit", tag="form", index=3)
-            list(browser.iterdownload())
-            subtitle = browser.getdownloads()[0]
-            shutil.move(subtitle, self.path)
-            fname = os.path.join(self.path, os.path.basename(subtitle))
-            self.addfile(fname)
+        xpage = htmlement.fromstring(net.http(link))
+        data = {}
+        for inp in xpage.findall(".//form[@method='post']/.//input[@type='hidden']"):
+            data[inp.get("name")] = inp.get("value")
+        data.pop("redirect")
+        sub = net.http(f"{domain}/ind",
+                       method="POST",
+                       referer=link,
+                       data=data,
+                       text=False,
+                       cache=None)
+        fname = os.path.join(self.path, "turkcealtyazi")
+        with open(fname, "wb") as f:
+            f.write(sub.content)
+        self.addfile(fname)
