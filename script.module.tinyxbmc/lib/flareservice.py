@@ -124,17 +124,14 @@ class FlareSolverrService(addon.blockingloop):
                     self.image]
         addon.log(" ".join(procargs))
         self.process = subprocess.Popen(procargs, stdout=subprocess.PIPE)
-        self.process.wait()
-        if not self.process.returncode == 0:
-            raise RuntimeError("Can not spawn FlareSolverr Service")
-        else:
-            addon.log("FlareSolverr Service Spawned")
+        gui.notify("FlareSolverr", "Service Started")
 
     def resetdocker(self):
         self.executecmd("docker stop %s" % self.dockername)
         self.executecmd("docker rm %s -f" % self.dockername)
 
     def onclose(self):
+        print(self.process)
         if self.process:
             addon.log("FlareSolverr Service Stopping")
             if self.hasdocker:
