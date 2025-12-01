@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<addon id="script.module.sublib" name="Sublib Module" provider-name="hbiyik" version="0.2.1">
+<addon id="script.module.sublib" name="Sublib Module" provider-name="hbiyik" version="0.2.2">
     <requires>
 	<import addon="script.module.tinyxbmc"/>
 	<import addon="vfs.rar" optional="true"/>
