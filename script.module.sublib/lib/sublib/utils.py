@@ -22,7 +22,7 @@ import xbmcvfs
 import xbmcgui
 import xbmc
 
-from tinyxbmc import const
+from tinyxbmc import flare
 import re
 import unicodedata
 import os
@@ -30,7 +30,7 @@ from urllib import parse
 
 
 useragent = "KODI / XBMC Sublib Library"
-mozilla = const.USERAGENT
+mozilla = flare.USERAGENT
 
 prefixes = [["e", "s"],
             ["episode", "seasons"],
