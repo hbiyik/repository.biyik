@@ -17,7 +17,7 @@
 	</extension>
 </addon>
 
-<addon id="plugin.video.vods" name="VODS" provider-name="hbiyik" version="0.4.1">
+<addon id="plugin.video.vods" name="VODS" provider-name="hbiyik" version="0.4.2">
     <requires>
 		<import addon="script.module.tinyxbmc"/>
 		<import addon="script.module.ghub"/>
@@ -113,7 +113,7 @@
 	</extension>
 </addon>
 
-<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.3.2">
+<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.4.0">
     <requires>
 		<import addon="script.module.cachecontrol"/>
 		<import addon="script.module.requests"/>
@@ -124,6 +124,7 @@
 		<import addon="inputstream.adaptive" optional="true"/>
 	</requires>
 	<extension point="xbmc.python.module" library="lib" />
+	<extension point="xbmc.service" library="lib/flareservice.py" />
 	<extension point="xbmc.addon.metadata">
 		<platform>all</platform>
 		<summary lang="en">TinxyXBMC module</summary>
@@ -180,11 +181,10 @@
 	</extension>
 </addon>
 
-<addon id="service.subtitles.turkcealtyazi" name="Turkcealtyazi.org" provider-name="hbiyik" version="0.2.1">
+<addon id="service.subtitles.turkcealtyazi" name="Turkcealtyazi.org" provider-name="hbiyik" version="0.3.0">
   <requires>
     <import addon="script.module.sublib"/>
     <import addon="script.module.htmlement"/>
-    <import addon="script.module.chromium"/>
   </requires>
   <extension library="addon.py" point="xbmc.subtitle.module"/>
   <extension point="xbmc.addon.metadata">
