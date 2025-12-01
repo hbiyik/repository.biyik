@@ -36,6 +36,7 @@ from tinyxbmc import net
 from tinyxbmc import const
 from tinyxbmc import collector
 from tinyxbmc import mediaurl
+from tinyxbmc import flare
 
 import os
 from datetime import datetime
@@ -43,7 +44,7 @@ from datetime import datetime
 
 ADDONPREFIX = "plugin.program.vods-"
 CACHEHAY = "vods_cache"
-USERAGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36"
+USERAGENT = flare.USERAGENT
 TIMEOUT = 5
 EXTMOVIE = "vodsmovie"
 EXTSHOW = "vodsshow"
