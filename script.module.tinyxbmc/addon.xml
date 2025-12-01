@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.3.2">
+<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.4.0">
     <requires>
 		<import addon="script.module.cachecontrol"/>
 		<import addon="script.module.requests"/>
@@ -10,6 +10,7 @@
 		<import addon="inputstream.adaptive" optional="true"/>
 	</requires>
 	<extension point="xbmc.python.module" library="lib" />
+	<extension point="xbmc.service" library="lib/flareservice.py" />
 	<extension point="xbmc.addon.metadata">
 		<platform>all</platform>
 		<summary lang="en">TinxyXBMC module</summary>

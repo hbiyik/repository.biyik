@@ -33,6 +33,8 @@ from cachecontrol.caches import HayCache as Cache
 
 from tinyxbmc import addon
 from tinyxbmc import const
+from tinyxbmc import flare
+
 
 __profile = addon.get_commondir()
 __cache = Cache(const.HTTPCACHEHAY)
@@ -83,6 +85,17 @@ def getsession(seskey):
         return sess
 
 
+def getcookiestr(url, cookiestr=""):
+    domain = parse.urlparse(url).netloc
+    if not domain.startswith("."):
+        domain = "." + domain
+    if not domain == ".":
+        for cookie in cookicachelist:
+            if domain.endswith(cookie.domain):
+                cookiestr += ";%s=%s" % (cookie.name, cookie.value)
+    return cookiestr
+
+
 def makeheader(url=None, headers=None, referer=None, useragent=None, pushnoverify=False, pushua=False, pushcookie=False):
     newheaders = {}
     isurl_remote = url and url.startswith("http://") or url.startswith("https://")
@@ -104,14 +117,8 @@ def makeheader(url=None, headers=None, referer=None, useragent=None, pushnoverif
 
     # push cookies
     if url and pushcookie:
-        domain = parse.urlparse(url).netloc
-        if not domain.startswith("."):
-            domain = "." + domain
-        if not domain == ".":
-            cookiestr = newheaders.get("cookie", "")
-            for cookie in cookicachelist:
-                if domain.endswith(cookie.domain):
-                    cookiestr += ";%s=%s" % (cookie.name, cookie.value)
+        cookiestr = getcookiestr(url, newheaders.get("cookie", ""))
+        if cookiestr:
             newheaders["cookie"] = cookiestr
 
     # push user agent
@@ -165,10 +172,12 @@ def http(url, params=None, data=None, headers=None, timeout=5, json=None, method
               }
     session = getsession(cache)
     response = session.request(method, url, **kwargs)
-    try:
-        session.cookies.save(ignore_discard=True)
-    except Exception:
-        pass
+    flarecookies = flare.cookies(response)
+    if flarecookies:
+        for flarecookie in flarecookies:
+            session.cookies.set_cookie(flarecookie)
+        response = session.request(method, url, **kwargs)
+    session.cookies.save(ignore_discard=True)
     if not text:
         return response
     if method == "HEAD":
@@ -190,6 +199,8 @@ class timecache(BaseHeuristic):
         self.timeframe = timeframe
 
     def update_headers(self, response):
+        if response.status < 200 or response.status >= 400:
+            return
         date = parsedate(response.headers['date'])
         expires = datetime(*date[:6]) + timedelta(minutes=self.timeframe)
         return {

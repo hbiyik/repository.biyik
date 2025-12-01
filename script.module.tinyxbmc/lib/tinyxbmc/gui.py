@@ -23,6 +23,7 @@ import os
 import six
 
 from distutils.version import LooseVersion
+from tinyxbmc import net
 
 __artdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "images")
 _white = os.path.join(__artdir, "white.png")
@@ -114,6 +115,8 @@ def keyboard(default="", heading=None, hidden=False):
 
 
 def setArt(item, d):
+    for k, v in d.items():
+        d[k] = net.tokodiurl(v, pushnoverify=True, pushua=True, pushcookie=True)
     if LooseVersion(xbmcgui.__version__) >= LooseVersion("2.14.0"):  # @UndefinedVariable
         item.setArt(d)
     else:
