@@ -20,6 +20,8 @@
 import requests
 from http.cookiejar import Cookie
 
+from tinyxbmc import gui
+
 PORT = 8191
 TIMEOUT = 60 * 1000
 
@@ -50,7 +52,6 @@ def cookies(resp):
         return
     if not resp.headers.get("cf-mitigated") == "challenge":
         return
-    from tinyxbmc import gui
     gui.notify("Cloudflare", f"{resp.request.url} solving challange", sound=False)
     answer = proxyget(resp.request.url)
     gui.notify("Cloudflare", f"{resp.request.url} {answer['status']} {answer['message']}", sound=False)
@@ -64,3 +65,6 @@ def cookies(resp):
                               cookie.get("expiry"),
                               False, None, None, {}))
     return cookies
+
+
+USERAGENT = getuseragent("Mozilla/5.0 (X11; Linux x86_64; rv:145.0) Gecko/20100101 Firefox/145.0")

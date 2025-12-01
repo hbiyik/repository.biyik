@@ -99,7 +99,7 @@ def getcookiestr(url, cookiestr=""):
 def makeheader(url=None, headers=None, referer=None, useragent=None, pushnoverify=False, pushua=False, pushcookie=False):
     newheaders = {}
     isurl_remote = url and url.startswith("http://") or url.startswith("https://")
-    useragent = useragent or const.USERAGENT
+    useragent = useragent or flare.USERAGENT
 
     # lowercase for easier parsing
     if headers:

@@ -23,7 +23,7 @@ import os
 import six
 
 from distutils.version import LooseVersion
-from tinyxbmc import net
+
 
 __artdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "images")
 _white = os.path.join(__artdir, "white.png")
@@ -112,18 +112,3 @@ def keyboard(default="", heading=None, hidden=False):
     else:
         text = kb.getText()
     return kb.isConfirmed(), text
-
-
-def setArt(item, d):
-    for k, v in d.items():
-        d[k] = net.tokodiurl(v, pushnoverify=True, pushua=True, pushcookie=True)
-    if LooseVersion(xbmcgui.__version__) >= LooseVersion("2.14.0"):  # @UndefinedVariable
-        item.setArt(d)
-    else:
-        icon = d.get("icon", d.get("poster", d.get("thumb")))
-        thumb = d.get("thumb", d.get("poster", d.get("icon")))
-        if icon:
-            item.setIconImage(icon)
-        if thumb:
-            item.setThumbnailImage(thumb)
-    return item

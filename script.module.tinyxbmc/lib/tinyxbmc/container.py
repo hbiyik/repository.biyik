@@ -29,9 +29,9 @@ import json
 import importlib
 import traceback
 import inspect
-
 import time
 import sys
+from distutils.version import LooseVersion
 from urllib import parse
 
 REMOTE_DBG = False
@@ -56,6 +56,7 @@ from tinyxbmc import net
 from tinyxbmc import addon
 from tinyxbmc import collector
 from tinyxbmc import mediaurl
+from tinyxbmc import flare
 
 _startt = time.time()
 _default_method = "index"
@@ -131,7 +132,7 @@ class container(object):
             dispatchdata += "MEDIA     : %s\r\n" % repr(self._mediakwargs)
             errorcol.msg = dispatchdata
             addon.log(dispatchdata)
-            self._container.useragent = const.USERAGENT
+            self._container.useragent = flare.USERAGENT
             self._container.httptimeout = const.HTTPTIMEOUT
             self._container.autoupdate = False
             with collector.LogException("TINYXBMC EXTENSION ERROR", None, ignore=True) as ext_errcoll:
@@ -319,7 +320,7 @@ class Item:
     def __init__(self, name, info, art, addonid, module, container, method,
                  context_remove_old=False, media_silent=False, media_resolve=True, containerobj=None):
         item = xbmcgui.ListItem(label=name)
-        gui.setArt(item, net.art(art))
+        setArt(item, net.art(art))
         item.setInfo("video", info)
         self.name = name
         self.info = info
@@ -466,7 +467,7 @@ class Player(xbmc.Player):
             if info:
                 li.setInfo("video", info)
             if art:
-                gui.setArt(li, art)
+                setArt(li, art)
             self.play(u, li)
         return self.waitplayback(u)
 
@@ -509,3 +510,18 @@ class Player(xbmc.Player):
     def onAVStarted(self):
         self.alive = True
         self.close()
+
+
+def setArt(item, d):
+    for k, v in d.items():
+        d[k] = net.tokodiurl(v, pushnoverify=True, pushua=True, pushcookie=True)
+    if LooseVersion(xbmcgui.__version__) >= LooseVersion("2.14.0"):  # @UndefinedVariable
+        item.setArt(d)
+    else:
+        icon = d.get("icon", d.get("poster", d.get("thumb")))
+        thumb = d.get("thumb", d.get("poster", d.get("icon")))
+        if icon:
+            item.setIconImage(icon)
+        if thumb:
+            item.setThumbnailImage(thumb)
+    return item

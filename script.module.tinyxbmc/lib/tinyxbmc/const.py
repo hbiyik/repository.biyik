@@ -17,7 +17,6 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
-from tinyxbmc import flare
 
 
 CT_FILES = "files"
@@ -44,7 +43,6 @@ ADDONHAY = "xmlcache"
 
 COOKIEFILE = "cookie"
 
-USERAGENT = flare.getuseragent("Mozilla/5.0 (X11; Linux x86_64; rv:145.0) Gecko/20100101 Firefox/145.0")
 HTTPTIMEOUT = 5
 EXTPREFIX = "plugin.program.tinyxbmc-"
 
