@@ -320,7 +320,9 @@ class Item:
     def __init__(self, name, info, art, addonid, module, container, method,
                  context_remove_old=False, media_silent=False, media_resolve=True, containerobj=None):
         item = xbmcgui.ListItem(label=name)
-        setArt(item, net.art(art))
+        for k, v in art.items():
+            art[k] = net.tokodiurl(v, None, useragent=containerobj._container.useragent if containerobj else None)
+        setArt(item, art)
         item.setInfo("video", info)
         self.name = name
         self.info = info

@@ -53,21 +53,13 @@ def loadcookies():
         pass
     return cookie
 
-# caching cookies may cause issues when http method is called from container.download
-# and module.http, since they will use different cookijars, therefore always
-# container.download method to have a cookie managed session
-
-
-cookicache = loadcookies()
-cookicachelist = list(cookicache)
-
 
 def getsession(seskey):
     if seskey in sessions:
         return sessions[seskey]
     else:
         sess = requests.Session()
-        sess.cookies = cookicache
+        sess.cookies = loadcookies()
         if seskey is None:
             seskey = -1
         elif seskey == 0:
@@ -90,7 +82,7 @@ def getcookiestr(url, cookiestr=""):
     if not domain.startswith("."):
         domain = "." + domain
     if not domain == ".":
-        for cookie in cookicachelist:
+        for cookie in list(loadcookies()):
             if domain.endswith(cookie.domain):
                 cookiestr += ";%s=%s" % (cookie.name, cookie.value)
     return cookiestr
@@ -109,6 +101,7 @@ def makeheader(url=None, headers=None, referer=None, useragent=None, pushnoverif
     # get existing kodiurl headers
     if url and "|" in url:
         _, oldheaders = fromkodiurl(url)
+        oldheaders = oldheaders or {}
         for k, v in oldheaders.items():
             newheaders[k.lower()] = v
 
@@ -227,13 +220,3 @@ def absurl(url, fromurl):
                 return "%s://%s/%s" % (up.scheme, up.netloc, url)
             else:
                 return "%s://%s%s/%s" % (up.scheme, up.netloc, up.path, url)
-
-
-def art(art, headers=None):
-    d = art.copy()
-    for k, v in d.items():
-        try:
-            d[k] = tokodiurl(v, headers, useragent=self._container.useragent)
-        except Exception:
-            pass
-    return d
