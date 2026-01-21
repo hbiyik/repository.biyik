@@ -113,7 +113,7 @@
 	</extension>
 </addon>
 
-<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.4.2">
+<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.4.3">
     <requires>
 		<import addon="script.module.cachecontrol"/>
 		<import addon="script.module.requests"/>
@@ -224,23 +224,6 @@
 		<source/>
 		<website>https://github.com/hbiyik/repository.biyik</website>
   </extension>
-</addon>
-
-<addon id="script.module.chromium" name="Chromium Service" provider-name="hbiyik" version="0.1.4">
-    <requires>
-		<import addon="script.module.tinyxbmc"/>
-		<import addon="service.system.docker" optional="true"/>
-	</requires>
-	<extension point="xbmc.python.module" library="lib" />
-    <extension point="xbmc.service" library="lib/libchromium/service.py" />
-	<extension point="xbmc.addon.metadata">
-		<platform>linux</platform>
-		<summary lang="en">TinyXBMC Chromium Service</summary>
-		<description lang="en">TinyXBMC Chromium Service</description>
-		<license>GNU General Public License, v2</license>
-		<forum>https://github.com/hbiyik/repository.biyik/issues</forum>
-		<website>https://github.com/hbiyik/repository.biyik</website>
-	</extension>
 </addon>
 
 <addon id="script.module.cachecontrol" name="Cachecontrol Module" provider-name="hbiyik" version="3.0.3">
