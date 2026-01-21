@@ -38,6 +38,7 @@ OPTIONHAY = "tinyxbmc_option"
 HTTPCACHEHAY = "httpcache"
 OBJCACHEHAY = "objcache"
 METACACHEHAY = "metacache"
+FLAREHAY = "flare"
 
 ADDONHAY = "xmlcache"
 
@@ -67,3 +68,5 @@ DEFAULT_FOLDER = "DefaultFolder.png"
 
 OPTION_VIEWS = "views"
 OPTION_INSTALLID = "installid"
+
+FALLBACK_USERAGENT = "Mozilla/5.0 (X11; Linux x86_64; rv:145.0) Gecko/20100101 Firefox/145.0"

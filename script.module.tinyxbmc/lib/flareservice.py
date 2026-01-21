@@ -8,6 +8,7 @@ from tinyxbmc import addon
 from tinyxbmc import gui
 from tinyxbmc import const
 from tinyxbmc import flare
+from tinyxbmc import hay
 
 
 class FlareSolverrService(addon.blockingloop):
@@ -112,6 +113,10 @@ class FlareSolverrService(addon.blockingloop):
             self.spawn()
         else:
             self.close()
+        time.sleep(3)
+        with hay.stack(const.FLAREHAY) as stack:
+            ua = flare.getuseragent(const.FALLBACK_USERAGENT)
+            stack.throw("useragent", ua)
 
     def spawn(self):
         self.resetdocker()

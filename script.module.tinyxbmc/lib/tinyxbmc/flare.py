@@ -21,6 +21,8 @@ import requests
 from http.cookiejar import Cookie
 
 from tinyxbmc import gui
+from tinyxbmc import hay
+from tinyxbmc import const
 
 PORT = 8191
 TIMEOUT = 60 * 1000
@@ -67,4 +69,7 @@ def cookies(resp):
     return cookies
 
 
-USERAGENT = getuseragent("Mozilla/5.0 (X11; Linux x86_64; rv:145.0) Gecko/20100101 Firefox/145.0")
+with hay.stack(const.FLAREHAY) as stack:
+    USERAGENT = stack.find("useragent").data
+    if not USERAGENT:
+        USERAGENT = const.FALLBACK_USERAGENT
