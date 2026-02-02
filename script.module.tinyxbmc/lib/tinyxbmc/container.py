@@ -75,7 +75,6 @@ class container(object):
             self.__inittime = time.time()
             self.sysaddon = sys.argv[0]
             self.player = None
-            self.playertimeout = 30
             self.emptycontainer = True
             aurl = parse.urlparse(self.sysaddon)
             if aurl.scheme.lower() in ["plugin", "script"]:
@@ -171,8 +170,7 @@ class container(object):
             it = self._method(*args, **kwargs)
 
         self.player = Player(silent=bool(self._mediakwargs.get("silent")),
-                             canresolve=bool(self._mediakwargs.get("resolve")),
-                             timeout=self.playertimeout)
+                             canresolve=bool(self._mediakwargs.get("resolve")))
         with self.player:
             for u in tools.safeiter(it, self.player.iscanceled):
                 # use only mediaurl type
@@ -182,8 +180,7 @@ class container(object):
                     except Exception:
                         self.log("Skipping broken url: %s" % repr(u), 100)
                         continue
-                self.player.stream(u, info, art)
-                if self.player.alive:
+                if self.player.stream(u, info, art):
                     break
                 else:
                     self.log("Skipping broken url: %s" % u, 100)
@@ -423,9 +420,9 @@ class Player(xbmc.Player):
     def __init__(self, silent=False, canresolve=True, timeout=10):
         self.silent = silent
         self.canresolve = canresolve
-        self.timeout = timeout  # max time to wait after player initiated the playback but not yet played
-        self.ttol = 5  # max time to wait for player to initiate the playback
-        self.alive = False
+        self.playerinit = False
+        self.started = False
+        self.stopped = False
         self.dlg = None
         xbmc.Player.__init__(self)
 
@@ -472,48 +469,61 @@ class Player(xbmc.Player):
             if art:
                 setArt(li, art)
             self.play(u, li)
-        return self.waitplayback(u)
 
-    def waitplayback(self, u=""):
         factor = 5
-        startt = time.time()
-        for i in range(self.timeout * factor):
-            p = 100 * i / (self.timeout * factor)
+        timeout = True
+        for i in range(url.timeout * factor):
+            p = 100 * i / (url.timeout * factor)
             if self.dlg:
                 self.dlg.update(int(p), u)
             xbmc.executebuiltin('Dialog.Close(12002,true)​')
-            if self.alive or \
-                (not self.isPlaying() and time.time() - startt > self.ttol) or \
-                    self.iscanceled():
-                if not self.alive:
-                    if time.time() - startt > self.ttol:
-                        addon.log("Can't play media because player can not initiate the playback (%i seconds): %s" % (self.ttol, u))
-                    if self.iscanceled():
-                        addon.log("Can't play media because user cancelled: %s" % u)
-                else:
-                    addon.log("Succesfully playing: %s" % u)
+            if self.iscanceled() or self.started or self.stopped:
+                timeout = False
                 break
             xbmc.sleep(int(1000 / factor))
-        if not self.alive:
-            if self.isPlaying():
-                addon.log("Can't play media because player initiate the playback, but the playback did not start in time (%i seconds): %s" % (self.timeout, u))
+
+        if self.started:
+            xbmc.executebuiltin('Dialog.Close(all,true)​')
+            addon.log("Started playing: %s" % u)
+        else:
+            if timeout:
+                addon.log("Can't play media because playback did not start in %i seconds: %s" % (url.timeout, u))
+            if self.iscanceled():
+                addon.log("Can't play media because playback is cancelled by user: %s" % u)
+            if self.stopped:
+                addon.log("Can't play media because playback is stopped by the player: %s" % u)
             self.canresolve = False
             xbmc.executebuiltin('Dialog.Close(12002,true)​')
             if self.dlg:
-                self.dlg.close()
-                self.dlg.create('Opening Media', 'Waiting for media')
-        else:
-            xbmc.executebuiltin('Dialog.Close(all,true)​')
+                self.dlg.update(0, "Waiting for media")
+            # inputstream.adaptive bug
+            if self.playerinit:
+                self.stop()
+
         self.log("", 100)
-        return self.alive
+        return self.started
 
     def onPlayBackStarted(self):
+        self.playerinit = True
+        self.log("PlaybackStarted")
         if tools.kodiversion() < 18:
-            self.alive = True
+            self.started = True
+
+    def onPlayBackEnded(self):
+        self.log("PlaybackEnded")
+        self.stopped = True
+
+    def onPlayBackError(self):
+        self.log("PlaybackError")
+        self.stopped = True
+
+    def onPlayBackStopped(self):
+        self.log("PlaybacStopped")
+        self.stopped = True
 
     def onAVStarted(self):
-        self.alive = True
-        self.close()
+        self.log("AVStarted")
+        self.started = True
 
 
 def setArt(item, d):
