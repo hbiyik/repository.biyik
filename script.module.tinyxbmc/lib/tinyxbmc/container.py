@@ -321,7 +321,8 @@ class Item:
                  context_remove_old=False, media_silent=False, media_resolve=True, containerobj=None):
         item = xbmcgui.ListItem(label=name)
         for k, v in art.items():
-            art[k] = net.tokodiurl(v, None, useragent=containerobj._container.useragent if containerobj else None)
+            v, headers = net.fromkodiurl(v)
+            art[k] = net.tokodiurl(v, headers, useragent=containerobj._container.useragent if containerobj else None)
         setArt(item, art)
         item.setInfo("video", info)
         self.name = name
@@ -441,7 +442,7 @@ class Player(xbmc.Player):
         if self.dlg:
             self.dlg.update(percent or 0, msg)
         if percent is not None:
-            msg = f"[{percent}] {msg}"
+            msg = f"[{percent}%] {msg}"
         addon.log(msg)
 
     def close(self):
@@ -478,7 +479,8 @@ class Player(xbmc.Player):
         startt = time.time()
         for i in range(self.timeout * factor):
             p = 100 * i / (self.timeout * factor)
-            self.log(u, int(p))
+            if self.dlg:
+                self.dlg.update(int(p), u)
             xbmc.executebuiltin('Dialog.Close(12002,true)​')
             if self.alive or \
                 (not self.isPlaying() and time.time() - startt > self.ttol) or \
@@ -516,7 +518,8 @@ class Player(xbmc.Player):
 
 def setArt(item, d):
     for k, v in d.items():
-        d[k] = net.tokodiurl(v, pushnoverify=True, pushua=True, pushcookie=True)
+        v, headers = net.fromkodiurl(v)
+        d[k] = net.tokodiurl(v, headers, pushnoverify=True, pushua=True, pushcookie=True)
     if LooseVersion(xbmcgui.__version__) >= LooseVersion("2.14.0"):  # @UndefinedVariable
         item.setArt(d)
     else:

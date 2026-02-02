@@ -256,10 +256,7 @@ def builtin(*args, **kwargs):
 def log(txt, level=0):
     if addon:
         txt = "%s : %s" % (addon, txt)
-    if 'PYDEV_CONSOLE_ENCODING' not in os.environ:
-        print(txt)
-    else:
-        xbmc.log(txt, level)
+    xbmc.log(txt[:-2], level)
 
 
 class blockingloop(object):
