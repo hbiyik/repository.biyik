@@ -61,6 +61,7 @@ def installwidevine():
 class BaseUrl(dict):
     mediaurltype = const.URL_BASE
     url = None
+    timeout = 5
 
     @staticmethod
     def fromdict(dct):
@@ -196,6 +197,7 @@ class HlsUrl(LinkUrl):
 
 
 class AceUrl(BaseUrl):
+    timeout = 15
     mediaurltype = const.URL_ACE
 
     def __init__(self, url):
