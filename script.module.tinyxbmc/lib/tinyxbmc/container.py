@@ -453,6 +453,9 @@ class Player(xbmc.Player):
         return False
 
     def stream(self, url, info, art):
+        self.playerinit = False
+        self.started = False
+        self.stopped = False
         u = url.kodiurl
         li = xbmcgui.ListItem(path=u)
         if url.inputstream:
