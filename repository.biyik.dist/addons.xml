@@ -113,7 +113,7 @@
 	</extension>
 </addon>
 
-<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.4.6">
+<addon id="script.module.tinyxbmc" name="TinxyXBMC Module" provider-name="hbiyik" version="0.4.7">
     <requires>
 		<import addon="script.module.cachecontrol"/>
 		<import addon="script.module.requests"/>
