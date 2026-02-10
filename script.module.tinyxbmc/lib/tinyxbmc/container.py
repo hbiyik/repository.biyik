@@ -428,7 +428,7 @@ class Player(xbmc.Player):
 
     def __enter__(self):
         if not self.silent:
-            self.dlg = xbmcgui.DialogProgress()
+            self.dlg = xbmcgui.DialogProgressBG()
             self.dlg.create('Opening Media', 'Waiting for media')
         return self
 
@@ -449,7 +449,7 @@ class Player(xbmc.Player):
 
     def iscanceled(self):
         if self.dlg:
-            return self.dlg.iscanceled()
+            return self.dlg.isFinished()
         return False
 
     def stream(self, url, info, art):
